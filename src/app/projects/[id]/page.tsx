@@ -63,7 +63,7 @@ const LiveBoard = async ({ boardId }: { boardId: string }) => {
   );
 };
 
-export default async function ProjectPage({ params }: ProjectPageProps) {
+const ProjectContent = async ({ params }: ProjectPageProps) => {
   await connection();
   const { id } = await params;
   const board = await findBoard(id);
@@ -85,5 +85,13 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         <LiveBoard boardId={board.id} />
       </Suspense>
     </section>
+  );
+};
+
+export default function ProjectPage({ params }: ProjectPageProps) {
+  return (
+    <Suspense fallback={<p className="p-6 text-muted md:p-10">Loading the project…</p>}>
+      <ProjectContent params={params} />
+    </Suspense>
   );
 }

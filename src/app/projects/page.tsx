@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { connection } from "next/server";
 import { getAppServices } from "@/adapters/server/app-services";
 import type { Board } from "@/domain/boards/board";
@@ -16,9 +17,17 @@ const loadProjects = async (): Promise<ProjectsView> => {
   }
 };
 
-export default async function ProjectsPage() {
+const LiveProjects = async () => {
   await connection();
   const { boards, loadError } = await loadProjects();
 
   return <ProjectsContainer boards={boards} loadError={loadError} />;
+};
+
+export default function ProjectsPage() {
+  return (
+    <Suspense fallback={<p className="p-6 text-muted md:p-10">Loading projects…</p>}>
+      <LiveProjects />
+    </Suspense>
+  );
 }
