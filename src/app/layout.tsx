@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Nunito } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/presentation/shell/app-shell";
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
   description: "Watch three AI agents plan, build and review work on a shared board.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" className={`${nunito.variable} h-full antialiased`}>
       <body className="min-h-full">
