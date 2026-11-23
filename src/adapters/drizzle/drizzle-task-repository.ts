@@ -1,8 +1,10 @@
-import { asc, notInArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import type { Task } from "@/domain/tasks/task";
-import type { TaskRepository } from "@/ports/task-repository";
+import type { TaskStatus } from "@/domain/tasks/task-status";
+import type { TaskRepository, TransitionWrite, WriteOutcome } from "@/ports/task-repository";
 import type { Database } from "./client";
-import { tasks } from "./schema";
+import { WriteConflict, runWrite } from "./write-outcome";
+import { taskEvents, tasks } from "./schema";
 
 type TaskRow = typeof tasks.$inferSelect;
 
@@ -11,23 +13,11 @@ const toTask = (row: TaskRow): Task => ({
   requestId: row.requestId,
   title: row.title,
   description: row.description,
-  status: row.status as Task["status"],
+  status: row.status as TaskStatus,
   assignedAgent: row.assignedAgent as Task["assignedAgent"],
   attempts: row.attempts,
   lastFeedback: row.lastFeedback,
   reviewReason: row.reviewReason as Task["reviewReason"],
-});
-
-const toRow = (task: Task) => ({
-  id: task.id,
-  requestId: task.requestId,
-  title: task.title,
-  description: task.description,
-  status: task.status,
-  assignedAgent: task.assignedAgent,
-  attempts: task.attempts,
-  lastFeedback: task.lastFeedback,
-  reviewReason: task.reviewReason,
 });
 
 export const createDrizzleTaskRepository = (db: Database): TaskRepository => ({
@@ -37,38 +27,45 @@ export const createDrizzleTaskRepository = (db: Database): TaskRepository => ({
     return rows.map(toTask);
   },
 
-  replaceAll: async (next) => {
-    await db.transaction(async (tx) => {
-      const keptIds = next.map((task) => task.id);
+  applyTransition: async ({ task, expectedStatus, event }: TransitionWrite): Promise<WriteOutcome> =>
+    runWrite(() =>
+      db.transaction(async (tx) => {
+        const updated = await tx
+          .update(tasks)
+          .set({
+            status: task.status,
+            assignedAgent: task.assignedAgent,
+            attempts: task.attempts,
+            lastFeedback: task.lastFeedback,
+            reviewReason: task.reviewReason,
+          })
+          .where(and(eq(tasks.id, task.id), eq(tasks.status, expectedStatus)))
+          .returning({ id: tasks.id });
 
-      await tx.delete(tasks).where(notInArray(tasks.id, keptIds.length > 0 ? keptIds : [""]));
+        if (updated.length === 0) {
+          throw new WriteConflict();
+        }
 
-      const current = await tx.select().from(tasks);
-      const currentlyRunning = new Set(current.filter((row) => row.status === "in_progress").map((row) => row.id));
-      const leavingFirst = [...next].sort(
-        (left, right) => Number(currentlyRunning.has(right.id)) - Number(currentlyRunning.has(left.id)),
-      );
+        await tx.insert(taskEvents).values({
+          taskId: event.taskId,
+          fromStatus: event.from,
+          toStatus: event.to,
+          actor: event.actor,
+          reason: event.reason,
+          at: new Date(),
+        });
+      }),
+    ),
 
-      for (const task of leavingFirst) {
-        const row = toRow(task);
+  removeIfStatus: async (taskId: string, allowedStatuses: readonly TaskStatus[]): Promise<WriteOutcome> =>
+    runWrite(async () => {
+      const deleted = await db
+        .delete(tasks)
+        .where(and(eq(tasks.id, taskId), inArray(tasks.status, [...allowedStatuses])))
+        .returning({ id: tasks.id });
 
-        await tx
-          .insert(tasks)
-          .values(row)
-          .onConflictDoUpdate({
-            target: tasks.id,
-            set: {
-              requestId: row.requestId,
-              title: row.title,
-              description: row.description,
-              status: row.status,
-              assignedAgent: row.assignedAgent,
-              attempts: row.attempts,
-              lastFeedback: row.lastFeedback,
-              reviewReason: row.reviewReason,
-            },
-          });
+      if (deleted.length === 0) {
+        throw new WriteConflict();
       }
-    });
-  },
+    }),
 });

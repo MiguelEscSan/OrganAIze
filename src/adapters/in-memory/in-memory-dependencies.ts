@@ -6,6 +6,7 @@ import {
   createFixedClock,
   createInMemoryEventLog,
   createInMemoryRequestRepository,
+  createInMemoryState,
   createInMemoryTaskRepository,
   createSequentialIdGenerator,
 } from "./in-memory-stores";
@@ -17,12 +18,13 @@ type Seed = {
 
 export const createInMemoryDependencies = (seed: Seed = {}): ApplicationDependencies => {
   const clock = createFixedClock("2026-11-23T10:00:00.000Z");
+  const state = createInMemoryState(seed);
 
   return {
-    requests: createInMemoryRequestRepository(seed.requests),
-    tasks: createInMemoryTaskRepository(seed.tasks),
+    requests: createInMemoryRequestRepository(state),
+    tasks: createInMemoryTaskRepository(state, clock),
     settings: createInMemorySettingsRepository(),
-    events: createInMemoryEventLog(clock),
+    events: createInMemoryEventLog(state, clock),
     ids: createSequentialIdGenerator("id"),
     clock,
   };

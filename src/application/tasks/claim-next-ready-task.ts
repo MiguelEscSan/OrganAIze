@@ -1,7 +1,7 @@
 import type { Task } from "@/domain/tasks/task";
 import { transitionTask } from "@/domain/tasks/transition-task";
 import type { ApplicationDependencies } from "../shared/dependencies";
-import { fail, succeed, type Outcome } from "../shared/outcome";
+import { fail, type Outcome } from "../shared/outcome";
 import { recordTransition } from "./record-transition";
 
 export type ClaimNextReadyTask = { kind: "ClaimNextReadyTask" };
@@ -22,7 +22,11 @@ export const claimNextReadyTask =
       return fail(result.reason);
     }
 
-    await recordTransition(deps, result.tasks, result.event);
+    const after = result.tasks.find((task) => task.id === next.id);
 
-    return succeed({ ...next, status: "in_progress" });
+    if (!after) {
+      return fail("Task not found");
+    }
+
+    return recordTransition(deps, next, after, result.event);
   };

@@ -25,8 +25,11 @@ export const deleteRequest =
       return fail("Only requests whose tasks are all in definition or review can be deleted");
     }
 
-    await deps.requests.remove(command.requestId);
-    await deps.tasks.replaceAll(tasks.filter((task) => task.requestId !== command.requestId));
+    const outcome = await deps.requests.removeWithTasksIfStatuses(command.requestId, deletableStatuses);
+
+    if (outcome === "conflict") {
+      return fail("Only requests whose tasks are all in definition or review can be deleted");
+    }
 
     return succeed(undefined);
   };

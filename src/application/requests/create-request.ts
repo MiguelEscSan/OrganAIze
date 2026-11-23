@@ -35,8 +35,7 @@ export const createRequest =
       reviewReason: null,
     };
 
-    await deps.requests.save(request);
-    await deps.tasks.replaceAll([...(await deps.tasks.list()), task]);
+    await deps.requests.saveWithTasks(request, [task]);
 
     return succeed({ request, task });
   };

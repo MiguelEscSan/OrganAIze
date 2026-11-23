@@ -1,9 +1,8 @@
 import type { Task } from "@/domain/tasks/task";
-import { deleteTask } from "@/domain/tasks/edit-task";
 import { transitionTask } from "@/domain/tasks/transition-task";
 import type { ApplicationDependencies } from "../shared/dependencies";
 import { fail, succeed, type Outcome } from "../shared/outcome";
-import { recordTransition } from "./record-transition";
+import { conflictReason, recordTransition } from "./record-transition";
 
 export type ReviewDecisionKind = "send_to_ready" | "continue" | "delete";
 
@@ -13,31 +12,37 @@ export type DecideReview = {
   decision: ReviewDecisionKind;
 };
 
+const deletableStatuses = ["definition", "review"] as const;
+
 export const decideReview =
   (deps: ApplicationDependencies) =>
   async (command: DecideReview): Promise<Outcome<Task | null>> => {
-    const tasks = await deps.tasks.list();
-
     if (command.decision === "delete") {
-      const removed = deleteTask(tasks, command.taskId);
+      const tasks = await deps.tasks.list();
 
-      if (!removed.ok) {
-        return fail(removed.reason);
+      if (!tasks.some((task) => task.id === command.taskId)) {
+        return fail("Task not found");
       }
 
-      await deps.tasks.replaceAll(removed.tasks);
+      const outcome = await deps.tasks.removeIfStatus(command.taskId, deletableStatuses);
 
-      return succeed(null);
+      return outcome === "applied" ? succeed(null) : fail("Only tasks in definition or review can be deleted");
     }
 
+    const tasks = await deps.tasks.list();
+    const before = tasks.find((task) => task.id === command.taskId);
     const target = command.decision === "continue" ? "in_progress" : "ready";
     const result = transitionTask(tasks, command.taskId, target, "user");
 
-    if (!result.ok) {
-      return fail(result.reason);
+    if (!result.ok || !before) {
+      return fail(result.ok ? "Task not found" : result.reason);
     }
 
-    await recordTransition(deps, result.tasks, result.event);
+    const after = result.tasks.find((task) => task.id === command.taskId);
 
-    return succeed(result.tasks.find((task) => task.id === command.taskId) ?? null);
+    if (!after) {
+      return fail(conflictReason);
+    }
+
+    return recordTransition(deps, before, after, result.event);
   };

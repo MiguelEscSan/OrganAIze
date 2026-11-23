@@ -37,9 +37,9 @@ export const editRequest =
     const { title, description } = normalized.details;
     const updated: Request = { ...current, title, description };
 
-    await deps.requests.save(updated);
-    await deps.tasks.replaceAll(
-      tasks.map((task) => (task.requestId === current.id ? { ...task, title, description } : task)),
+    await deps.requests.saveWithTasks(
+      updated,
+      own.map((task) => ({ ...task, title, description })),
     );
 
     return succeed(updated);
