@@ -10,6 +10,7 @@ import { claimAndOrchestrateRequest } from "./tasks/claim-and-orchestrate-reques
 import { claimNextReadyTask } from "./tasks/claim-next-ready-task";
 import { decideReview } from "./tasks/review-decision";
 import { listBoard } from "./tasks/list-board";
+import { listBoards } from "./tasks/list-boards";
 import { moveTask } from "./tasks/move-task";
 import { orchestrateRequest, type OrchestrationDependencies } from "./tasks/orchestrate-request";
 import { releaseTaskToReady } from "./tasks/release-task-to-ready";
@@ -39,6 +40,7 @@ export const createMediator = (deps: OrchestrationDependencies & DevelopDependen
   mediator.registerQuery("ListRequests", listRequests(deps));
   mediator.registerQuery("GetRequest", getRequest(deps));
   mediator.registerQuery("ListBoard", listBoard(deps));
+  mediator.registerQuery("ListBoards", listBoards(deps));
   mediator.registerQuery("GetSettings", getSettings(deps));
 
   return mediator;
