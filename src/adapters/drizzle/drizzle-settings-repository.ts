@@ -11,7 +11,12 @@ export const createDrizzleSettingsRepository = (db: Database): SettingsRepositor
       return defaultAppSettings;
     }
 
-    return { maxAttempts: row.maxAttempts, maxMinutes: row.maxMinutes, maxTokens: row.maxTokens };
+    return {
+      maxAttempts: row.maxAttempts,
+      maxMinutes: row.maxMinutes,
+      maxTokens: row.maxTokens,
+      maxQaTasks: row.maxQaTasks,
+    };
   },
 
   save: async (value) => {
@@ -20,7 +25,12 @@ export const createDrizzleSettingsRepository = (db: Database): SettingsRepositor
       .values({ singleton: true, ...value })
       .onConflictDoUpdate({
         target: settings.singleton,
-        set: { maxAttempts: value.maxAttempts, maxMinutes: value.maxMinutes, maxTokens: value.maxTokens },
+        set: {
+          maxAttempts: value.maxAttempts,
+          maxMinutes: value.maxMinutes,
+          maxTokens: value.maxTokens,
+          maxQaTasks: value.maxQaTasks,
+        },
       });
   },
 });

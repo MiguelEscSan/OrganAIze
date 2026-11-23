@@ -22,7 +22,7 @@ describe("getSettings", () => {
 describe("updateSettings", () => {
   it("saves valid settings and returns them", async () => {
     const deps = createInMemoryDependencies();
-    const next = { maxAttempts: 5, maxMinutes: 20, maxTokens: 80_000 };
+    const next = { maxAttempts: 5, maxMinutes: 20, maxTokens: 80_000, maxQaTasks: 3 };
 
     const outcome = await updateSettings(deps)({ kind: "UpdateSettings", settings: next });
 

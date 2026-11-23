@@ -1,0 +1,1 @@
+ALTER TABLE "settings" ADD COLUMN "max_qa_tasks" integer DEFAULT 2 NOT NULL;
