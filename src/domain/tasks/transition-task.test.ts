@@ -7,6 +7,8 @@ const createTask = (overrides: Partial<Task>): Task => ({
   requestId: "request-1",
   title: "Create contact route",
   description: "Add the contact page",
+  acceptanceCriteria: [],
+  files: [],
   status: "definition",
   assignedAgent: null,
   attempts: 0,

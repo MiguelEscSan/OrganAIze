@@ -23,6 +23,8 @@ describe("createRequest", () => {
         requestId: "id-1",
         title: "Add contact page",
         description: "<p>Form with name and email</p>",
+        acceptanceCriteria: [],
+        files: [],
         status: "definition",
         assignedAgent: null,
         attempts: 0,

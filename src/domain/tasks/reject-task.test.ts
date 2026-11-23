@@ -7,6 +7,8 @@ const createTask = (overrides: Partial<Task>): Task => ({
   requestId: "request-1",
   title: "Validate form fields",
   description: "Email format and required fields",
+  acceptanceCriteria: [],
+  files: [],
   status: "qa",
   assignedAgent: "testing",
   attempts: 1,

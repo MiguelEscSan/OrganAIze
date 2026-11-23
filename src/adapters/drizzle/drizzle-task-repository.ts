@@ -13,11 +13,14 @@ const toTask = (row: TaskRow): Task => ({
   requestId: row.requestId,
   title: row.title,
   description: row.description,
+  acceptanceCriteria: row.acceptanceCriteria,
+  files: row.files,
   status: row.status as TaskStatus,
   assignedAgent: row.assignedAgent as Task["assignedAgent"],
   attempts: row.attempts,
   lastFeedback: row.lastFeedback,
-  reviewReason: row.reviewReason as Task["reviewReason"],  parentTaskId: row.parentTaskId,
+  reviewReason: row.reviewReason as Task["reviewReason"],
+  parentTaskId: row.parentTaskId,
 });
 
 export const createDrizzleTaskRepository = (db: Database): TaskRepository => ({

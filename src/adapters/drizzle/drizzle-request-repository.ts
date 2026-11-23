@@ -14,6 +14,8 @@ const toTaskRow = (task: Task) => ({
   parentTaskId: task.parentTaskId,
   title: task.title,
   description: task.description,
+  acceptanceCriteria: task.acceptanceCriteria,
+  files: task.files,
   status: task.status,
   assignedAgent: task.assignedAgent,
   attempts: task.attempts,

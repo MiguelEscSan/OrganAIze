@@ -12,6 +12,8 @@ const readyTask: Task = {
   parentTaskId: null,
   title: "Landing",
   description: "A landing page",
+  acceptanceCriteria: [],
+  files: [],
   status: "ready",
   assignedAgent: null,
   attempts: 0,

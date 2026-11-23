@@ -12,6 +12,8 @@ const parentTask: Task = {
   parentTaskId: null,
   title: "Landing",
   description: "A landing page",
+  acceptanceCriteria: [],
+  files: [],
   status: "in_progress",
   assignedAgent: null,
   attempts: 0,
@@ -56,6 +58,18 @@ describe("orchestrateRequest", () => {
     expect(subtasks.map((task) => [task.title, task.status, task.requestId, task.assignedAgent])).toEqual([
       ["Add hero section", "in_progress", "request-1", "develop"],
       ["Add footer", "in_progress", "request-1", "develop"],
+    ]);
+  });
+
+  it("stores each subtask's acceptance criteria and files", async () => {
+    const { deps, orchestrate } = run([parentTask], { ok: true, json: validPlan });
+
+    await orchestrate({ kind: "OrchestrateRequest", taskId: "task-1" });
+
+    const subtasks = (await deps.tasks.list()).filter((task) => task.parentTaskId === "task-1");
+    expect(subtasks.map((task) => [task.acceptanceCriteria, task.files])).toEqual([
+      [["Hero shows the headline"], ["src/app/page.tsx"]],
+      [["Footer shows the copyright"], ["src/app/page.tsx"]],
     ]);
   });
 

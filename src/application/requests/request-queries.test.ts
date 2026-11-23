@@ -14,6 +14,8 @@ const taskOf = (id: string, requestId: string, status: Task["status"]): Task => 
   requestId,
   title: id,
   description: "",
+  acceptanceCriteria: [],
+  files: [],
   status,
   assignedAgent: null,
   attempts: 0,
