@@ -24,8 +24,8 @@ Testing agent, Playwright, Edit and Continue changes.
 
 ## Tasks
 - [x] DEV-01 Phase 1: domain file-scope check and develop output shape, with tests (6 tests; RED observed as missing module, then GREEN)
-- [ ] DEV-02 Phase 2: `WorkspaceWriter` port and in-memory adapter
-- [ ] DEV-03 Phase 3: disk `WorkspaceWriter` with temp-dir tests
+- [x] DEV-02 Phase 2: `WorkspaceWriter` port and in-memory adapter
+- [x] DEV-03 Phase 3: disk `WorkspaceWriter` with temp-dir tests
 - [ ] DEV-04 Phase 4: `runDevelop` use case with in-memory tests
 - [ ] DEV-05 Phase 5: reject overlapping files across tasks in progress
 - [ ] DEV-06 Phase 6: wire time and token budgets to Develop
