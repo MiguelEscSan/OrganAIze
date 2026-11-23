@@ -9,16 +9,17 @@ import { claimNextReadyTask } from "./tasks/claim-next-ready-task";
 import { decideReview } from "./tasks/review-decision";
 import { listBoard } from "./tasks/list-board";
 import { moveTask } from "./tasks/move-task";
+import { orchestrateRequest, type OrchestrationDependencies } from "./tasks/orchestrate-request";
 import { stopTaskForBudget } from "./tasks/stop-task-for-budget";
 import { submitDevelopResult } from "./tasks/submit-develop-result";
 import { submitTestResult } from "./tasks/submit-test-result";
 import { Mediator } from "./cqrs/mediator";
-import type { ApplicationDependencies } from "./shared/dependencies";
 
-export const createMediator = (deps: ApplicationDependencies): Mediator => {
+export const createMediator = (deps: OrchestrationDependencies): Mediator => {
   const mediator = new Mediator();
 
   mediator.registerCommand("CreateRequest", createRequest(deps));
+  mediator.registerCommand("OrchestrateRequest", orchestrateRequest(deps));
   mediator.registerCommand("EditRequest", editRequest(deps));
   mediator.registerCommand("DeleteRequest", deleteRequest(deps));
   mediator.registerCommand("MoveTask", moveTask(deps));

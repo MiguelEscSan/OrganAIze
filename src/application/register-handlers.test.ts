@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { createInMemoryDependencies } from "@/adapters/in-memory/in-memory-dependencies";
+import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-client";
 import { createMediator } from "./register-handlers";
+
+const createDependenciesWithLlm = () => ({
+  ...createInMemoryDependencies(),
+  llm: createScriptedLlmClient({ ok: false, reason: "not used in this test" }),
+});
 
 describe("createMediator", () => {
   it("creates a request through the mediator and reads it back through a query", async () => {
-    const mediator = createMediator(createInMemoryDependencies());
+    const mediator = createMediator(createDependenciesWithLlm());
 
     await mediator.send({ kind: "CreateRequest", boardId: "board-1", title: "Landing page", description: "" });
     const summaries = await mediator.ask<{ kind: "ListRequests" }, { request: { title: string }; total: number }[]>({
@@ -15,7 +21,7 @@ describe("createMediator", () => {
   });
 
   it("routes a claim through the mediator and moves the next ready task", async () => {
-    const deps = createInMemoryDependencies();
+    const deps = createDependenciesWithLlm();
     const mediator = createMediator(deps);
     await mediator.send({ kind: "CreateRequest", boardId: "board-1", title: "Landing", description: "" });
     const [created] = await deps.tasks.list();
