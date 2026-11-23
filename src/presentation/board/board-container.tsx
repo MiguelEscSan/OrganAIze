@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import type { TasksByStatus } from "@/domain/tasks/group-tasks-by-status";
 import type { Task } from "@/domain/tasks/task";
 import type { TaskStatus } from "@/domain/tasks/task-status";
+import { explainOrchestrationFailure } from "@/domain/tasks/orchestration-failure";
 import { sendJson } from "../shared/send-json";
+import { ErrorBanner } from "./error-banner";
 import { KanbanBoard } from "./kanban-board";
 import type { TaskDialogValues } from "./task-dialog";
 
@@ -33,6 +35,11 @@ const findTask = (tasksByStatus: TasksByStatus, taskId: string): Task | undefine
     .flat()
     .find((task) => task.id === taskId);
 
+const findOrchestrationFailure = (tasksByStatus: TasksByStatus): Task | undefined =>
+  tasksByStatus.review.find((task) => task.reviewReason === "orchestration" && task.lastFeedback !== null);
+
+const failureKey = (task: Task): string => `${task.id}:${task.lastFeedback ?? ""}`;
+
 const boardUrl = (boardId: string): string => `/api/board?boardId=${encodeURIComponent(boardId)}`;
 
 export const BoardContainer = ({
@@ -44,6 +51,7 @@ export const BoardContainer = ({
   const [tasksByStatus, setTasksByStatus] = useState<TasksByStatus>(initialTasksByStatus ?? emptyBoard);
   const [loadError, setLoadError] = useState<string | null>(initialError);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [dismissedFailureKey, setDismissedFailureKey] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -139,8 +147,23 @@ export const BoardContainer = ({
     await runAction(sendJson("POST", `/api/tasks/${taskId}`, { to }), "The task could not be moved");
   };
 
+  const orchestrationFailure = findOrchestrationFailure(tasksByStatus);
+  const orchestrationFailureKey = orchestrationFailure ? failureKey(orchestrationFailure) : null;
+  const explanation =
+    orchestrationFailure?.lastFeedback && orchestrationFailureKey !== dismissedFailureKey
+      ? explainOrchestrationFailure(orchestrationFailure.lastFeedback)
+      : null;
+
   return (
     <div className="flex flex-col gap-3">
+      {explanation ? (
+        <ErrorBanner
+          title={explanation.title}
+          reason={explanation.reason}
+          detail={explanation.detail}
+          onDismiss={() => setDismissedFailureKey(orchestrationFailureKey)}
+        />
+      ) : null}
       {loadError ? (
         <p role="alert" className="mx-6 rounded-lg bg-terracotta/10 px-4 py-2 text-sm text-terracotta md:mx-10">
           {loadError}
