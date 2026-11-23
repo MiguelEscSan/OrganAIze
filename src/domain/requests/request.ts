@@ -1,5 +1,6 @@
 export type Request = {
   id: string;
+  boardId: string;
   title: string;
   description: string;
 };

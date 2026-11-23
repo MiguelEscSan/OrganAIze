@@ -17,6 +17,7 @@ describe("decideReview", () => {
       attempts: 0,
       lastFeedback: "3. Broken",
       reviewReason: null,
+      parentTaskId: null,
     });
     expect(await deps.events.list()).toEqual([
       expect.objectContaining({ taskId: "t1", from: "review", to: "ready", actor: "user" }),

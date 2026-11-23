@@ -3,6 +3,7 @@ import { defaultAppSettings } from "@/domain/settings/app-settings";
 import type { Request } from "@/domain/requests/request";
 import type { Task } from "@/domain/tasks/task";
 import type { TaskEvent } from "@/domain/tasks/task-event";
+import { createDrizzleBoardRepository } from "./drizzle-board-repository";
 import { createDrizzleEventLog } from "./drizzle-event-log";
 import { createDrizzleRequestRepository } from "./drizzle-request-repository";
 import { createDrizzleSettingsRepository } from "./drizzle-settings-repository";
@@ -11,7 +12,7 @@ import { openTestDatabase, resetTestDatabase } from "./test-support";
 import type { Database } from "./client";
 
 const clock = { now: () => "2026-11-23T10:00:00.000Z" };
-const request: Request = { id: "request-1", title: "Landing", description: "<p>x</p>" };
+const request: Request = { id: "request-1", boardId: "board-1", title: "Landing", description: "<p>x</p>" };
 
 const taskOf = (id: string, status: Task["status"] = "definition"): Task => ({
   id,
@@ -23,6 +24,8 @@ const taskOf = (id: string, status: Task["status"] = "definition"): Task => ({
   attempts: 0,
   lastFeedback: null,
   reviewReason: null,
+
+  parentTaskId: null,
 });
 
 const transitionEvent = (taskId: string, from: Task["status"], to: Task["status"]): TaskEvent => ({
@@ -41,6 +44,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await resetTestDatabase(db);
+  await createDrizzleBoardRepository(db).save({ id: "board-1", name: "Shop", rootPath: "C:\Projects\shop" });
 });
 
 afterAll(async () => {
@@ -202,6 +206,35 @@ describe("drizzle task repository", () => {
     expect((await tasks.list()).map((task) => task.status)).toEqual(["ready"]);
   });
 
+  it("lets several subtasks of the same request be in progress together", async () => {
+    const requests = createDrizzleRequestRepository(db);
+    const tasks = createDrizzleTaskRepository(db);
+    const parent = { ...taskOf("t1", "in_progress") };
+    const subtaskOf = (id: string) => ({ ...taskOf(id, "in_progress"), parentTaskId: parent.id });
+
+    await requests.saveWithTasks(request, [parent, subtaskOf("s1"), subtaskOf("s2")]);
+
+    expect((await tasks.list()).filter((task) => task.status === "in_progress").map((task) => task.id)).toEqual([
+      "t1",
+      "s1",
+      "s2",
+    ]);
+  });
+
+  it("refuses a second request in progress while the first one is still running", async () => {
+    const requests = createDrizzleRequestRepository(db);
+    const tasks = createDrizzleTaskRepository(db);
+    await requests.saveWithTasks(request, [taskOf("t1", "in_progress"), taskOf("t2", "ready")]);
+
+    const outcome = await tasks.applyTransition({
+      task: taskOf("t2", "in_progress"),
+      expectedStatus: "ready",
+      event: transitionEvent("t2", "ready", "in_progress"),
+    });
+
+    expect(outcome).toBe("conflict");
+  });
+
   it("removes a task only while its stored status is allowed", async () => {
     const requests = createDrizzleRequestRepository(db);
     const tasks = createDrizzleTaskRepository(db);
@@ -210,6 +243,37 @@ describe("drizzle task repository", () => {
     expect(await tasks.removeIfStatus("t1", ["definition", "review"])).toBe("conflict");
     expect(await tasks.removeIfStatus("t2", ["definition", "review"])).toBe("applied");
     expect((await tasks.list()).map((task) => task.id)).toEqual(["t1"]);
+  });
+});
+
+describe("drizzle board repository", () => {
+  const board = { id: "board-1", name: "Shop", rootPath: "C:\\Projects\\shop" };
+
+  it("saves a board and lists it back", async () => {
+    const repository = createDrizzleBoardRepository(db);
+
+    await repository.save(board);
+
+    expect(await repository.list()).toEqual([board]);
+  });
+
+  it("renames an existing board when saved again", async () => {
+    const repository = createDrizzleBoardRepository(db);
+    await repository.save(board);
+
+    await repository.save({ ...board, name: "Shop v2" });
+
+    expect(await repository.list()).toEqual([{ ...board, name: "Shop v2" }]);
+  });
+
+  it("refuses a second board that points at the same project folder", async () => {
+    const repository = createDrizzleBoardRepository(db);
+    await repository.save(board);
+
+    const outcome = await repository.save({ ...board, id: "board-2", name: "Copy" });
+
+    expect(outcome).toBe("conflict");
+    expect(await repository.list()).toEqual([board]);
   });
 });
 

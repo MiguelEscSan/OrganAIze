@@ -8,6 +8,27 @@
       "when": 1795443455128,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795450766503,
+      "tag": "0001_subtasks_parent_task",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795451903955,
+      "tag": "0002_boards",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795452265532,
+      "tag": "0003_requests_board",
+      "breakpoints": true
     }
   ]
 }

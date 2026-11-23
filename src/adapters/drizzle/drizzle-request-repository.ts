@@ -11,6 +11,7 @@ import { requests, tasks } from "./schema";
 const toTaskRow = (task: Task) => ({
   id: task.id,
   requestId: task.requestId,
+  parentTaskId: task.parentTaskId,
   title: task.title,
   description: task.description,
   status: task.status,

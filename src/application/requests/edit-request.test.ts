@@ -4,7 +4,7 @@ import type { Request } from "@/domain/requests/request";
 import type { Task } from "@/domain/tasks/task";
 import { editRequest } from "./edit-request";
 
-const request: Request = { id: "request-1", title: "Old", description: "old text" };
+const request: Request = { id: "request-1", boardId: "board-1", title: "Old", description: "old text" };
 const definitionTask: Task = {
   id: "task-1",
   requestId: "request-1",
@@ -15,6 +15,8 @@ const definitionTask: Task = {
   attempts: 0,
   lastFeedback: null,
   reviewReason: null,
+
+  parentTaskId: null,
 };
 
 describe("editRequest", () => {
@@ -29,7 +31,7 @@ describe("editRequest", () => {
     });
 
     expect(outcome.ok).toBe(true);
-    expect(await deps.requests.list()).toEqual([{ id: "request-1", title: "New title", description: "new text" }]);
+    expect(await deps.requests.list()).toEqual([{ id: "request-1", boardId: "board-1", title: "New title", description: "new text" }]);
     expect((await deps.tasks.list())[0]).toMatchObject({ title: "New title", description: "new text" });
   });
 

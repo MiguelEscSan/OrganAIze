@@ -4,7 +4,7 @@ import type { Request } from "@/domain/requests/request";
 import type { Task } from "@/domain/tasks/task";
 import { deleteRequest } from "./delete-request";
 
-const request: Request = { id: "request-1", title: "Landing", description: "" };
+const request: Request = { id: "request-1", boardId: "board-1", title: "Landing", description: "" };
 const taskOf = (id: string, status: Task["status"]): Task => ({
   id,
   requestId: "request-1",
@@ -15,6 +15,7 @@ const taskOf = (id: string, status: Task["status"]): Task => ({
   attempts: 0,
   lastFeedback: null,
   reviewReason: null,
+  parentTaskId: null,
 });
 
 describe("deleteRequest", () => {

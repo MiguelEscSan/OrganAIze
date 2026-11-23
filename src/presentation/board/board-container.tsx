@@ -27,6 +27,7 @@ export const BoardContainer = ({ initialTasks }: BoardContainerProps) => {
       attempts: 0,
       lastFeedback: null,
       reviewReason: null,
+      parentTaskId: null,
     };
     setTasks((current) => [...current, newTask]);
   };

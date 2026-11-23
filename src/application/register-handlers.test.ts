@@ -6,7 +6,7 @@ describe("createMediator", () => {
   it("creates a request through the mediator and reads it back through a query", async () => {
     const mediator = createMediator(createInMemoryDependencies());
 
-    await mediator.send({ kind: "CreateRequest", title: "Landing page", description: "" });
+    await mediator.send({ kind: "CreateRequest", boardId: "board-1", title: "Landing page", description: "" });
     const summaries = await mediator.ask<{ kind: "ListRequests" }, { request: { title: string }; total: number }[]>({
       kind: "ListRequests",
     });
@@ -17,7 +17,7 @@ describe("createMediator", () => {
   it("routes a claim through the mediator and moves the next ready task", async () => {
     const deps = createInMemoryDependencies();
     const mediator = createMediator(deps);
-    await mediator.send({ kind: "CreateRequest", title: "Landing", description: "" });
+    await mediator.send({ kind: "CreateRequest", boardId: "board-1", title: "Landing", description: "" });
     const [created] = await deps.tasks.list();
     await mediator.send({ kind: "MoveTask", taskId: created.id, to: "ready" });
 

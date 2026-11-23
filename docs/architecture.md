@@ -33,7 +33,7 @@ src/
 ## Agent principles
 
 1. **Single responsibility.** Orchestrator plans, Develop writes code, Testing judges. No agent does another's job.
-2. **One writer at a time.** Only the in-progress task may modify the target project.
+2. **No write conflicts.** Subtasks in progress may modify the target project only within their declared file scope, and two subtasks never write the same file at the same time.
 3. **Bounded scope.** Each subtask states exactly which files and behavior it covers. Develop must not touch anything outside it.
 4. **Explicit acceptance criteria.** The Orchestrator writes them. Testing judges only against them.
 5. **Concrete feedback.** Testing returns a numbered list of failures, each with the violated criterion and file/line when possible.

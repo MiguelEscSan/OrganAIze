@@ -6,8 +6,8 @@ import { getRequest } from "./get-request";
 import { listRequests } from "./list-requests";
 
 const requests: Request[] = [
-  { id: "request-1", title: "Landing", description: "" },
-  { id: "request-2", title: "Contact", description: "" },
+  { id: "request-1", boardId: "board-1", title: "Landing", description: "" },
+  { id: "request-2", boardId: "board-1", title: "Contact", description: "" },
 ];
 const taskOf = (id: string, requestId: string, status: Task["status"]): Task => ({
   id,
@@ -19,6 +19,7 @@ const taskOf = (id: string, requestId: string, status: Task["status"]): Task => 
   attempts: 0,
   lastFeedback: null,
   reviewReason: null,
+  parentTaskId: null,
 });
 const tasks: Task[] = [
   taskOf("task-1", "request-1", "deploy"),

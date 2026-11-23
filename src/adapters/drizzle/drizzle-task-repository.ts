@@ -17,7 +17,7 @@ const toTask = (row: TaskRow): Task => ({
   assignedAgent: row.assignedAgent as Task["assignedAgent"],
   attempts: row.attempts,
   lastFeedback: row.lastFeedback,
-  reviewReason: row.reviewReason as Task["reviewReason"],
+  reviewReason: row.reviewReason as Task["reviewReason"],  parentTaskId: row.parentTaskId,
 });
 
 export const createDrizzleTaskRepository = (db: Database): TaskRepository => ({

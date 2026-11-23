@@ -78,9 +78,11 @@ export const createInMemoryTaskRepository = (state: InMemoryState, clock: Clock)
       return "conflict";
     }
 
-    const runningElsewhere = state.tasks.some((candidate) => candidate.id !== task.id && candidate.status === "in_progress");
+    const requestRunningElsewhere = state.tasks.some(
+      (candidate) => candidate.id !== task.id && candidate.parentTaskId === null && candidate.status === "in_progress",
+    );
 
-    if (task.status === "in_progress" && runningElsewhere) {
+    if (task.status === "in_progress" && task.parentTaskId === null && requestRunningElsewhere) {
       return "conflict";
     }
 

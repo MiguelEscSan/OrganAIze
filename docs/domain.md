@@ -20,9 +20,9 @@ All transitions go through one pure function, `transitionTask`, which receives t
 
 ## Queue
 
-- At most one task is `in_progress` in the whole system at any time. Enforced in the database (unique partial index or transactional claim), not only in code.
+- At most one request is `in_progress` at any time. Its subtasks may be in progress together. Enforced in the database (unique partial index or transactional claim), not only in code.
 - Other tasks wait in `ready` in FIFO order. The queue is unlimited.
-- `qa` holds at most one task, because it is fed only by the single in-progress task.
+- `qa` holds at most N tasks, where N is configurable in Settings (default 2).
 
 ## Attempts
 
@@ -52,6 +52,7 @@ Every state change writes an event: task, from, to, actor, reason, timestamp. Th
 - Attempt limit: default 3.
 - Time budget: default 15 minutes per run.
 - Token budget: default 50 000 tokens per run.
+- QA cap: default 2 tasks in `qa` at once.
 - Stored per user in a `settings` table and editable from the Settings view.
 
 ## Decisions
