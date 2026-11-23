@@ -14,6 +14,10 @@ export const SettingsContainer = ({ initialSettings }: SettingsContainerProps) =
   const [notice, setNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const changeSettings = (changes: Partial<AppSettings>) => {
+    setSettings((current) => ({ ...current, ...changes }));
+  };
+
   const saveSettings = async () => {
     setIsSaving(true);
 
@@ -25,12 +29,10 @@ export const SettingsContainer = ({ initialSettings }: SettingsContainerProps) =
 
   return (
     <SettingsForm
-      maxAttempts={settings.maxAttempts}
-      maxQaTasks={settings.maxQaTasks}
+      values={settings}
       notice={notice}
       isSaving={isSaving}
-      onMaxAttemptsChange={(maxAttempts) => setSettings((current) => ({ ...current, maxAttempts }))}
-      onMaxQaTasksChange={(maxQaTasks) => setSettings((current) => ({ ...current, maxQaTasks }))}
+      onChange={changeSettings}
       onSubmit={() => void saveSettings()}
     />
   );

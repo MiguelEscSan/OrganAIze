@@ -23,6 +23,14 @@ describe("validateAppSettings", () => {
     expect(validateAppSettings({ ...defaultAppSettings, maxTokens: 1_000_001 }).ok).toBe(false);
   });
 
+  it("refuses a blank team name or one longer than 40 characters", () => {
+    expect(validateAppSettings({ ...defaultAppSettings, teamName: "   " })).toEqual({
+      ok: false,
+      reason: "Team name must be between 1 and 40 characters",
+    });
+    expect(validateAppSettings({ ...defaultAppSettings, teamName: "x".repeat(41) }).ok).toBe(false);
+  });
+
   it("refuses a QA capacity outside 1 to 10 tasks", () => {
     expect(validateAppSettings({ ...defaultAppSettings, maxQaTasks: 0 })).toEqual({
       ok: false,

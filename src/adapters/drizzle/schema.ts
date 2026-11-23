@@ -68,6 +68,8 @@ export const settings = pgTable(
     maxMinutes: integer("max_minutes").notNull(),
     maxTokens: integer("max_tokens").notNull(),
     maxQaTasks: integer("max_qa_tasks").notNull().default(2),
+    teamName: text("team_name").notNull().default("Agent Team"),
+    autoRefresh: boolean("auto_refresh").notNull().default(true),
   },
   (table) => [check("settings_singleton", sql`${table.singleton} = true`)],
 );
