@@ -45,6 +45,29 @@ export const createDrizzleRequestRepository = (db: Database): RequestRepository 
     });
   },
 
+  updateWithTasksIfStatuses: async (request, incoming, allowedStatuses: readonly TaskStatus[]): Promise<WriteOutcome> =>
+    runWrite(() =>
+      db.transaction(async (tx) => {
+        const own = await tx.select().from(tasks).where(eq(tasks.requestId, request.id)).for("update");
+
+        if (own.some((task) => !allowedStatuses.includes(task.status as TaskStatus))) {
+          throw new WriteConflict();
+        }
+
+        await tx
+          .update(requests)
+          .set({ title: request.title, description: request.description })
+          .where(eq(requests.id, request.id));
+
+        for (const task of incoming) {
+          await tx
+            .update(tasks)
+            .set({ title: task.title, description: task.description })
+            .where(eq(tasks.id, task.id));
+        }
+      }),
+    ),
+
   removeWithTasksIfStatuses: async (requestId, allowedStatuses: readonly TaskStatus[]): Promise<WriteOutcome> =>
     runWrite(() =>
       db.transaction(async (tx) => {
