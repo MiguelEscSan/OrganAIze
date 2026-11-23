@@ -9,7 +9,7 @@ describe("listBoards", () => {
       { id: "board-2", name: "Shop", rootPath: "C:/projects/shop" },
     ]);
 
-    const result = await listBoards({ boards })({ kind: "ListBoards" });
+    const result = await listBoards({ boards })();
 
     expect(result.map((board) => board.id)).toEqual(["board-1", "board-2"]);
   });
@@ -17,6 +17,6 @@ describe("listBoards", () => {
   it("returns an empty list when no board exists", async () => {
     const boards = createInMemoryBoardRepository();
 
-    expect(await listBoards({ boards })({ kind: "ListBoards" })).toEqual([]);
+    expect(await listBoards({ boards })()).toEqual([]);
   });
 });

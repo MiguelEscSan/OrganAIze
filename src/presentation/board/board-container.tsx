@@ -1,10 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { Board } from "@/domain/boards/board";
 import type { TasksByStatus } from "@/domain/tasks/group-tasks-by-status";
 import type { Task } from "@/domain/tasks/task";
 import type { TaskStatus } from "@/domain/tasks/task-status";
 import { sendJson } from "../shared/send-json";
+import { BoardSelector } from "./board-selector";
+import { CreateBoardForm, type BoardFormValues } from "./create-board-form";
 import { KanbanBoard } from "./kanban-board";
 import type { TaskDialogValues } from "./task-dialog";
 
@@ -20,6 +24,8 @@ const emptyBoard: TasksByStatus = {
 };
 
 type BoardContainerProps = {
+  boardId: string | null;
+  boards: Board[];
   initialTasksByStatus: TasksByStatus | null;
   initialError: string | null;
   autoRefresh: boolean;
@@ -27,19 +33,56 @@ type BoardContainerProps = {
 
 type BoardResponse = { ok: boolean; reason?: string; tasksByStatus?: TasksByStatus };
 
+type CreateBoardResponse = { ok: boolean; reason?: string; board?: Board };
+
+type CreateBoardOutcome = { ok: true; board: Board } | { ok: false; reason: string };
+
 const findTask = (tasksByStatus: TasksByStatus, taskId: string): Task | undefined =>
   Object.values(tasksByStatus)
     .flat()
     .find((task) => task.id === taskId);
 
-export const BoardContainer = ({ initialTasksByStatus, initialError, autoRefresh }: BoardContainerProps) => {
+const boardUrl = (boardId: string | null): string =>
+  boardId === null ? "/api/board" : `/api/board?boardId=${encodeURIComponent(boardId)}`;
+
+const boardPath = (boardId: string): string => `/?board=${encodeURIComponent(boardId)}`;
+
+const postBoard = async ({ name, rootPath }: BoardFormValues): Promise<CreateBoardOutcome> => {
+  try {
+    const response = await fetch("/api/boards", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name, rootPath }),
+    });
+    const body = (await response.json()) as CreateBoardResponse;
+
+    if (!response.ok || !body.ok || !body.board) {
+      return { ok: false, reason: body.reason ?? "The project could not be created" };
+    }
+
+    return { ok: true, board: body.board };
+  } catch {
+    return { ok: false, reason: "The server could not be reached" };
+  }
+};
+
+export const BoardContainer = ({
+  boardId,
+  boards,
+  initialTasksByStatus,
+  initialError,
+  autoRefresh,
+}: BoardContainerProps) => {
+  const router = useRouter();
   const [tasksByStatus, setTasksByStatus] = useState<TasksByStatus>(initialTasksByStatus ?? emptyBoard);
   const [loadError, setLoadError] = useState<string | null>(initialError);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [boardError, setBoardError] = useState<string | null>(null);
+  const [boardPending, setBoardPending] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
-      const response = await fetch("/api/board", { cache: "no-store" });
+      const response = await fetch(boardUrl(boardId), { cache: "no-store" });
       const body = (await response.json()) as BoardResponse;
 
       if (!response.ok || !body.ok || !body.tasksByStatus) {
@@ -52,7 +95,7 @@ export const BoardContainer = ({ initialTasksByStatus, initialError, autoRefresh
     } catch {
       setLoadError("The board could not be loaded");
     }
-  }, []);
+  }, [boardId]);
 
   useEffect(() => {
     if (!autoRefresh) {
@@ -72,7 +115,12 @@ export const BoardContainer = ({ initialTasksByStatus, initialError, autoRefresh
   };
 
   const handleCreateTask = async ({ title, description }: TaskDialogValues) => {
-    await runAction(sendJson("POST", "/api/requests", { title, description }), "The request could not be created");
+    const boardScope = boardId === null ? {} : { boardId };
+
+    await runAction(
+      sendJson("POST", "/api/requests", { title, description, ...boardScope }),
+      "The request could not be created",
+    );
   };
 
   const handleEditTask = async (taskId: string, { title, description }: TaskDialogValues) => {
@@ -121,6 +169,26 @@ export const BoardContainer = ({ initialTasksByStatus, initialError, autoRefresh
     await runAction(sendJson("POST", `/api/tasks/${taskId}`, { to }), "The task could not be moved");
   };
 
+  const handleSelectBoard = (selectedBoardId: string) => {
+    router.push(boardPath(selectedBoardId));
+  };
+
+  const handleCreateBoard = async (values: BoardFormValues) => {
+    setBoardPending(true);
+    setBoardError(null);
+
+    const outcome = await postBoard(values);
+
+    setBoardPending(false);
+
+    if (!outcome.ok) {
+      setBoardError(outcome.reason);
+      return;
+    }
+
+    router.push(boardPath(outcome.board.id));
+  };
+
   return (
     <div className="flex flex-col gap-3">
       {loadError ? (
@@ -133,6 +201,10 @@ export const BoardContainer = ({ initialTasksByStatus, initialError, autoRefresh
           {actionError}
         </p>
       ) : null}
+      <div className="flex flex-col gap-4 px-6 md:flex-row md:items-start md:justify-between md:px-10">
+        <BoardSelector boards={boards} selectedBoardId={boardId} onSelect={handleSelectBoard} />
+        <CreateBoardForm onSubmit={handleCreateBoard} error={boardError} pending={boardPending} />
+      </div>
       <KanbanBoard
         tasksByStatus={tasksByStatus}
         onCreateTask={handleCreateTask}

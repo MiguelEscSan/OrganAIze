@@ -5,5 +5,5 @@ export type ListBoards = { kind: "ListBoards" };
 
 export const listBoards =
   (deps: BoardDependencies) =>
-  async (_query: ListBoards): Promise<Board[]> =>
+  async (): Promise<Board[]> =>
     deps.boards.list();
