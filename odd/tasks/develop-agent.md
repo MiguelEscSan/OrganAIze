@@ -26,7 +26,7 @@ Testing agent, Playwright, Edit and Continue changes.
 - [x] DEV-01 Phase 1: domain file-scope check and develop output shape, with tests (6 tests; RED observed as missing module, then GREEN)
 - [x] DEV-02 Phase 2: `WorkspaceWriter` port and in-memory adapter
 - [x] DEV-03 Phase 3: disk `WorkspaceWriter` with temp-dir tests
-- [ ] DEV-04 Phase 4: `runDevelop` use case with in-memory tests
+- [x] DEV-04 Phase 4: `runDevelop` use case with in-memory tests (6 tests)
 - [ ] DEV-05 Phase 5: reject overlapping files across tasks in progress
 - [ ] DEV-06 Phase 6: wire time and token budgets to Develop
 - [ ] DEV-07 Phase 7: register the command and show Develop status on the agent panel
@@ -44,7 +44,9 @@ Testing agent, Playwright, Edit and Continue changes.
 - `tsc`, lint and `npm run build` before each commit.
 
 ## Progress
-- Feature document created on `feat/develop-agent`.
+- DEV-01 to DEV-04 done on `feat/develop-agent`, 195 tests passing.
+- Known gap: `runDevelop` writes files before `submitDevelopResult` checks QA capacity. If QA is full, the files are written and the subtask stays in progress; the next run overwrites them. Fix when wiring the command in DEV-07.
+- LLM unavailability counts as a failed attempt, not an immediate review, so a short outage can use up attempts.
 
 ## Next step
-DEV-01: write the file-scope tests first (RED), then the implementation.
+DEV-05: reject overlapping files across tasks in progress, with tests first.

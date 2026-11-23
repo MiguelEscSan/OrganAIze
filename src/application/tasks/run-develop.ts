@@ -1,0 +1,92 @@
+import { checkFileScope } from "@/domain/agents/check-file-scope";
+import { parseDevelopOutput } from "@/domain/agents/develop-output";
+import { countFailedAttempt } from "@/domain/tasks/count-failed-attempt";
+import type { Task } from "@/domain/tasks/task";
+import type { LlmClient } from "@/ports/llm-client";
+import type { WorkspaceWriter } from "@/ports/workspace-writer";
+import type { ApplicationDependencies } from "../shared/dependencies";
+import { fail, type Outcome } from "../shared/outcome";
+import { conflictReason } from "./record-transition";
+import { submitDevelopResult } from "./submit-develop-result";
+
+export type RunDevelop = { kind: "RunDevelop"; taskId: string };
+
+export type DevelopDependencies = ApplicationDependencies & {
+  llm: LlmClient;
+  workspace: WorkspaceWriter;
+};
+
+type CurrentFile = { path: string; content: string | null };
+
+const describeCurrentFile = (file: CurrentFile): string =>
+  file.content === null ? `### ${file.path}\n(new file)` : `### ${file.path}\n${file.content}`;
+
+const developPrompt = (task: Task, currentFiles: readonly CurrentFile[]): string =>
+  [
+    `Implement this subtask: ${task.title}`,
+    task.description,
+    "Acceptance criteria:",
+    ...task.acceptanceCriteria.map((criterion) => `- ${criterion}`),
+    `You may write only these files: ${task.files.join(", ")}`,
+    "Current content of those files:",
+    ...currentFiles.map(describeCurrentFile),
+    'Reply with JSON only, in the form {"files":[{"path":"...","content":"full file content"}]}.',
+    "Include the full content of every file you change. Do not write any other path.",
+  ].join("\n\n");
+
+const countFailure = async (
+  deps: DevelopDependencies,
+  tasks: readonly Task[],
+  task: Task,
+  reason: string,
+): Promise<Outcome<Task>> => {
+  const counted = countFailedAttempt(tasks, task.id, reason);
+
+  if (!counted.ok) {
+    return fail(counted.reason);
+  }
+
+  const outcome = await deps.tasks.applyTransition({
+    task: counted.task,
+    expectedStatus: "in_progress",
+    event: counted.event,
+  });
+
+  return outcome === "applied" ? fail(reason) : fail(conflictReason);
+};
+
+const readCurrentFiles = async (deps: DevelopDependencies, task: Task): Promise<CurrentFile[]> =>
+  Promise.all(task.files.map(async (path) => ({ path, content: await deps.workspace.read(path) })));
+
+export const runDevelop =
+  (deps: DevelopDependencies) =>
+  async (command: RunDevelop): Promise<Outcome<Task>> => {
+    const tasks = await deps.tasks.list();
+    const task = tasks.find((candidate) => candidate.id === command.taskId);
+
+    if (!task || task.status !== "in_progress" || task.assignedAgent !== "develop") {
+      return fail("Only a develop subtask in progress can run");
+    }
+
+    const reply = await deps.llm.generateJson(developPrompt(task, await readCurrentFiles(deps, task)));
+
+    if (!reply.ok) {
+      return countFailure(deps, tasks, task, reply.reason);
+    }
+
+    const parsed = parseDevelopOutput(reply.json);
+
+    if (!parsed.ok) {
+      return countFailure(deps, tasks, task, parsed.reason);
+    }
+
+    const scope = checkFileScope(parsed.output.files, task.files);
+
+    if (!scope.ok) {
+      return countFailure(deps, tasks, task, scope.reason);
+    }
+
+    await deps.workspace.write(parsed.output.files);
+
+    return submitDevelopResult(deps)({ kind: "SubmitDevelopResult", taskId: task.id });
+  };
