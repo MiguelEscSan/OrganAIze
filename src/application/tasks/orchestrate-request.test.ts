@@ -90,13 +90,25 @@ describe("orchestrateRequest", () => {
     expect((await deps.tasks.list()).map((task) => task.id)).toEqual(["task-1", "task-2"]);
   });
 
-  it("refuses an invalid plan and creates nothing", async () => {
+  it("refuses an invalid plan, creates nothing and counts a failed attempt", async () => {
     const { deps, orchestrate } = run([parentTask], { ok: true, json: { subtasks: [] } });
 
     const outcome = await orchestrate({ kind: "OrchestrateRequest", taskId: "task-1" });
 
     expect(outcome.ok).toBe(false);
-    expect((await deps.tasks.list()).map((task) => task.id)).toEqual(["task-1"]);
+    const [parent] = await deps.tasks.list();
+    expect([parent.id, parent.attempts, parent.status]).toEqual(["task-1", 1, "in_progress"]);
+    expect((await deps.events.list()).map((event) => event.to)).toEqual(["in_progress"]);
+  });
+
+  it("moves the request to review after its third invalid plan", async () => {
+    const thirdAttempt: Task = { ...parentTask, attempts: 2 };
+    const { deps, orchestrate } = run([thirdAttempt], { ok: true, json: { subtasks: [] } });
+
+    await orchestrate({ kind: "OrchestrateRequest", taskId: "task-1" });
+
+    const [parent] = await deps.tasks.list();
+    expect([parent.status, parent.attempts, parent.reviewReason]).toEqual(["review", 3, "attempts"]);
   });
 
   it("refuses when the LLM call fails and creates nothing", async () => {
