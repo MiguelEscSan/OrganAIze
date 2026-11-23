@@ -5,7 +5,7 @@
 A small Next.js app where a team of three AI agents works together on a user request:
 
 1. **Orchestrator**: receives a request card, splits it into subtasks, assigns them.
-2. **Develop**: implements one subtask at a time against the target web project.
+2. **Develop**: implements subtasks against the target web project. The Orchestrator decides whether subtasks run in parallel or in sequence; it runs them in parallel only when their declared files do not overlap.
 3. **Testing**: checks Develop's output against the subtask's acceptance criteria and returns concrete failures until everything passes.
 
 Everything the agents do must be visible on a kanban board.
@@ -46,15 +46,15 @@ Rules:
 ## Domain rules (non-negotiable)
 
 - **Request** = a card created by the user with a free-text input. Requests are queued in the **Ready to develop** column.
-- The Orchestrator splits a request into **subtasks** as soon as it is created. Each subtask is its own card in Ready.
+- When a request moves to `in_progress`, the Orchestrator splits it into **subtasks**. Subtasks are born in `in_progress`. For each subtask the Orchestrator decides whether it runs in parallel or in sequence.
 - A request can have many subtasks. The request is complete when all its subtasks reach **Deploy**.
 - **Task states:** `definition` → `ready` → `in_progress` → `qa` → `deploy`, plus `review` (reached after too many failed QA attempts or a budget stop). A failed QA sends the task back to `in_progress` with feedback attached.
 - **Definition is written by the user.** The user creates a request card in Definition and, when it is ready, moves it to Ready to develop. Only the user performs `definition` → `ready`.
 - **The system moves everything after Ready.** The program claims the next `ready` task into `in_progress`, and moves tasks between `in_progress`, `qa` and `deploy`. The user cannot move a task past Ready.
 - Transitions are validated by one pure function (`transitionTask`) in `domain`, which takes the actor (`user` or `system`).
-- **At most one task is `in_progress` in the whole system at any time.** Enforce this in the database (unique partial index or transactional claim), not only in code.
+- **At most one request is `in_progress` at any time.** Its subtasks may be in progress together. Enforce this in the database (unique partial index or transactional claim), not only in code.
 - Other tasks wait in `ready` in FIFO order. The queue is unlimited.
-- `qa` holds at most one task, because it is fed only by the single `in_progress` task.
+- `qa` holds at most N tasks, where N is configurable in Settings (default 2). Testing checks each one against its acceptance criteria; for an app with an interface it may also drive the running app (for example with Playwright).
 - Each task has a max of 3 attempts. A rejection from QA (`rejectFromQa`) requires feedback, adds one attempt and returns the task to `in_progress`. On the third rejection the task moves to `review`, where the user decides: send it back to Ready (attempts reset to zero, feedback kept) or delete it. The system cannot move a task out of review.
 - Every state change writes an event (who, from, to, when, reason). The board log reads from these events.
 - **Soft limit while in progress.** A task in `in_progress` has a time budget and a token budget (both configurable in Settings). Time alone is not a reliable signal, so a task is not killed for running long.
@@ -81,7 +81,7 @@ Columns: **Definition | Ready to develop | In progress | QA | Review | Deploy**.
 These apply to the agent prompts and to the code that runs them.
 
 1. **Single responsibility.** Orchestrator plans, Develop writes code, Testing judges. No agent does another agent's job.
-2. **One writer at a time.** Only the task in `in_progress` can modify the target project.
+2. **No write conflicts.** Subtasks in progress may modify the target project only within their declared file scope, and two subtasks never write the same file at the same time.
 3. **Bounded scope.** Each subtask states exactly which files and behavior it covers. Develop must not touch anything outside that scope.
 4. **Explicit acceptance criteria.** The Orchestrator writes them. Testing judges only against them, never against its own taste.
 5. **Concrete feedback.** Testing returns a numbered list of failures, each with the criterion it violates and the file/line when possible. Vague feedback ("looks wrong") is rejected.
