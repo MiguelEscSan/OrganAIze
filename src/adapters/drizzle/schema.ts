@@ -45,6 +45,16 @@ export const taskEvents = pgTable("task_events", {
   at: timestamp("at", { withTimezone: true }).notNull(),
 });
 
+export const boards = pgTable(
+  "boards",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    rootPath: text("root_path").notNull(),
+  },
+  (table) => [uniqueIndex("boards_root_path").on(table.rootPath)],
+);
+
 export const settings = pgTable(
   "settings",
   {

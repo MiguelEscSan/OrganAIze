@@ -22,5 +22,5 @@ export const openTestDatabase = async (): Promise<Database> => {
 };
 
 export const resetTestDatabase = async (db: Database): Promise<void> => {
-  await db.execute(sql`truncate table tasks, requests, task_events, settings restart identity cascade`);
+  await db.execute(sql`truncate table tasks, requests, task_events, settings, boards restart identity cascade`);
 };
