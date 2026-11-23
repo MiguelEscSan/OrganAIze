@@ -20,10 +20,13 @@ import { releaseTaskToReady } from "./tasks/release-task-to-ready";
 import { stopTaskForBudget } from "./tasks/stop-task-for-budget";
 import { submitDevelopResult } from "./tasks/submit-develop-result";
 import { submitTestResult } from "./tasks/submit-test-result";
+import { runTesting, type TestingDependencies } from "./testing/run-testing";
 import { Mediator } from "./cqrs/mediator";
 import type { BoardDependencies } from "./shared/dependencies";
 
-export const createMediator = (deps: OrchestrationDependencies & DevelopDependencies & BoardDependencies): Mediator => {
+export const createMediator = (
+  deps: OrchestrationDependencies & DevelopDependencies & BoardDependencies & TestingDependencies,
+): Mediator => {
   const mediator = new Mediator();
 
   mediator.registerCommand("CreateRequest", createRequest(deps));
@@ -37,6 +40,7 @@ export const createMediator = (deps: OrchestrationDependencies & DevelopDependen
   mediator.registerCommand("ReleaseTaskToReady", releaseTaskToReady(deps));
   mediator.registerCommand("SubmitDevelopResult", submitDevelopResult(deps));
   mediator.registerCommand("SubmitTestResult", submitTestResult(deps));
+  mediator.registerCommand("RunTesting", runTesting(deps));
   mediator.registerCommand("StopTaskForBudget", stopTaskForBudget(deps));
   mediator.registerCommand("DecideReview", decideReview(deps));
   mediator.registerCommand("UpdateSettings", updateSettings(deps));

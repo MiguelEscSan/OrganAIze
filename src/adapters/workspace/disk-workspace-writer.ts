@@ -1,12 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import type { WorkspaceFile, WorkspaceWriter } from "@/ports/workspace-writer";
-
-const isInsideRoot = (root: string, target: string): boolean => {
-  const offset = relative(root, target);
-
-  return offset.length === 0 || (!offset.startsWith("..") && !isAbsolute(offset));
-};
+import { isInsideRoot } from "./inside-root";
 
 export const createDiskWorkspaceWriter = (root: string): WorkspaceWriter => {
   const absoluteRoot = resolve(root);

@@ -6,10 +6,19 @@ import { orchestrateRequest, type OrchestrationDependencies } from "./orchestrat
 import { conflictReason } from "./record-transition";
 import type { DevelopDependencies } from "./run-develop";
 import { runDevelopSubtasks } from "./run-develop-subtasks";
+import { runTesting } from "../testing/run-testing";
 
 export type ClaimAndOrchestrateRequest = { kind: "ClaimAndOrchestrateRequest" };
 
 const fallbackReviewReason = "Orchestration failed without a reason";
+
+const testSubtasksSafely = async (deps: DevelopDependencies): Promise<void> => {
+  try {
+    await runTesting(deps)();
+  } catch {
+    return;
+  }
+};
 
 const sendClaimedRequestToReview = async (
   deps: OrchestrationDependencies,
@@ -70,6 +79,7 @@ export const claimAndOrchestrateRequest =
 
     if (split.ok) {
       await runDevelopSubtasks(deps)(claimed.value.id);
+      await testSubtasksSafely(deps);
     }
 
     return split;
