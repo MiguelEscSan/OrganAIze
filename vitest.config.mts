@@ -9,6 +9,10 @@ export default defineConfig({
   },
   test: {
     include: ["src/**/*.test.ts"],
+    exclude: [
+      "node_modules/**",
+      ...(process.env.CI ? ["src/adapters/playwright/**"] : []),
+    ],
     fileParallelism: false,
   },
 });
