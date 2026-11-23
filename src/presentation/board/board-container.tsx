@@ -22,6 +22,7 @@ const emptyBoard: TasksByStatus = {
 type BoardContainerProps = {
   initialTasksByStatus: TasksByStatus | null;
   initialError: string | null;
+  autoRefresh: boolean;
 };
 
 type BoardResponse = { ok: boolean; reason?: string; tasksByStatus?: TasksByStatus };
@@ -31,7 +32,7 @@ const findTask = (tasksByStatus: TasksByStatus, taskId: string): Task | undefine
     .flat()
     .find((task) => task.id === taskId);
 
-export const BoardContainer = ({ initialTasksByStatus, initialError }: BoardContainerProps) => {
+export const BoardContainer = ({ initialTasksByStatus, initialError, autoRefresh }: BoardContainerProps) => {
   const [tasksByStatus, setTasksByStatus] = useState<TasksByStatus>(initialTasksByStatus ?? emptyBoard);
   const [loadError, setLoadError] = useState<string | null>(initialError);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -54,10 +55,14 @@ export const BoardContainer = ({ initialTasksByStatus, initialError }: BoardCont
   }, []);
 
   useEffect(() => {
+    if (!autoRefresh) {
+      return;
+    }
+
     const timer = setInterval(() => void refresh(), refreshIntervalMs);
 
     return () => clearInterval(timer);
-  }, [refresh]);
+  }, [autoRefresh, refresh]);
 
   const runAction = async (outcome: Promise<{ ok: boolean; reason?: string }>, fallbackReason: string) => {
     const result = await outcome;

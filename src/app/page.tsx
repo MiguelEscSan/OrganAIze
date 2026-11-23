@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { getAppServices } from "@/adapters/server/app-services";
+import { defaultAppSettings, type AppSettings } from "@/domain/settings/app-settings";
 import type { TasksByStatus } from "@/domain/tasks/group-tasks-by-status";
 import { BoardContainer } from "@/presentation/board/board-container";
 
@@ -18,11 +19,22 @@ const loadBoard = async (): Promise<{ tasksByStatus: TasksByStatus | null; loadE
   }
 };
 
+const loadAutoRefresh = async (): Promise<boolean> => {
+  try {
+    const { mediator } = getAppServices();
+    const settings = await mediator.ask<{ kind: "GetSettings" }, AppSettings>({ kind: "GetSettings" });
+
+    return settings.autoRefresh;
+  } catch {
+    return defaultAppSettings.autoRefresh;
+  }
+};
+
 const LiveBoard = async () => {
   await connection();
-  const { tasksByStatus, loadError } = await loadBoard();
+  const [{ tasksByStatus, loadError }, autoRefresh] = await Promise.all([loadBoard(), loadAutoRefresh()]);
 
-  return <BoardContainer initialTasksByStatus={tasksByStatus} initialError={loadError} />;
+  return <BoardContainer initialTasksByStatus={tasksByStatus} initialError={loadError} autoRefresh={autoRefresh} />;
 };
 
 export default function Home() {

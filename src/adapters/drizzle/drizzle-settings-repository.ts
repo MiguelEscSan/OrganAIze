@@ -12,6 +12,8 @@ export const createDrizzleSettingsRepository = (db: Database): SettingsRepositor
     }
 
     return {
+      teamName: row.teamName,
+      autoRefresh: row.autoRefresh,
       maxAttempts: row.maxAttempts,
       maxMinutes: row.maxMinutes,
       maxTokens: row.maxTokens,
@@ -26,6 +28,8 @@ export const createDrizzleSettingsRepository = (db: Database): SettingsRepositor
       .onConflictDoUpdate({
         target: settings.singleton,
         set: {
+          teamName: value.teamName,
+          autoRefresh: value.autoRefresh,
           maxAttempts: value.maxAttempts,
           maxMinutes: value.maxMinutes,
           maxTokens: value.maxTokens,

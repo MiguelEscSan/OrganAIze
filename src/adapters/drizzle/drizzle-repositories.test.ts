@@ -308,9 +308,23 @@ describe("drizzle settings repository", () => {
   it("saves settings and returns them on the next read", async () => {
     const repository = createDrizzleSettingsRepository(db);
 
-    await repository.save({ maxAttempts: 5, maxMinutes: 20, maxTokens: 80_000, maxQaTasks: 2 });
-    await repository.save({ maxAttempts: 4, maxMinutes: 25, maxTokens: 90_000, maxQaTasks: 4 });
+    await repository.save({ ...defaultAppSettings, maxAttempts: 5, maxMinutes: 20, maxTokens: 80_000, maxQaTasks: 2 });
+    await repository.save({
+      teamName: "Platform",
+      autoRefresh: false,
+      maxAttempts: 4,
+      maxMinutes: 25,
+      maxTokens: 90_000,
+      maxQaTasks: 4,
+    });
 
-    expect(await repository.get()).toEqual({ maxAttempts: 4, maxMinutes: 25, maxTokens: 90_000, maxQaTasks: 4 });
+    expect(await repository.get()).toEqual({
+      teamName: "Platform",
+      autoRefresh: false,
+      maxAttempts: 4,
+      maxMinutes: 25,
+      maxTokens: 90_000,
+      maxQaTasks: 4,
+    });
   });
 });

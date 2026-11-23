@@ -1,24 +1,21 @@
-type SettingsFormProps = {
+type SettingsFormValues = {
+  teamName: string;
+  autoRefresh: boolean;
   maxAttempts: number;
   maxQaTasks: number;
+};
+
+type SettingsFormProps = {
+  values: SettingsFormValues;
   notice: string | null;
   isSaving: boolean;
-  onMaxAttemptsChange: (value: number) => void;
-  onMaxQaTasksChange: (value: number) => void;
+  onChange: (changes: Partial<SettingsFormValues>) => void;
   onSubmit: () => void;
 };
 
 const fieldClassName = "rounded-lg border border-line bg-cream px-3 py-2 outline-none focus:border-terracotta";
 
-export const SettingsForm = ({
-  maxAttempts,
-  maxQaTasks,
-  notice,
-  isSaving,
-  onMaxAttemptsChange,
-  onMaxQaTasksChange,
-  onSubmit,
-}: SettingsFormProps) => (
+export const SettingsForm = ({ values, notice, isSaving, onChange, onSubmit }: SettingsFormProps) => (
   <section className="flex flex-col gap-6 p-6 md:p-10">
     <header className="flex flex-col gap-1">
       <h1 className="text-3xl font-extrabold tracking-tight">Settings</h1>
@@ -33,14 +30,20 @@ export const SettingsForm = ({
     >
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-semibold">Team name</span>
-        <input name="teamName" defaultValue="Agent Team" className={fieldClassName} />
+        <input
+          name="teamName"
+          value={values.teamName}
+          maxLength={40}
+          onChange={(event) => onChange({ teamName: event.target.value })}
+          className={fieldClassName}
+        />
       </label>
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-semibold">Maximum attempts per task</span>
         <select
           name="maxAttempts"
-          value={maxAttempts}
-          onChange={(event) => onMaxAttemptsChange(Number(event.target.value))}
+          value={values.maxAttempts}
+          onChange={(event) => onChange({ maxAttempts: Number(event.target.value) })}
           className={fieldClassName}
         >
           <option value="1">1</option>
@@ -53,8 +56,8 @@ export const SettingsForm = ({
         <span className="text-sm font-semibold">QA capacity</span>
         <select
           name="maxQaTasks"
-          value={maxQaTasks}
-          onChange={(event) => onMaxQaTasksChange(Number(event.target.value))}
+          value={values.maxQaTasks}
+          onChange={(event) => onChange({ maxQaTasks: Number(event.target.value) })}
           className={fieldClassName}
         >
           {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
@@ -70,7 +73,13 @@ export const SettingsForm = ({
           <span className="text-sm font-semibold">Refresh board automatically</span>
           <span className="text-xs text-muted">The board checks for changes every two seconds.</span>
         </span>
-        <input type="checkbox" name="autoRefresh" defaultChecked className="h-5 w-5 accent-terracotta" />
+        <input
+          type="checkbox"
+          name="autoRefresh"
+          checked={values.autoRefresh}
+          onChange={(event) => onChange({ autoRefresh: event.target.checked })}
+          className="h-5 w-5 accent-terracotta"
+        />
       </label>
       <div className="flex items-center justify-end gap-4">
         {notice ? (

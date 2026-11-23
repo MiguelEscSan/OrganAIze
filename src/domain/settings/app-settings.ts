@@ -1,4 +1,6 @@
 export type AppSettings = {
+  teamName: string;
+  autoRefresh: boolean;
   maxAttempts: number;
   maxMinutes: number;
   maxTokens: number;
@@ -6,6 +8,8 @@ export type AppSettings = {
 };
 
 export const defaultAppSettings: AppSettings = {
+  teamName: "Agent Team",
+  autoRefresh: true,
   maxAttempts: 3,
   maxMinutes: 15,
   maxTokens: 50_000,
@@ -17,7 +21,15 @@ export type SettingsValidation = { ok: true; settings: AppSettings } | { ok: fal
 const isWholeNumberIn = (value: number, min: number, max: number): boolean =>
   Number.isInteger(value) && value >= min && value <= max;
 
+const maxTeamNameLength = 40;
+
 export const validateAppSettings = (settings: AppSettings): SettingsValidation => {
+  const teamNameLength = settings.teamName.trim().length;
+
+  if (teamNameLength === 0 || teamNameLength > maxTeamNameLength) {
+    return { ok: false, reason: "Team name must be between 1 and 40 characters" };
+  }
+
   if (!isWholeNumberIn(settings.maxAttempts, 1, 10)) {
     return { ok: false, reason: "Attempts must be a whole number between 1 and 10" };
   }

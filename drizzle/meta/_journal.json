@@ -43,6 +43,13 @@
       "when": 1795457647160,
       "tag": "0005_task_scope_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795458208568,
+      "tag": "0006_settings_team_and_refresh",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,6 @@
 import { getAppServices } from "@/adapters/server/app-services";
 import { failedServer, readJsonObject, refused, succeeded } from "@/adapters/server/json-responses";
+import { parseRequestText } from "@/adapters/server/request-body";
 import type { Outcome } from "@/application/shared/outcome";
 import type { Request as RequestEntity } from "@/domain/requests/request";
 
@@ -12,7 +13,9 @@ export const PUT = async (request: Request, context: RequestRouteContext): Promi
     return refused("The request body must be a JSON object");
   }
 
-  if (typeof body.title !== "string" || typeof body.description !== "string") {
+  const text = parseRequestText(body);
+
+  if (!text) {
     return refused("Title and description must be text");
   }
 
@@ -22,7 +25,7 @@ export const PUT = async (request: Request, context: RequestRouteContext): Promi
     const outcome = await mediator.send<
       { kind: "EditRequest"; requestId: string; title: string; description: string },
       Outcome<RequestEntity>
-    >({ kind: "EditRequest", requestId: id, title: body.title, description: body.description });
+    >({ kind: "EditRequest", requestId: id, ...text });
 
     return outcome.ok ? succeeded({ request: outcome.value }) : refused(outcome.reason);
   } catch (error) {
