@@ -26,6 +26,21 @@ export const SettingsForm = () => (
         </select>
         <span className="text-xs text-muted">After this many failed QA attempts a task is sent to review.</span>
       </label>
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-semibold">QA capacity</span>
+        <select
+          name="maxQaTasks"
+          defaultValue="2"
+          className="rounded-lg border border-line bg-cream px-3 py-2 outline-none focus:border-terracotta"
+        >
+          {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
+            <option key={count} value={count}>
+              {count}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-muted">How many tasks can wait in QA at the same time.</span>
+      </label>
       <label className="flex items-center justify-between gap-4">
         <span className="flex flex-col gap-0.5">
           <span className="text-sm font-semibold">Refresh board automatically</span>
