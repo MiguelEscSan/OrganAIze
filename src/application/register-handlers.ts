@@ -1,3 +1,5 @@
+import { getSettings } from "./settings/get-settings";
+import { updateSettings } from "./settings/update-settings";
 import { createRequest } from "./requests/create-request";
 import { deleteRequest } from "./requests/delete-request";
 import { editRequest } from "./requests/edit-request";
@@ -25,10 +27,12 @@ export const createMediator = (deps: ApplicationDependencies): Mediator => {
   mediator.registerCommand("SubmitTestResult", submitTestResult(deps));
   mediator.registerCommand("StopTaskForBudget", stopTaskForBudget(deps));
   mediator.registerCommand("DecideReview", decideReview(deps));
+  mediator.registerCommand("UpdateSettings", updateSettings(deps));
 
   mediator.registerQuery("ListRequests", listRequests(deps));
   mediator.registerQuery("GetRequest", getRequest(deps));
   mediator.registerQuery("ListBoard", listBoard(deps));
+  mediator.registerQuery("GetSettings", getSettings(deps));
 
   return mediator;
 };

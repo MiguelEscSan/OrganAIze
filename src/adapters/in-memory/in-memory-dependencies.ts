@@ -1,6 +1,7 @@
 import type { Request } from "@/domain/requests/request";
 import type { Task } from "@/domain/tasks/task";
 import type { ApplicationDependencies } from "@/application/shared/dependencies";
+import { createInMemorySettingsRepository } from "./in-memory-settings-repository";
 import {
   createFixedClock,
   createInMemoryEventLog,
@@ -20,6 +21,7 @@ export const createInMemoryDependencies = (seed: Seed = {}): ApplicationDependen
   return {
     requests: createInMemoryRequestRepository(seed.requests),
     tasks: createInMemoryTaskRepository(seed.tasks),
+    settings: createInMemorySettingsRepository(),
     events: createInMemoryEventLog(clock),
     ids: createSequentialIdGenerator("id"),
     clock,
