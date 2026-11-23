@@ -1,0 +1,7 @@
+{
+  "name": "interface-sample",
+  "private": true,
+  "scripts": {
+    "dev": "node server.mjs"
+  }
+}

@@ -15,6 +15,7 @@ type KanbanBoardProps = {
   onDeleteTask: (taskId: string) => void;
   onContinueTask: (taskId: string) => void;
   onSendToReadyTask: (taskId: string) => void;
+  onBrowserCheckTask: (taskId: string) => void;
   onMoveTask: (taskId: string, to: TaskStatus) => void;
 };
 
@@ -31,6 +32,7 @@ export const KanbanBoard = ({
   onDeleteTask,
   onContinueTask,
   onSendToReadyTask,
+  onBrowserCheckTask,
   onMoveTask,
 }: KanbanBoardProps) => {
   const isMounted = useSyncExternalStore(subscribeToNothing, isClient, isServer);
@@ -63,6 +65,7 @@ export const KanbanBoard = ({
           onDelete={onDeleteTask}
           onContinue={onContinueTask}
           onSendToReady={onSendToReadyTask}
+          onBrowserCheck={onBrowserCheckTask}
           headerAction={
             column.status === "definition" ? (
               <TaskDialog

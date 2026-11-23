@@ -40,19 +40,23 @@ const reviewFailureText = (failure: ReviewFailure): string =>
 
 const failedVerdict = (feedback: string): TestVerdict => ({ passed: false, feedback });
 
-const unreviewedVerdict = (reason: string): TestVerdict =>
+export const unreviewedVerdict = (reason: string): TestVerdict =>
   failedVerdict(numbered([`The review could not be completed: ${reason}`]));
 
 const describeFile = (file: CheckedFile): string =>
   file.content === null ? `### ${file.path}\n(missing)` : `### ${file.path}\n${file.content}`;
 
-const reviewPrompt = (task: Task, files: readonly CheckedFile[]): string =>
+const renderedPageSection = (renderedPage: string | undefined): string[] =>
+  renderedPage === undefined ? [] : ["Visible text of the running app:", renderedPage];
+
+const reviewPrompt = (task: Task, files: readonly CheckedFile[], renderedPage: string | undefined): string =>
   [
     `Review this subtask against its acceptance criteria and nothing else: ${task.title}`,
     "Acceptance criteria:",
     ...task.acceptanceCriteria.map((criterion) => `- ${criterion}`),
     "Current content of the files:",
     ...files.map(describeFile),
+    ...renderedPageSection(renderedPage),
     'Reply with JSON only, in the form {"passed": boolean, "failures": [{"criterion": string, "file": string, "line": number | null, "message": string}]}.',
     "Use passed true with an empty failures list when every criterion holds.",
     "Use passed false with one failure per violated criterion, naming the file and line when possible.",
@@ -61,8 +65,13 @@ const reviewPrompt = (task: Task, files: readonly CheckedFile[]): string =>
 const verdictOfReview = (review: Review): TestVerdict =>
   review.passed ? { passed: true } : failedVerdict(numbered(review.failures.map(reviewFailureText)));
 
-const reviewWithLlm = async (deps: TestingDependencies, task: Task, files: readonly CheckedFile[]): Promise<TestVerdict> => {
-  const reply = await deps.llm.generateJson(reviewPrompt(task, files));
+const reviewWithLlm = async (
+  deps: TestingDependencies,
+  task: Task,
+  files: readonly CheckedFile[],
+  renderedPage: string | undefined,
+): Promise<TestVerdict> => {
+  const reply = await deps.llm.generateJson(reviewPrompt(task, files, renderedPage));
 
   if (!reply.ok) {
     return unreviewedVerdict(reply.reason);
@@ -81,7 +90,11 @@ const readTaskFiles = async (reader: WorkspaceReader, task: Task): Promise<Outco
   }
 };
 
-const verdictFor = async (deps: TestingDependencies, task: Task): Promise<Outcome<TestVerdict>> => {
+export const verdictForTask = async (
+  deps: TestingDependencies,
+  task: Task,
+  renderedPage?: string,
+): Promise<Outcome<TestVerdict>> => {
   const workspace = await workspaceOfTask(deps, task);
 
   if (!workspace.ok) {
@@ -100,17 +113,21 @@ const verdictFor = async (deps: TestingDependencies, task: Task): Promise<Outcom
     return succeed(failedVerdict(numbered(checkFailures.map(checkFailureText))));
   }
 
-  return succeed(await reviewWithLlm(deps, task, files.value));
+  return succeed(await reviewWithLlm(deps, task, files.value, renderedPage));
+};
+
+export const submitVerdict = async (deps: TestingDependencies, task: Task, verdict: TestVerdict): Promise<void> => {
+  await submitTestResult(deps)({ kind: "SubmitTestResult", taskId: task.id, verdict });
 };
 
 const reviewTask = async (deps: TestingDependencies, task: Task): Promise<void> => {
-  const verdict = await verdictFor(deps, task);
+  const verdict = await verdictForTask(deps, task);
 
   if (!verdict.ok) {
     return;
   }
 
-  await submitTestResult(deps)({ kind: "SubmitTestResult", taskId: task.id, verdict: verdict.value });
+  await submitVerdict(deps, task, verdict.value);
 };
 
 export const runTesting =
