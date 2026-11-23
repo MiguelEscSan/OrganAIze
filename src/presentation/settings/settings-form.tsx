@@ -1,24 +1,47 @@
-export const SettingsForm = () => (
+type SettingsFormProps = {
+  maxAttempts: number;
+  maxQaTasks: number;
+  notice: string | null;
+  isSaving: boolean;
+  onMaxAttemptsChange: (value: number) => void;
+  onMaxQaTasksChange: (value: number) => void;
+  onSubmit: () => void;
+};
+
+const fieldClassName = "rounded-lg border border-line bg-cream px-3 py-2 outline-none focus:border-terracotta";
+
+export const SettingsForm = ({
+  maxAttempts,
+  maxQaTasks,
+  notice,
+  isSaving,
+  onMaxAttemptsChange,
+  onMaxQaTasksChange,
+  onSubmit,
+}: SettingsFormProps) => (
   <section className="flex flex-col gap-6 p-6 md:p-10">
     <header className="flex flex-col gap-1">
       <h1 className="text-3xl font-extrabold tracking-tight">Settings</h1>
       <p className="text-muted">Adjust how the board behaves for your team.</p>
     </header>
-    <form className="flex max-w-xl flex-col gap-5 rounded-2xl bg-paper p-6 ring-1 ring-line">
+    <form
+      className="flex max-w-xl flex-col gap-5 rounded-2xl bg-paper p-6 ring-1 ring-line"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSubmit();
+      }}
+    >
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-semibold">Team name</span>
-        <input
-          name="teamName"
-          defaultValue="Agent Team"
-          className="rounded-lg border border-line bg-cream px-3 py-2 outline-none focus:border-terracotta"
-        />
+        <input name="teamName" defaultValue="Agent Team" className={fieldClassName} />
       </label>
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-semibold">Maximum attempts per task</span>
         <select
           name="maxAttempts"
-          defaultValue="3"
-          className="rounded-lg border border-line bg-cream px-3 py-2 outline-none focus:border-terracotta"
+          value={maxAttempts}
+          onChange={(event) => onMaxAttemptsChange(Number(event.target.value))}
+          className={fieldClassName}
         >
           <option value="1">1</option>
           <option value="2">2</option>
@@ -30,8 +53,9 @@ export const SettingsForm = () => (
         <span className="text-sm font-semibold">QA capacity</span>
         <select
           name="maxQaTasks"
-          defaultValue="2"
-          className="rounded-lg border border-line bg-cream px-3 py-2 outline-none focus:border-terracotta"
+          value={maxQaTasks}
+          onChange={(event) => onMaxQaTasksChange(Number(event.target.value))}
+          className={fieldClassName}
         >
           {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
             <option key={count} value={count}>
@@ -48,12 +72,18 @@ export const SettingsForm = () => (
         </span>
         <input type="checkbox" name="autoRefresh" defaultChecked className="h-5 w-5 accent-terracotta" />
       </label>
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-4">
+        {notice ? (
+          <p role="status" className="text-sm text-muted">
+            {notice}
+          </p>
+        ) : null}
         <button
           type="submit"
-          className="rounded-full bg-terracotta px-5 py-2 text-sm font-bold text-paper transition-opacity hover:opacity-90"
+          disabled={isSaving}
+          className="rounded-full bg-terracotta px-5 py-2 text-sm font-bold text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          Save changes
+          {isSaving ? "Saving…" : "Save changes"}
         </button>
       </div>
     </form>
