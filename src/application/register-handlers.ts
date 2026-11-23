@@ -11,6 +11,7 @@ import { decideReview } from "./tasks/review-decision";
 import { listBoard } from "./tasks/list-board";
 import { moveTask } from "./tasks/move-task";
 import { orchestrateRequest, type OrchestrationDependencies } from "./tasks/orchestrate-request";
+import { releaseTaskToReady } from "./tasks/release-task-to-ready";
 import { stopTaskForBudget } from "./tasks/stop-task-for-budget";
 import { submitDevelopResult } from "./tasks/submit-develop-result";
 import { submitTestResult } from "./tasks/submit-test-result";
@@ -26,6 +27,7 @@ export const createMediator = (deps: OrchestrationDependencies): Mediator => {
   mediator.registerCommand("MoveTask", moveTask(deps));
   mediator.registerCommand("ClaimNextReadyTask", claimNextReadyTask(deps));
   mediator.registerCommand("ClaimAndOrchestrateRequest", claimAndOrchestrateRequest(deps));
+  mediator.registerCommand("ReleaseTaskToReady", releaseTaskToReady(deps));
   mediator.registerCommand("SubmitDevelopResult", submitDevelopResult(deps));
   mediator.registerCommand("SubmitTestResult", submitTestResult(deps));
   mediator.registerCommand("StopTaskForBudget", stopTaskForBudget(deps));
