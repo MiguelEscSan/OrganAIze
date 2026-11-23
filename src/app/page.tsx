@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { connection } from "next/server";
 import { getAppServices } from "@/adapters/server/app-services";
 import type { TasksByStatus } from "@/domain/tasks/group-tasks-by-status";
@@ -17,17 +18,23 @@ const loadBoard = async (): Promise<{ tasksByStatus: TasksByStatus | null; loadE
   }
 };
 
-export default async function Home() {
+const LiveBoard = async () => {
   await connection();
   const { tasksByStatus, loadError } = await loadBoard();
 
+  return <BoardContainer initialTasksByStatus={tasksByStatus} initialError={loadError} />;
+};
+
+export default function Home() {
   return (
     <section className="flex flex-col gap-2">
       <header className="flex flex-col gap-1 px-6 pt-6 md:px-10 md:pt-10">
         <h1 className="text-3xl font-extrabold tracking-tight">Board</h1>
         <p className="text-muted">Define a request, send it to Ready, and the agents take it from there.</p>
       </header>
-      <BoardContainer initialTasksByStatus={tasksByStatus} initialError={loadError} />
+      <Suspense fallback={<p className="px-6 text-muted md:px-10">Loading the board…</p>}>
+        <LiveBoard />
+      </Suspense>
     </section>
   );
 }
