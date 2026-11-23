@@ -13,7 +13,7 @@ describe("listBoard", () => {
       ],
     });
 
-    const board = await listBoard(deps)();
+    const board = await listBoard(deps)({ kind: "ListBoard" });
 
     expect(board.definition.map((task) => task.id)).toEqual(["t1"]);
     expect(board.ready.map((task) => task.id)).toEqual(["t2", "t3"]);
@@ -21,10 +21,44 @@ describe("listBoard", () => {
     expect(board.review).toEqual([]);
   });
 
+  it("returns only the tasks whose request belongs to the given board", async () => {
+    const deps = createInMemoryDependencies({
+      requests: [
+        { id: "request-1", boardId: "board-1", title: "Landing", description: "" },
+        { id: "request-2", boardId: "board-2", title: "Shop", description: "" },
+      ],
+      tasks: [
+        buildTask({ id: "t1", requestId: "request-1", status: "ready" }),
+        buildTask({ id: "t2", requestId: "request-2", status: "ready" }),
+      ],
+    });
+
+    const board = await listBoard(deps)({ kind: "ListBoard", boardId: "board-1" });
+
+    expect(board.ready.map((task) => task.id)).toEqual(["t1"]);
+  });
+
+  it("returns the tasks of every board when no board is given", async () => {
+    const deps = createInMemoryDependencies({
+      requests: [
+        { id: "request-1", boardId: "board-1", title: "Landing", description: "" },
+        { id: "request-2", boardId: "board-2", title: "Shop", description: "" },
+      ],
+      tasks: [
+        buildTask({ id: "t1", requestId: "request-1", status: "ready" }),
+        buildTask({ id: "t2", requestId: "request-2", status: "ready" }),
+      ],
+    });
+
+    const board = await listBoard(deps)({ kind: "ListBoard" });
+
+    expect(board.ready.map((task) => task.id)).toEqual(["t1", "t2"]);
+  });
+
   it("returns empty columns when there are no tasks", async () => {
     const deps = createInMemoryDependencies();
 
-    const board = await listBoard(deps)();
+    const board = await listBoard(deps)({ kind: "ListBoard" });
 
     expect(Object.values(board).every((column) => column.length === 0)).toBe(true);
   });
