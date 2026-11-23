@@ -123,6 +123,13 @@ export const BoardContainer = ({
     );
   };
 
+  const handleSendToReadyTask = async (taskId: string) => {
+    await runAction(
+      sendJson("POST", `/api/tasks/${taskId}/review`, { decision: "send_to_ready" }),
+      "The task could not be sent to Ready",
+    );
+  };
+
   const handleMoveTask = async (taskId: string, to: TaskStatus) => {
     if (to !== "ready" && to !== "definition") {
       setActionError("The system moves tasks after Ready");
@@ -150,6 +157,7 @@ export const BoardContainer = ({
         onEditTask={handleEditTask}
         onDeleteTask={handleDeleteTask}
         onContinueTask={handleContinueTask}
+        onSendToReadyTask={handleSendToReadyTask}
         onMoveTask={handleMoveTask}
       />
     </div>

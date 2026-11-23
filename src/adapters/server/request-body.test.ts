@@ -34,13 +34,14 @@ describe("hasOptionalRequestText", () => {
 });
 
 describe("parseReviewDecision", () => {
-  it("accepts continue and delete", () => {
+  it("accepts continue, send_to_ready and delete", () => {
     expect(parseReviewDecision("continue")).toBe("continue");
+    expect(parseReviewDecision("send_to_ready")).toBe("send_to_ready");
     expect(parseReviewDecision("delete")).toBe("delete");
   });
 
   it("refuses any other value", () => {
-    expect(parseReviewDecision("send_to_ready")).toBeNull();
+    expect(parseReviewDecision("promote")).toBeNull();
     expect(parseReviewDecision(undefined)).toBeNull();
   });
 });

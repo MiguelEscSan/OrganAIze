@@ -1,8 +1,10 @@
 import type { Task } from "@/domain/tasks/task";
 import { transitionTask } from "@/domain/tasks/transition-task";
-import type { ApplicationDependencies } from "../shared/dependencies";
 import { fail, succeed, type Outcome } from "../shared/outcome";
+import { claimAndOrchestrateRequest } from "./claim-and-orchestrate-request";
+import type { OrchestrationDependencies } from "./orchestrate-request";
 import { conflictReason, recordTransition } from "./record-transition";
+import type { DevelopDependencies } from "./run-develop";
 
 export type ReviewDecisionKind = "send_to_ready" | "continue" | "delete";
 
@@ -15,7 +17,7 @@ export type DecideReview = {
 const deletableStatuses = ["definition", "review"] as const;
 
 export const decideReview =
-  (deps: ApplicationDependencies) =>
+  (deps: OrchestrationDependencies & DevelopDependencies) =>
   async (command: DecideReview): Promise<Outcome<Task | null>> => {
     if (command.decision === "delete") {
       const tasks = await deps.tasks.list();
@@ -44,5 +46,15 @@ export const decideReview =
       return fail(conflictReason);
     }
 
-    return recordTransition(deps, before, after, result.event);
+    const recorded = await recordTransition(deps, before, after, result.event);
+
+    if (!recorded.ok || command.decision !== "send_to_ready") {
+      return recorded;
+    }
+
+    await claimAndOrchestrateRequest(deps)();
+
+    const current = (await deps.tasks.list()).find((task) => task.id === command.taskId);
+
+    return current ? succeed(current) : recorded;
   };
