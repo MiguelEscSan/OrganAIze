@@ -27,7 +27,7 @@ Testing agent, Playwright, Edit and Continue changes.
 - [x] DEV-02 Phase 2: `WorkspaceWriter` port and in-memory adapter
 - [x] DEV-03 Phase 3: disk `WorkspaceWriter` with temp-dir tests
 - [x] DEV-04 Phase 4: `runDevelop` use case with in-memory tests (6 tests)
-- [ ] DEV-05 Phase 5: reject overlapping files across tasks in progress
+- [x] DEV-05 Phase 5: overlapping files across subtasks (already enforced by the plan schema in `orchestration-plan.ts`, with tests; runtime lock deferred until runs are concurrent)
 - [ ] DEV-06 Phase 6: wire time and token budgets to Develop
 - [ ] DEV-07 Phase 7: register the command and show Develop status on the agent panel
 - [ ] DEV-08 Phase 8: end-to-end run on a sample project
@@ -48,5 +48,8 @@ Testing agent, Playwright, Edit and Continue changes.
 - Known gap: `runDevelop` writes files before `submitDevelopResult` checks QA capacity. If QA is full, the files are written and the subtask stays in progress; the next run overwrites them. Fix when wiring the command in DEV-07.
 - LLM unavailability counts as a failed attempt, not an immediate review, so a short outage can use up attempts.
 
+- DEV-05: the plan schema already rejects a parallel subtask that shares a file. Runs are sequential today, so no runtime lock is needed yet. A runtime lock becomes necessary when Develop runs subtasks concurrently.
+- DEV-06 needs a decision: `LlmReply` carries no token count. Counting tokens means adding usage to the LLM port.
+
 ## Next step
-DEV-05: reject overlapping files across tasks in progress, with tests first.
+DEV-06: decide how token usage reaches the budget check.
