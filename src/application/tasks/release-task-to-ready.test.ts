@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createInMemoryDependencies } from "@/adapters/in-memory/in-memory-dependencies";
 import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-client";
+import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
 import { buildTask } from "@/adapters/in-memory/task-fixtures";
 import type { Request } from "@/domain/requests/request";
 import { releaseTaskToReady } from "./release-task-to-ready";
@@ -25,7 +26,11 @@ describe("releaseTaskToReady", () => {
       requests: [request],
       tasks: [buildTask({ id: "task-1", requestId: "request-1", status: "definition" })],
     });
-    const release = releaseTaskToReady({ ...deps, llm: createScriptedLlmClient({ ok: true, json: validPlan }) });
+    const release = releaseTaskToReady({
+      ...deps,
+      workspace: createInMemoryWorkspaceWriter({}),
+      llm: createScriptedLlmClient({ ok: true, json: validPlan }),
+    });
 
     const outcome = await release({ kind: "ReleaseTaskToReady", taskId: "task-1" });
 
@@ -45,7 +50,11 @@ describe("releaseTaskToReady", () => {
         buildTask({ id: "task-0", requestId: "request-0", status: "in_progress" }),
       ],
     });
-    const release = releaseTaskToReady({ ...deps, llm: createScriptedLlmClient({ ok: true, json: validPlan }) });
+    const release = releaseTaskToReady({
+      ...deps,
+      workspace: createInMemoryWorkspaceWriter({}),
+      llm: createScriptedLlmClient({ ok: true, json: validPlan }),
+    });
 
     const outcome = await release({ kind: "ReleaseTaskToReady", taskId: "task-1" });
 
@@ -60,7 +69,11 @@ describe("releaseTaskToReady", () => {
       requests: [request],
       tasks: [buildTask({ id: "task-1", requestId: "request-1", status: "qa" })],
     });
-    const release = releaseTaskToReady({ ...deps, llm: createScriptedLlmClient({ ok: true, json: validPlan }) });
+    const release = releaseTaskToReady({
+      ...deps,
+      workspace: createInMemoryWorkspaceWriter({}),
+      llm: createScriptedLlmClient({ ok: true, json: validPlan }),
+    });
 
     const outcome = await release({ kind: "ReleaseTaskToReady", taskId: "task-1" });
 

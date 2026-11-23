@@ -53,7 +53,9 @@ Testing agent, Playwright, Edit and Continue changes.
 
 - DEV-06 done: the user chose to add usage to the LLM port. Time is measured with the `Clock` port around the LLM call; tokens come from the reply. The budget check runs before parsing and before any write.
 
-- DEV-07 partial: the QA-capacity gap is fixed. `runDevelop` checks the shared `qaFullReason` before writing, so a full QA writes nothing and keeps the attempt count (test added). `RunDevelop` is registered in `register-handlers.ts`, and the server wires a disk writer rooted at `PROJECT_ROOT`. The Team page is still static sample data, and no trigger runs `RunDevelop` yet.
+- DEV-07 partial: the QA-capacity gap is fixed. `runDevelop` checks the shared `qaFullReason` before writing, so a full QA writes nothing and keeps the attempt count (test added). `RunDevelop` is registered in `register-handlers.ts`, and the server wires a disk writer rooted at `PROJECT_ROOT`.
+- DEV-07 trigger (automatic, chosen by the user): after a request is split, `runDevelopSubtasks` runs its develop subtasks in turn until each reaches qa, or stops when QA is full or an attempt is not counted. It runs inside the Ready request, so the HTTP call waits for the whole develop pass. Moving that to a background worker is deferred.
+- DEV-07 still pending: the live Develop status on the Team/agent panel (the page shows static sample data).
 
 ## Next step
-Decide what triggers `RunDevelop` (automatic after claim, or a manual action), then build the live Develop status on the agent panel.
+Build the live Develop status on the agent panel, deriving it from the subtasks of the request in progress.
