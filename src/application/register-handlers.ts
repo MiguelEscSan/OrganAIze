@@ -5,6 +5,7 @@ import { deleteRequest } from "./requests/delete-request";
 import { editRequest } from "./requests/edit-request";
 import { getRequest } from "./requests/get-request";
 import { listRequests } from "./requests/list-requests";
+import { claimAndOrchestrateRequest } from "./tasks/claim-and-orchestrate-request";
 import { claimNextReadyTask } from "./tasks/claim-next-ready-task";
 import { decideReview } from "./tasks/review-decision";
 import { listBoard } from "./tasks/list-board";
@@ -24,6 +25,7 @@ export const createMediator = (deps: OrchestrationDependencies): Mediator => {
   mediator.registerCommand("DeleteRequest", deleteRequest(deps));
   mediator.registerCommand("MoveTask", moveTask(deps));
   mediator.registerCommand("ClaimNextReadyTask", claimNextReadyTask(deps));
+  mediator.registerCommand("ClaimAndOrchestrateRequest", claimAndOrchestrateRequest(deps));
   mediator.registerCommand("SubmitDevelopResult", submitDevelopResult(deps));
   mediator.registerCommand("SubmitTestResult", submitTestResult(deps));
   mediator.registerCommand("StopTaskForBudget", stopTaskForBudget(deps));

@@ -4,6 +4,8 @@ import { parseOrchestrationPlan, type OrchestrationPlan } from "@/domain/agents/
 import type { ApplicationDependencies } from "../shared/dependencies";
 import { fail, succeed, type Outcome } from "../shared/outcome";
 import type { LlmClient } from "@/ports/llm-client";
+import { countFailedAttempt } from "@/domain/tasks/count-failed-attempt";
+import { conflictReason } from "./record-transition";
 
 export type OrchestrateRequest = {
   kind: "OrchestrateRequest";
@@ -36,6 +38,27 @@ const subtasksFrom = (parent: Task, plan: OrchestrationPlan, ids: () => string):
     lastFeedback: null,
     reviewReason: null,
   }));
+
+const countInvalidPlan = async (
+  deps: OrchestrationDependencies,
+  tasks: readonly Task[],
+  parent: Task,
+  reason: string,
+): Promise<Outcome<Task[]>> => {
+  const counted = countFailedAttempt(tasks, parent.id, reason);
+
+  if (!counted.ok) {
+    return fail(counted.reason);
+  }
+
+  const outcome = await deps.tasks.applyTransition({
+    task: counted.task,
+    expectedStatus: "in_progress",
+    event: counted.event,
+  });
+
+  return outcome === "applied" ? fail(reason) : fail(conflictReason);
+};
 
 export const orchestrateRequest =
   (deps: OrchestrationDependencies) =>
@@ -70,7 +93,7 @@ export const orchestrateRequest =
     const parsed = parseOrchestrationPlan(reply.json);
 
     if (!parsed.ok) {
-      return fail(parsed.reason);
+      return countInvalidPlan(deps, tasks, parent, parsed.reason);
     }
 
     const subtasks = subtasksFrom(parent, parsed.plan, () => deps.ids.next());
