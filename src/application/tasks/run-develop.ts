@@ -7,7 +7,8 @@ import type { BoardRepository } from "@/ports/board-repository";
 import type { LlmClient, LlmReply } from "@/ports/llm-client";
 import type { WorkspaceWriter } from "@/ports/workspace-writer";
 import type { ApplicationDependencies } from "../shared/dependencies";
-import { fail, succeed, type Outcome } from "../shared/outcome";
+import { fail, type Outcome } from "../shared/outcome";
+import { workspaceOfTask } from "../shared/task-workspace";
 import { qaFullReason } from "./qa-capacity";
 import { conflictReason } from "./record-transition";
 import { stopTaskForBudget } from "./stop-task-for-budget";
@@ -60,13 +61,6 @@ const countFailure = async (
   return outcome === "applied" ? fail(reason) : fail(conflictReason);
 };
 
-const workspaceOfSubtask = async (deps: DevelopDependencies, task: Task): Promise<Outcome<WorkspaceWriter>> => {
-  const request = (await deps.requests.list()).find((candidate) => candidate.id === task.requestId);
-  const board = request ? (await deps.boards.list()).find((candidate) => candidate.id === request.boardId) : undefined;
-
-  return board ? succeed(deps.workspaceFor(board.rootPath)) : fail("The board for this subtask was not found");
-};
-
 const readCurrentFiles = async (workspace: WorkspaceWriter, task: Task): Promise<CurrentFile[]> =>
   Promise.all(task.files.map(async (path) => ({ path, content: await workspace.read(path) })));
 
@@ -82,7 +76,7 @@ export const runDevelop =
       return fail("Only a develop subtask in progress can run");
     }
 
-    const workspace = await workspaceOfSubtask(deps, task);
+    const workspace = await workspaceOfTask(deps, task);
 
     if (!workspace.ok) {
       return fail(workspace.reason);
