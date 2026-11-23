@@ -34,7 +34,7 @@ describe("groupTasksByStatus", () => {
   it("keeps every status key even when it has no tasks", () => {
     const grouped = groupTasksByStatus([]);
 
-    expect(grouped).toEqual({ ready: [], in_progress: [], qa: [], deploy: [] });
+    expect(grouped).toEqual({ definition: [], ready: [], in_progress: [], qa: [], deploy: [] });
   });
 
   it("preserves the input order inside a status", () => {

@@ -7,6 +7,7 @@ export type BoardColumn = {
 };
 
 export const boardColumns: readonly BoardColumn[] = [
+  { status: "definition", title: "Definition", accentClass: "bg-plum" },
   { status: "ready", title: "Ready to develop", accentClass: "bg-muted" },
   { status: "in_progress", title: "In progress", accentClass: "bg-sky" },
   { status: "qa", title: "QA", accentClass: "bg-amber" },

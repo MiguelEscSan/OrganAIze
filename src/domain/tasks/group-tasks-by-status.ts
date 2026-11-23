@@ -4,7 +4,13 @@ import type { TaskStatus } from "./task-status";
 export type TasksByStatus = Record<TaskStatus, Task[]>;
 
 export const groupTasksByStatus = (tasks: readonly Task[]): TasksByStatus => {
-  const grouped: TasksByStatus = { ready: [], in_progress: [], qa: [], deploy: [] };
+  const grouped: TasksByStatus = {
+    definition: [],
+    ready: [],
+    in_progress: [],
+    qa: [],
+    deploy: [],
+  };
 
   for (const task of tasks) {
     grouped[task.status].push(task);

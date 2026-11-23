@@ -2,6 +2,16 @@ import type { Task } from "@/domain/tasks/task";
 
 export const sampleTasks: readonly Task[] = [
   {
+    id: "task-0",
+    requestId: "request-2",
+    title: "Write contact form copy",
+    description: "Labels, placeholder text and the success message",
+    status: "definition",
+    assignedAgent: null,
+    attempts: 0,
+    lastFeedback: null,
+  },
+  {
     id: "task-1",
     requestId: "request-1",
     title: "Create contact route",

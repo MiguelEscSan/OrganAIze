@@ -48,7 +48,10 @@ Rules:
 - **Request** = a card created by the user with a free-text input. Requests are queued in the **Ready to develop** column.
 - The Orchestrator splits a request into **subtasks** as soon as it is created. Each subtask is its own card in Ready.
 - A request can have many subtasks. The request is complete when all its subtasks reach **Deploy**.
-- **Task states, in order:** `ready` → `in_progress` → `qa` → `deploy`. A failed QA sends the task back to `in_progress` with feedback attached.
+- **Task states, in order:** `definition` → `ready` → `in_progress` → `qa` → `deploy`. A failed QA sends the task back to `in_progress` with feedback attached.
+- **Definition is written by the user.** The user creates a request card in Definition and, when it is ready, moves it to Ready to develop. Only the user performs `definition` → `ready`.
+- **The system moves everything after Ready.** The program claims the next `ready` task into `in_progress`, and moves tasks between `in_progress`, `qa` and `deploy`. The user cannot move a task past Ready.
+- Transitions are validated by one pure function (`transitionTask`) in `domain`, which takes the actor (`user` or `system`).
 - **At most one task is `in_progress` in the whole system at any time.** Enforce this in the database (unique partial index or transactional claim), not only in code.
 - Other tasks wait in `ready` in FIFO order. The queue is unlimited.
 - `qa` holds at most one task, because it is fed only by the single `in_progress` task.
@@ -57,7 +60,7 @@ Rules:
 
 ## Board
 
-Columns: **Ready to develop | En curso | QA | Deploy**.
+Columns: **Definition | Ready to develop | In progress | QA | Deploy**.
 
 - Cards show: title, description, assigned agent, attempt count, last feedback (if any).
 - Request cards are shown as a parent with progress (e.g. 2/5 subtasks in Deploy).
