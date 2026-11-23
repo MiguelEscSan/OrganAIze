@@ -44,7 +44,11 @@ Rename or delete of boards, per-board agent panel, per-board settings.
 - [x] Task 2 — CreateRequest stores boardId (1ae8415, test only). No RED: use case already stored the given boardId, so the test passes on first run.
 - [x] Task 3 — API: ListBoards query, GET/POST /api/boards, boardId on /api/board and /api/requests (bdaffc4).
 - [x] Task 4 — Selector, create-board form, page and container wiring (cfe594e).
-- [ ] Verification: vitest 42 files / 212 tests pass; tsc exit 0; eslint clean. Browser check not run (no dev server or database in this session).
+- [x] Fix — stop seeding a default project from PROJECT_ROOT (3c7f0b0).
+- [x] Projects — create, update and delete use cases with Vitest (RED: modules missing before implementation); API `POST /api/boards`, `PUT`/`DELETE /api/boards/[id]` (61cd159).
+- [x] Projects page — real boards, gear dialog for edit/delete, New project dialog (daba416).
+- [x] Board route — `/projects/[id]` with back link, `/` redirects to `/projects`, Board tab, selector and create-board form removed (961caee).
+- [ ] Verification: vitest 45 files / 224 tests pass; tsc exit 0; eslint exit 0. Browser check not run (dev server on 3100 not started).
 
 ## Next step
-Review the UI in the browser with a dev server and a DATABASE_URL, then decide on push and PR (user decision).
+Review the projects UI in the browser with a dev server and a DATABASE_URL, then decide on push and PR (user decision).
