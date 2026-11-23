@@ -94,6 +94,58 @@ describe("runDevelop", () => {
     expect([task?.status, task?.attempts, task?.reviewReason]).toEqual(["review", 3, "attempts"]);
   });
 
+  describe("budgets", () => {
+    const START = "2026-11-23T10:00:00.000Z";
+
+    const runWithUsage = (usage: { minutesLater: number; totalTokens?: number }) => {
+      const deps = createInMemoryDependencies({ tasks: [subtask()] });
+      const workspace = createInMemoryWorkspaceWriter({ "src/app/page.tsx": "export default 'old';" });
+      const startedMs = Date.parse(START);
+      let now = START;
+      const llm = {
+        generateJson: async () => {
+          now = new Date(startedMs + usage.minutesLater * 60_000).toISOString();
+          return { ok: true as const, json: validOutput, totalTokens: usage.totalTokens };
+        },
+      };
+      const clock = { now: () => now };
+      const run = runDevelop({ ...deps, clock, llm, workspace });
+
+      return { deps, workspace, run };
+    };
+
+    it("stops the run when it takes longer than the time budget", async () => {
+      const { deps, workspace, run } = runWithUsage({ minutesLater: 16, totalTokens: 100 });
+
+      await run({ kind: "RunDevelop", taskId: "subtask-1" });
+
+      const task = await taskById(deps, "subtask-1");
+      expect([task?.status, task?.attempts, task?.reviewReason]).toEqual(["review", 0, "budget"]);
+      expect(task?.lastFeedback).toBe("Stopped after 16 min, over the 15 min budget");
+      expect(workspace.files()["src/app/page.tsx"]).toBe("export default 'old';");
+    });
+
+    it("stops the run when it uses more tokens than the token budget", async () => {
+      const { deps, workspace, run } = runWithUsage({ minutesLater: 1, totalTokens: 50_001 });
+
+      await run({ kind: "RunDevelop", taskId: "subtask-1" });
+
+      const task = await taskById(deps, "subtask-1");
+      expect([task?.status, task?.attempts, task?.reviewReason]).toEqual(["review", 0, "budget"]);
+      expect(task?.lastFeedback).toBe("Stopped after 50001 tokens, over the 50000 token budget");
+      expect(workspace.files()["src/app/page.tsx"]).toBe("export default 'old';");
+    });
+
+    it("lets the run finish when it stays within both budgets", async () => {
+      const { deps, run } = runWithUsage({ minutesLater: 14, totalTokens: 50_000 });
+
+      const outcome = await run({ kind: "RunDevelop", taskId: "subtask-1" });
+
+      expect(outcome.ok).toBe(true);
+      expect((await taskById(deps, "subtask-1"))?.status).toBe("qa");
+    });
+  });
+
   it("refuses to run a subtask that is not in progress", async () => {
     const { run } = setup(subtask({ status: "ready" }), { ok: true, json: validOutput });
 

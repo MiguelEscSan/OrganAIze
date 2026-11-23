@@ -28,7 +28,7 @@ Testing agent, Playwright, Edit and Continue changes.
 - [x] DEV-03 Phase 3: disk `WorkspaceWriter` with temp-dir tests
 - [x] DEV-04 Phase 4: `runDevelop` use case with in-memory tests (6 tests)
 - [x] DEV-05 Phase 5: overlapping files across subtasks (already enforced by the plan schema in `orchestration-plan.ts`, with tests; runtime lock deferred until runs are concurrent)
-- [ ] DEV-06 Phase 6: wire time and token budgets to Develop
+- [x] DEV-06 Phase 6: wire time and token budgets to Develop (`LlmReply` carries optional `totalTokens`; over budget → `review` with reason in `lastFeedback`, attempts unchanged; 3 tests)
 - [ ] DEV-07 Phase 7: register the command and show Develop status on the agent panel
 - [ ] DEV-08 Phase 8: end-to-end run on a sample project
 
@@ -51,5 +51,7 @@ Testing agent, Playwright, Edit and Continue changes.
 - DEV-05: the plan schema already rejects a parallel subtask that shares a file. Runs are sequential today, so no runtime lock is needed yet. A runtime lock becomes necessary when Develop runs subtasks concurrently.
 - DEV-06 needs a decision: `LlmReply` carries no token count. Counting tokens means adding usage to the LLM port.
 
+- DEV-06 done: the user chose to add usage to the LLM port. Time is measured with the `Clock` port around the LLM call; tokens come from the reply. The budget check runs before parsing and before any write.
+
 ## Next step
-DEV-06: decide how token usage reaches the budget check.
+DEV-07: register `RunDevelop` in `register-handlers.ts` and show Develop status on the agent panel; fix the QA-capacity write-order gap.

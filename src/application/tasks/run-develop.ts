@@ -1,12 +1,14 @@
 import { checkFileScope } from "@/domain/agents/check-file-scope";
 import { parseDevelopOutput } from "@/domain/agents/develop-output";
+import { budgetOverrunReason, minutesBetween } from "@/domain/tasks/budget";
 import { countFailedAttempt } from "@/domain/tasks/count-failed-attempt";
 import type { Task } from "@/domain/tasks/task";
-import type { LlmClient } from "@/ports/llm-client";
+import type { LlmClient, LlmReply } from "@/ports/llm-client";
 import type { WorkspaceWriter } from "@/ports/workspace-writer";
 import type { ApplicationDependencies } from "../shared/dependencies";
 import { fail, type Outcome } from "../shared/outcome";
 import { conflictReason } from "./record-transition";
+import { stopTaskForBudget } from "./stop-task-for-budget";
 import { submitDevelopResult } from "./submit-develop-result";
 
 export type RunDevelop = { kind: "RunDevelop"; taskId: string };
@@ -58,6 +60,8 @@ const countFailure = async (
 const readCurrentFiles = async (deps: DevelopDependencies, task: Task): Promise<CurrentFile[]> =>
   Promise.all(task.files.map(async (path) => ({ path, content: await deps.workspace.read(path) })));
 
+const tokensUsed = (reply: LlmReply): number => (reply.ok ? (reply.totalTokens ?? 0) : 0);
+
 export const runDevelop =
   (deps: DevelopDependencies) =>
   async (command: RunDevelop): Promise<Outcome<Task>> => {
@@ -68,7 +72,17 @@ export const runDevelop =
       return fail("Only a develop subtask in progress can run");
     }
 
+    const startedAt = deps.clock.now();
     const reply = await deps.llm.generateJson(developPrompt(task, await readCurrentFiles(deps, task)));
+    const settings = await deps.settings.get();
+    const overrun = budgetOverrunReason(
+      { minutes: minutesBetween(startedAt, deps.clock.now()), tokens: tokensUsed(reply) },
+      { maxMinutes: settings.maxMinutes, maxTokens: settings.maxTokens },
+    );
+
+    if (overrun) {
+      return stopTaskForBudget(deps)({ kind: "StopTaskForBudget", taskId: task.id, reason: overrun });
+    }
 
     if (!reply.ok) {
       return countFailure(deps, tasks, task, reply.reason);
