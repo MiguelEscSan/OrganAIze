@@ -1,25 +1,9 @@
 import { connection } from "next/server";
 import { getAppServices } from "@/adapters/server/app-services";
 import { failedServer, readJsonObject, refused, succeeded } from "@/adapters/server/json-responses";
+import { parseSettingsBody } from "@/adapters/server/request-body";
 import type { Outcome } from "@/application/shared/outcome";
 import type { AppSettings } from "@/domain/settings/app-settings";
-
-const settingsFields = ["maxAttempts", "maxMinutes", "maxTokens", "maxQaTasks"] as const;
-
-const readSettings = (body: Record<string, unknown>): AppSettings | null => {
-  const numbers = settingsFields.map((field) => body[field]);
-
-  if (!numbers.every((value) => typeof value === "number")) {
-    return null;
-  }
-
-  return {
-    maxAttempts: body.maxAttempts as number,
-    maxMinutes: body.maxMinutes as number,
-    maxTokens: body.maxTokens as number,
-    maxQaTasks: body.maxQaTasks as number,
-  };
-};
 
 export const GET = async (): Promise<Response> => {
   await connection();
@@ -41,10 +25,10 @@ export const PUT = async (request: Request): Promise<Response> => {
     return refused("The request body must be a JSON object");
   }
 
-  const settings = readSettings(body);
+  const settings = parseSettingsBody(body);
 
   if (!settings) {
-    return refused("Every setting must be a number");
+    return refused("Every setting must have a valid value");
   }
 
   try {

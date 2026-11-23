@@ -1,9 +1,8 @@
 import { getAppServices, resolveDefaultBoardId } from "@/adapters/server/app-services";
 import { failedServer, readJsonObject, refused, succeeded } from "@/adapters/server/json-responses";
+import { hasOptionalRequestText } from "@/adapters/server/request-body";
 import type { CreatedRequest } from "@/application/requests/create-request";
 import type { Outcome } from "@/application/shared/outcome";
-
-const isOptionalText = (value: unknown): boolean => value === undefined || typeof value === "string";
 
 export const POST = async (request: Request): Promise<Response> => {
   const body = await readJsonObject(request);
@@ -12,7 +11,7 @@ export const POST = async (request: Request): Promise<Response> => {
     return refused("The request body must be a JSON object");
   }
 
-  if (!isOptionalText(body.title) || !isOptionalText(body.description)) {
+  if (!hasOptionalRequestText(body)) {
     return refused("Title and description must be text");
   }
 
