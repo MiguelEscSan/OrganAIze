@@ -59,7 +59,10 @@ export const TaskCard = ({
       </div>
 
       {task.description.trim() && (
-        <RichTextView html={task.description} className="text-xs leading-relaxed text-muted" />
+        <RichTextView
+          html={task.description}
+          className={`text-xs leading-relaxed text-muted ${task.status === "review" ? "line-clamp-3" : ""}`}
+        />
       )}
 
       <div className="flex items-center justify-between gap-2 text-xs">
