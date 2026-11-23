@@ -8,13 +8,14 @@ describe("createRequest", () => {
 
     const outcome = await createRequest(deps)({
       kind: "CreateRequest",
+      boardId: "board-1",
       title: "  Add contact page ",
       description: "<p>Form with name and email</p>",
     });
 
     expect(outcome.ok).toBe(true);
     expect(await deps.requests.list()).toEqual([
-      { id: "id-1", title: "Add contact page", description: "<p>Form with name and email</p>" },
+      { id: "id-1", boardId: "board-1", title: "Add contact page", description: "<p>Form with name and email</p>" },
     ]);
     expect(await deps.tasks.list()).toEqual([
       {
@@ -35,7 +36,7 @@ describe("createRequest", () => {
   it("refuses a request without a title and stores nothing", async () => {
     const deps = createInMemoryDependencies();
 
-    const outcome = await createRequest(deps)({ kind: "CreateRequest", title: "   ", description: "" });
+    const outcome = await createRequest(deps)({ kind: "CreateRequest", boardId: "board-1", title: "   ", description: "" });
 
     expect(outcome).toEqual({ ok: false, reason: "A request needs a title" });
     expect(await deps.requests.list()).toEqual([]);
@@ -45,8 +46,16 @@ describe("createRequest", () => {
   it("writes no task event, because creation is not a transition", async () => {
     const deps = createInMemoryDependencies();
 
-    await createRequest(deps)({ kind: "CreateRequest", title: "Landing", description: "" });
+    await createRequest(deps)({ kind: "CreateRequest", boardId: "board-1", title: "Landing", description: "" });
 
     expect(await deps.events.list()).toEqual([]);
+  });
+  it("refuses a request without a board", async () => {
+    const deps = createInMemoryDependencies();
+
+    const outcome = await createRequest(deps)({ kind: "CreateRequest", boardId: " ", title: "Landing", description: "" });
+
+    expect(outcome).toEqual({ ok: false, reason: "A request needs a board" });
+    expect(await deps.requests.list()).toEqual([]);
   });
 });

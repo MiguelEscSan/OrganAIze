@@ -3,6 +3,9 @@ import { type AnyPgColumn, boolean, check, integer, pgTable, text, timestamp, un
 
 export const requests = pgTable("requests", {
   id: text("id").primaryKey(),
+  boardId: text("board_id")
+    .notNull()
+    .references(() => boards.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description").notNull(),
 });

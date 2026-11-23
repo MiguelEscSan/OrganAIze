@@ -6,8 +6,8 @@ import { getRequest } from "./get-request";
 import { listRequests } from "./list-requests";
 
 const requests: Request[] = [
-  { id: "request-1", title: "Landing", description: "" },
-  { id: "request-2", title: "Contact", description: "" },
+  { id: "request-1", boardId: "board-1", title: "Landing", description: "" },
+  { id: "request-2", boardId: "board-1", title: "Contact", description: "" },
 ];
 const taskOf = (id: string, requestId: string, status: Task["status"]): Task => ({
   id,

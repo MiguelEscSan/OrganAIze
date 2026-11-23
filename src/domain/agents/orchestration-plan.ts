@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isInsideRoot } from "../boards/project-path";
 
 const nonBlankText = z.string().trim().min(1);
 
@@ -6,7 +7,7 @@ const subtaskPlanSchema = z.object({
   title: nonBlankText,
   description: nonBlankText,
   acceptanceCriteria: z.array(nonBlankText).min(1),
-  files: z.array(nonBlankText).min(1),
+  files: z.array(nonBlankText.refine(isInsideRoot, "Subtask files must stay inside the project root")).min(1),
   runsInParallel: z.boolean(),
 });
 

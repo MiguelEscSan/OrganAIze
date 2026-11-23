@@ -12,7 +12,7 @@ import { openTestDatabase, resetTestDatabase } from "./test-support";
 import type { Database } from "./client";
 
 const clock = { now: () => "2026-11-23T10:00:00.000Z" };
-const request: Request = { id: "request-1", title: "Landing", description: "<p>x</p>" };
+const request: Request = { id: "request-1", boardId: "board-1", title: "Landing", description: "<p>x</p>" };
 
 const taskOf = (id: string, status: Task["status"] = "definition"): Task => ({
   id,
@@ -44,6 +44,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await resetTestDatabase(db);
+  await createDrizzleBoardRepository(db).save({ id: "board-1", name: "Shop", rootPath: "C:\Projects\shop" });
 });
 
 afterAll(async () => {

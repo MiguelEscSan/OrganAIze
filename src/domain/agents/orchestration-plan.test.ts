@@ -52,4 +52,11 @@ describe("parseOrchestrationPlan", () => {
   it("rejects output that is not a plan at all", () => {
     expect(parseOrchestrationPlan("not json").ok).toBe(false);
   });
+  it("rejects a subtask file that leaves the project root", () => {
+    const outcome = parseOrchestrationPlan({
+      subtasks: [subtask({ files: ["../agent-team/src/app/page.tsx"] })],
+    });
+
+    expect(outcome.ok).toBe(false);
+  });
 });

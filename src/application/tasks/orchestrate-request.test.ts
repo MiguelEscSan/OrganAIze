@@ -5,7 +5,7 @@ import type { Request } from "@/domain/requests/request";
 import type { Task } from "@/domain/tasks/task";
 import { orchestrateRequest } from "./orchestrate-request";
 
-const request: Request = { id: "request-1", title: "Landing", description: "A landing page" };
+const request: Request = { id: "request-1", boardId: "board-1", title: "Landing", description: "A landing page" };
 const parentTask: Task = {
   id: "task-1",
   requestId: "request-1",
