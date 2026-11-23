@@ -28,6 +28,30 @@ const sendClaimedRequestToReview = async (
   return outcome === "applied" ? fail(reason) : fail(conflictReason);
 };
 
+const splitUntilSettled = async (
+  deps: OrchestrationDependencies,
+  taskId: string,
+  attemptsBefore: number,
+): Promise<Outcome<Task[]>> => {
+  const split = await orchestrateRequest(deps)({ kind: "OrchestrateRequest", taskId });
+
+  if (split.ok) {
+    return split;
+  }
+
+  const current = (await deps.tasks.list()).find((task) => task.id === taskId);
+
+  if (!current || current.status !== "in_progress") {
+    return split;
+  }
+
+  if (current.attempts === attemptsBefore) {
+    return sendClaimedRequestToReview(deps, taskId, split.reason);
+  }
+
+  return splitUntilSettled(deps, taskId, current.attempts);
+};
+
 export const claimAndOrchestrateRequest =
   (deps: OrchestrationDependencies) =>
   async (): Promise<Outcome<Task[]>> => {
@@ -37,11 +61,5 @@ export const claimAndOrchestrateRequest =
       return fail(claimed.reason);
     }
 
-    const split = await orchestrateRequest(deps)({ kind: "OrchestrateRequest", taskId: claimed.value.id });
-
-    if (split.ok) {
-      return split;
-    }
-
-    return sendClaimedRequestToReview(deps, claimed.value.id, split.reason);
+    return splitUntilSettled(deps, claimed.value.id, claimed.value.attempts);
   };
