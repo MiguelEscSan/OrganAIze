@@ -11,6 +11,7 @@ const createTask = (overrides: Partial<Task>): Task => ({
   assignedAgent: null,
   attempts: 0,
   lastFeedback: null,
+  reviewReason: null,
   ...overrides,
 });
 
@@ -64,6 +65,37 @@ describe("transitionTask", () => {
 
     expect(result.ok).toBe(true);
     expect(result.ok && result.tasks[0].status).toBe("in_progress");
+  });
+
+  it("does not let the system send a QA task back without feedback", () => {
+    const tasks = [createTask({ id: "a", status: "qa" })];
+
+    const result = transitionTask(tasks, "a", "in_progress", "system");
+
+    expect(result.ok).toBe(false);
+  });
+
+  it("lets the user send a task in review back to ready with attempts reset to zero", () => {
+    const tasks = [createTask({ id: "a", status: "review", attempts: 3, lastFeedback: "Still broken" })];
+
+    const result = transitionTask(tasks, "a", "ready", "user");
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.tasks[0]).toMatchObject({ status: "ready", attempts: 0 });
+    expect(result.ok && result.tasks[0].lastFeedback).toBe("Still broken");
+  });
+
+  it("does not let the system move a task out of review", () => {
+    const tasks = [createTask({ id: "a", status: "review" })];
+
+    expect(transitionTask(tasks, "a", "ready", "system").ok).toBe(false);
+    expect(transitionTask(tasks, "a", "in_progress", "system").ok).toBe(false);
+  });
+
+  it("does not let the user move a task out of review into in progress", () => {
+    const tasks = [createTask({ id: "a", status: "review" })];
+
+    expect(transitionTask(tasks, "a", "in_progress", "user").ok).toBe(false);
   });
 
   it("refuses a second task in progress", () => {

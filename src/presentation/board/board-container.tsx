@@ -26,6 +26,7 @@ export const BoardContainer = ({ initialTasks }: BoardContainerProps) => {
       assignedAgent: null,
       attempts: 0,
       lastFeedback: null,
+      reviewReason: null,
     };
     setTasks((current) => [...current, newTask]);
   };
@@ -44,6 +45,13 @@ export const BoardContainer = ({ initialTasks }: BoardContainerProps) => {
     }
   };
 
+  const handleContinueTask = (taskId: string) => {
+    const result = transitionTask(tasks, taskId, "in_progress", "user");
+    if (result.ok) {
+      setTasks(result.tasks);
+    }
+  };
+
   const handleMoveTask = (taskId: string, to: TaskStatus) => {
     const result = transitionTask(tasks, taskId, to, "user");
     if (result.ok) {
@@ -57,6 +65,7 @@ export const BoardContainer = ({ initialTasks }: BoardContainerProps) => {
       onCreateTask={handleCreateTask}
       onEditTask={handleEditTask}
       onDeleteTask={handleDeleteTask}
+      onContinueTask={handleContinueTask}
       onMoveTask={handleMoveTask}
     />
   );

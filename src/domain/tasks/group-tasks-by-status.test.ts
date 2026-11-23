@@ -11,6 +11,7 @@ const createTask = (overrides: Partial<Task>): Task => ({
   assignedAgent: null,
   attempts: 0,
   lastFeedback: null,
+  reviewReason: null,
   ...overrides,
 });
 
@@ -34,7 +35,14 @@ describe("groupTasksByStatus", () => {
   it("keeps every status key even when it has no tasks", () => {
     const grouped = groupTasksByStatus([]);
 
-    expect(grouped).toEqual({ definition: [], ready: [], in_progress: [], qa: [], deploy: [] });
+    expect(grouped).toEqual({
+      definition: [],
+      ready: [],
+      in_progress: [],
+      qa: [],
+      deploy: [],
+      review: [],
+    });
   });
 
   it("preserves the input order inside a status", () => {

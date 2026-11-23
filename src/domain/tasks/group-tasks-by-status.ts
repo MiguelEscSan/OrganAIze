@@ -10,6 +10,7 @@ export const groupTasksByStatus = (tasks: readonly Task[]): TasksByStatus => {
     in_progress: [],
     qa: [],
     deploy: [],
+    review: [],
   };
 
   for (const task of tasks) {

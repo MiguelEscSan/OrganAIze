@@ -16,6 +16,7 @@ type KanbanColumnProps = {
   headerAction?: ReactNode;
   onEdit?: (taskId: string, values: TaskDialogValues) => void;
   onDelete?: (taskId: string) => void;
+  onContinue?: (taskId: string) => void;
 };
 
 export const KanbanColumn = ({
@@ -27,6 +28,7 @@ export const KanbanColumn = ({
   headerAction,
   onEdit,
   onDelete,
+  onContinue,
 }: KanbanColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
@@ -61,8 +63,10 @@ export const KanbanColumn = ({
                 task={task}
                 isDraggable={isUserEditable}
                 isEditable={isUserEditable && status === "definition"}
+                isDeletable={isUserEditable && (status === "definition" || status === "review")}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onContinue={onContinue}
               />
             </li>
           ))}

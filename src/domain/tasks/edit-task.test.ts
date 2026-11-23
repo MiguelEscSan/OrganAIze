@@ -11,6 +11,7 @@ const createTask = (overrides: Partial<Task>): Task => ({
   assignedAgent: null,
   attempts: 0,
   lastFeedback: null,
+  reviewReason: null,
   ...overrides,
 });
 
@@ -49,6 +50,20 @@ describe("deleteTask", () => {
 
     expect(result.ok).toBe(true);
     expect(result.ok && result.tasks.map((task) => task.id)).toEqual(["b"]);
+  });
+
+  it("removes a task that the user is reviewing", () => {
+    const tasks = [createTask({ id: "a", status: "review" })];
+
+    const result = deleteTask(tasks, "a");
+
+    expect(result.ok).toBe(true);
+  });
+
+  it("refuses to delete a task that is in progress", () => {
+    const tasks = [createTask({ id: "a", status: "in_progress" })];
+
+    expect(deleteTask(tasks, "a").ok).toBe(false);
   });
 
   it("refuses to delete a task that already left definition", () => {

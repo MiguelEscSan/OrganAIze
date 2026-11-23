@@ -10,11 +10,13 @@ type TaskCardProps = {
   task: Task;
   isDraggable: boolean;
   isEditable: boolean;
+  isDeletable: boolean;
   onEdit?: (taskId: string, values: TaskDialogValues) => void;
   onDelete?: (taskId: string) => void;
+  onContinue?: (taskId: string) => void;
 };
 
-export const TaskCard = ({ task, isDraggable, isEditable, onEdit, onDelete }: TaskCardProps) => {
+export const TaskCard = ({ task, isDraggable, isEditable, isDeletable, onEdit, onDelete, onContinue }: TaskCardProps) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
     data: { status: task.status },
@@ -64,30 +66,46 @@ export const TaskCard = ({ task, isDraggable, isEditable, onEdit, onDelete }: Ta
         </p>
       )}
 
-      {isEditable && onEdit && onDelete && (
+      {task.status === "review" && task.reviewReason === "budget" && onContinue && (
         <div className="flex justify-end gap-2 border-t border-line pt-2">
-          <TaskDialog
-            heading="Edit request"
-            submitLabel="Save"
-            initialValues={{ title: task.title, description: task.description }}
-            onSubmit={(values) => onEdit(task.id, values)}
-            renderTrigger={(open) => (
-              <button
-                type="button"
-                onClick={open}
-                className="rounded-full px-3 py-1 text-xs font-bold text-muted hover:bg-cream hover:text-ink"
-              >
-                Edit
-              </button>
-            )}
-          />
           <button
             type="button"
-            onClick={() => onDelete(task.id)}
-            className="rounded-full px-3 py-1 text-xs font-bold text-terracotta hover:bg-terracotta/10"
+            onClick={() => onContinue(task.id)}
+            className="rounded-full bg-sky px-3 py-1 text-xs font-bold text-paper hover:opacity-90"
           >
-            Delete
+            Continue
           </button>
+        </div>
+      )}
+
+      {(isEditable || isDeletable) && onEdit && onDelete && (
+        <div className="flex justify-end gap-2 border-t border-line pt-2">
+          {isEditable && (
+            <TaskDialog
+              heading="Edit request"
+              submitLabel="Save"
+              initialValues={{ title: task.title, description: task.description }}
+              onSubmit={(values) => onEdit(task.id, values)}
+              renderTrigger={(open) => (
+                <button
+                  type="button"
+                  onClick={open}
+                  className="rounded-full px-3 py-1 text-xs font-bold text-muted hover:bg-cream hover:text-ink"
+                >
+                  Edit
+                </button>
+              )}
+            />
+          )}
+          {isDeletable && (
+            <button
+              type="button"
+              onClick={() => onDelete(task.id)}
+              className="rounded-full px-3 py-1 text-xs font-bold text-terracotta hover:bg-terracotta/10"
+            >
+              Delete
+            </button>
+          )}
         </div>
       )}
     </article>

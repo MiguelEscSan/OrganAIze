@@ -24,7 +24,7 @@ export const SettingsForm = () => (
           <option value="2">2</option>
           <option value="3">3</option>
         </select>
-        <span className="text-xs text-muted">After this many failed QA attempts a task is marked as blocked.</span>
+        <span className="text-xs text-muted">After this many failed QA attempts a task is sent to review.</span>
       </label>
       <label className="flex items-center justify-between gap-4">
         <span className="flex flex-col gap-0.5">

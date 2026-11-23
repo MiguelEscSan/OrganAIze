@@ -38,6 +38,8 @@ export const editTaskDetails = (
   };
 };
 
+const deletableStatuses: readonly Task["status"][] = ["definition", "review"];
+
 export const deleteTask = (tasks: readonly Task[], taskId: string): EditResult => {
   const task = tasks.find((candidate) => candidate.id === taskId);
 
@@ -45,8 +47,8 @@ export const deleteTask = (tasks: readonly Task[], taskId: string): EditResult =
     return { ok: false, reason: "Task not found" };
   }
 
-  if (task.status !== "definition") {
-    return { ok: false, reason: "Only tasks in definition can be deleted" };
+  if (!deletableStatuses.includes(task.status)) {
+    return { ok: false, reason: "Only tasks in definition or review can be deleted" };
   }
 
   return { ok: true, tasks: tasks.filter((candidate) => candidate.id !== taskId) };

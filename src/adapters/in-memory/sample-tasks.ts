@@ -2,6 +2,17 @@ import type { Task } from "@/domain/tasks/task";
 
 export const sampleTasks: readonly Task[] = [
   {
+    id: "task-6",
+    requestId: "request-2",
+    title: "Add newsletter signup",
+    description: "Email field with a subscribe button in the footer",
+    status: "review",
+    assignedAgent: "testing",
+    attempts: 3,
+    lastFeedback: "3. Subscribe button submits an empty email without an error message.",
+    reviewReason: "attempts",
+  },
+  {
     id: "task-0",
     requestId: "request-2",
     title: "Write contact form copy",
@@ -10,6 +21,7 @@ export const sampleTasks: readonly Task[] = [
     assignedAgent: null,
     attempts: 0,
     lastFeedback: null,
+    reviewReason: null,
   },
   {
     id: "task-1",
@@ -20,6 +32,7 @@ export const sampleTasks: readonly Task[] = [
     assignedAgent: null,
     attempts: 0,
     lastFeedback: null,
+    reviewReason: null,
   },
   {
     id: "task-2",
@@ -30,6 +43,7 @@ export const sampleTasks: readonly Task[] = [
     assignedAgent: null,
     attempts: 0,
     lastFeedback: null,
+    reviewReason: null,
   },
   {
     id: "task-3",
@@ -40,6 +54,7 @@ export const sampleTasks: readonly Task[] = [
     assignedAgent: "develop",
     attempts: 1,
     lastFeedback: null,
+    reviewReason: null,
   },
   {
     id: "task-4",
@@ -50,6 +65,7 @@ export const sampleTasks: readonly Task[] = [
     assignedAgent: "testing",
     attempts: 2,
     lastFeedback: "1. Email validation accepts 'a@b' without a dot.",
+    reviewReason: null,
   },
   {
     id: "task-5",
@@ -60,5 +76,6 @@ export const sampleTasks: readonly Task[] = [
     assignedAgent: "testing",
     attempts: 1,
     lastFeedback: null,
+    reviewReason: null,
   },
 ];

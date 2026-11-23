@@ -1,20 +1,22 @@
 import type { Actor } from "./actor";
 import type { Task } from "./task";
+import type { TaskEvent } from "./task-event";
 import type { TaskStatus } from "./task-status";
 
 export type TransitionResult =
-  | { ok: true; tasks: Task[] }
+  | { ok: true; tasks: Task[]; event: TaskEvent }
   | { ok: false; reason: string };
 
 const userMoves: ReadonlyArray<readonly [TaskStatus, TaskStatus]> = [
   ["definition", "ready"],
   ["ready", "definition"],
+  ["review", "ready"],
+  ["review", "in_progress"],
 ];
 
 const systemMoves: ReadonlyArray<readonly [TaskStatus, TaskStatus]> = [
   ["ready", "in_progress"],
   ["in_progress", "qa"],
-  ["qa", "in_progress"],
   ["qa", "deploy"],
 ];
 
@@ -46,10 +48,22 @@ export const transitionTask = (
     return { ok: false, reason: "Another task is already in progress" };
   }
 
+  if (actor === "user" && task.status === "review" && to === "in_progress" && task.reviewReason !== "budget") {
+    return { ok: false, reason: "Only a task stopped by budget can be continued" };
+  }
+
   return {
     ok: true,
     tasks: tasks.map((candidate) =>
-      candidate.id === taskId ? { ...candidate, status: to } : candidate,
+      candidate.id === taskId
+        ? {
+            ...candidate,
+            status: to,
+            attempts: task.status === "review" && to === "ready" ? 0 : candidate.attempts,
+            reviewReason: task.status === "review" ? null : candidate.reviewReason,
+          }
+        : candidate,
     ),
+    event: { taskId, from: task.status, to, actor, reason: `Moved by ${actor}` },
   };
 };

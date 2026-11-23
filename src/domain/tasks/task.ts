@@ -10,4 +10,7 @@ export type Task = {
   assignedAgent: AgentName | null;
   attempts: number;
   lastFeedback: string | null;
+  reviewReason: ReviewReason | null;
 };
+
+export type ReviewReason = "attempts" | "budget";

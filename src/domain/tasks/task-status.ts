@@ -1,3 +1,5 @@
-export const taskStatuses = ["definition", "ready", "in_progress", "qa", "deploy"] as const;
+export const taskStatuses = ["definition", "ready", "in_progress", "qa", "deploy", "review"] as const;
 
 export type TaskStatus = (typeof taskStatuses)[number];
+
+export const maxAttemptsPerTask = 3;

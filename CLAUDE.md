@@ -48,19 +48,27 @@ Rules:
 - **Request** = a card created by the user with a free-text input. Requests are queued in the **Ready to develop** column.
 - The Orchestrator splits a request into **subtasks** as soon as it is created. Each subtask is its own card in Ready.
 - A request can have many subtasks. The request is complete when all its subtasks reach **Deploy**.
-- **Task states, in order:** `definition` → `ready` → `in_progress` → `qa` → `deploy`. A failed QA sends the task back to `in_progress` with feedback attached.
+- **Task states:** `definition` → `ready` → `in_progress` → `qa` → `deploy`, plus `review` (reached after too many failed QA attempts or a budget stop). A failed QA sends the task back to `in_progress` with feedback attached.
 - **Definition is written by the user.** The user creates a request card in Definition and, when it is ready, moves it to Ready to develop. Only the user performs `definition` → `ready`.
 - **The system moves everything after Ready.** The program claims the next `ready` task into `in_progress`, and moves tasks between `in_progress`, `qa` and `deploy`. The user cannot move a task past Ready.
 - Transitions are validated by one pure function (`transitionTask`) in `domain`, which takes the actor (`user` or `system`).
 - **At most one task is `in_progress` in the whole system at any time.** Enforce this in the database (unique partial index or transactional claim), not only in code.
 - Other tasks wait in `ready` in FIFO order. The queue is unlimited.
 - `qa` holds at most one task, because it is fed only by the single `in_progress` task.
-- Each task has a max of 3 attempts. After the third failed QA it becomes `blocked` and the board shows why.
+- Each task has a max of 3 attempts. A rejection from QA (`rejectFromQa`) requires feedback, adds one attempt and returns the task to `in_progress`. On the third rejection the task moves to `review`, where the user decides: send it back to Ready (attempts reset to zero, feedback kept) or delete it. The system cannot move a task out of review.
 - Every state change writes an event (who, from, to, when, reason). The board log reads from these events.
+- **Soft limit while in progress.** A task in `in_progress` has a time budget and a token budget (both configurable in Settings). Time alone is not a reliable signal, so a task is not killed for running long.
+- **Stopping a long run.** When a budget is exceeded, the system stops the agent run and moves the task to `review` with the reason written in the feedback (for example, "Stopped after 15 min without finishing"). The attempt counter does not change, because the system did not judge the work.
+- **The user decides from review.** For a task stopped by a budget, Review offers three actions:
+  - **Continue:** the task returns to `in_progress` with the same attempt count and a new budget. It is never unlimited: each continuation requires a new decision.
+  - **Send to Ready:** attempts reset to zero, as for any review task.
+  - **Delete:** removes the task.
+- **Only one budget-stop per task is pending at a time.** While a task waits in review, the system does not run it again.
+- **Open decision:** the default values for the time and token budgets, and whether a budget stop should ever count as an attempt. Until decided, a budget stop never counts as an attempt.
 
 ## Board
 
-Columns: **Definition | Ready to develop | In progress | QA | Deploy**.
+Columns: **Definition | Ready to develop | In progress | QA | Review | Deploy**.
 
 - Cards show: title, description, assigned agent, attempt count, last feedback (if any).
 - Request cards are shown as a parent with progress (e.g. 2/5 subtasks in Deploy).
