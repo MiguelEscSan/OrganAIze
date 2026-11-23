@@ -7,6 +7,7 @@ import type { LlmClient, LlmReply } from "@/ports/llm-client";
 import type { WorkspaceWriter } from "@/ports/workspace-writer";
 import type { ApplicationDependencies } from "../shared/dependencies";
 import { fail, type Outcome } from "../shared/outcome";
+import { qaFullReason } from "./qa-capacity";
 import { conflictReason } from "./record-transition";
 import { stopTaskForBudget } from "./stop-task-for-budget";
 import { submitDevelopResult } from "./submit-develop-result";
@@ -98,6 +99,12 @@ export const runDevelop =
 
     if (!scope.ok) {
       return countFailure(deps, tasks, task, scope.reason);
+    }
+
+    const full = qaFullReason(await deps.tasks.list(), settings.maxQaTasks);
+
+    if (full) {
+      return fail(full);
     }
 
     await deps.workspace.write(parsed.output.files);

@@ -4,6 +4,7 @@ import { createRequest } from "./requests/create-request";
 import { deleteRequest } from "./requests/delete-request";
 import { editRequest } from "./requests/edit-request";
 import { getRequest } from "./requests/get-request";
+import { runDevelop, type DevelopDependencies } from "./tasks/run-develop";
 import { listRequests } from "./requests/list-requests";
 import { claimAndOrchestrateRequest } from "./tasks/claim-and-orchestrate-request";
 import { claimNextReadyTask } from "./tasks/claim-next-ready-task";
@@ -17,11 +18,12 @@ import { submitDevelopResult } from "./tasks/submit-develop-result";
 import { submitTestResult } from "./tasks/submit-test-result";
 import { Mediator } from "./cqrs/mediator";
 
-export const createMediator = (deps: OrchestrationDependencies): Mediator => {
+export const createMediator = (deps: OrchestrationDependencies & DevelopDependencies): Mediator => {
   const mediator = new Mediator();
 
   mediator.registerCommand("CreateRequest", createRequest(deps));
   mediator.registerCommand("OrchestrateRequest", orchestrateRequest(deps));
+  mediator.registerCommand("RunDevelop", runDevelop(deps));
   mediator.registerCommand("EditRequest", editRequest(deps));
   mediator.registerCommand("DeleteRequest", deleteRequest(deps));
   mediator.registerCommand("MoveTask", moveTask(deps));

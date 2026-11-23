@@ -7,6 +7,7 @@ import { createLlmClientFromEnv } from "../config/llm-client-from-env";
 import { createDrizzleBoardRepository } from "../drizzle/drizzle-board-repository";
 import { createDrizzleDependencies } from "../drizzle/create-drizzle-dependencies";
 import { createDatabase } from "../drizzle/client";
+import { createDiskWorkspaceWriter } from "../workspace/disk-workspace-writer";
 
 export type AppServices = {
   mediator: Mediator;
@@ -39,7 +40,11 @@ const buildServices = (): AppServices => {
   const db = createDatabase(requiredEnv("DATABASE_URL"));
 
   return {
-    mediator: createMediator({ ...createDrizzleDependencies(db), llm: llmFromEnvironment() }),
+    mediator: createMediator({
+      ...createDrizzleDependencies(db),
+      llm: llmFromEnvironment(),
+      workspace: createDiskWorkspaceWriter(requiredEnv("PROJECT_ROOT")),
+    }),
     boards: createDrizzleBoardRepository(db),
   };
 };

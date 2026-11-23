@@ -2,6 +2,7 @@ import type { Task } from "@/domain/tasks/task";
 import { transitionTask } from "@/domain/tasks/transition-task";
 import type { ApplicationDependencies } from "../shared/dependencies";
 import { fail, type Outcome } from "../shared/outcome";
+import { qaFullReason } from "./qa-capacity";
 import { recordTransition } from "./record-transition";
 
 export type SubmitDevelopResult = { kind: "SubmitDevelopResult"; taskId: string };
@@ -18,10 +19,10 @@ export const submitDevelopResult =
     }
 
     const settings = await deps.settings.get();
-    const tasksInQa = tasks.filter((task) => task.status === "qa").length;
+    const full = qaFullReason(tasks, settings.maxQaTasks);
 
-    if (tasksInQa >= settings.maxQaTasks) {
-      return fail(`QA is full: ${tasksInQa} of ${settings.maxQaTasks} tasks are already in qa`);
+    if (full) {
+      return fail(full);
     }
 
     const after = result.tasks.find((task) => task.id === command.taskId);

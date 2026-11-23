@@ -29,7 +29,7 @@ Testing agent, Playwright, Edit and Continue changes.
 - [x] DEV-04 Phase 4: `runDevelop` use case with in-memory tests (6 tests)
 - [x] DEV-05 Phase 5: overlapping files across subtasks (already enforced by the plan schema in `orchestration-plan.ts`, with tests; runtime lock deferred until runs are concurrent)
 - [x] DEV-06 Phase 6: wire time and token budgets to Develop (`LlmReply` carries optional `totalTokens`; over budget → `review` with reason in `lastFeedback`, attempts unchanged; 3 tests)
-- [ ] DEV-07 Phase 7: register the command and show Develop status on the agent panel
+- [~] DEV-07 Phase 7: register the command (done) and show Develop status on the agent panel (pending: no live panel exists yet, and nothing triggers `RunDevelop` yet)
 - [ ] DEV-08 Phase 8: end-to-end run on a sample project
 
 ## Acceptance criteria
@@ -53,5 +53,7 @@ Testing agent, Playwright, Edit and Continue changes.
 
 - DEV-06 done: the user chose to add usage to the LLM port. Time is measured with the `Clock` port around the LLM call; tokens come from the reply. The budget check runs before parsing and before any write.
 
+- DEV-07 partial: the QA-capacity gap is fixed. `runDevelop` checks the shared `qaFullReason` before writing, so a full QA writes nothing and keeps the attempt count (test added). `RunDevelop` is registered in `register-handlers.ts`, and the server wires a disk writer rooted at `PROJECT_ROOT`. The Team page is still static sample data, and no trigger runs `RunDevelop` yet.
+
 ## Next step
-DEV-07: register `RunDevelop` in `register-handlers.ts` and show Develop status on the agent panel; fix the QA-capacity write-order gap.
+Decide what triggers `RunDevelop` (automatic after claim, or a manual action), then build the live Develop status on the agent panel.

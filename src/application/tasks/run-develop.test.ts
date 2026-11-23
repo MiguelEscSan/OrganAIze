@@ -146,6 +146,23 @@ describe("runDevelop", () => {
     });
   });
 
+  it("writes nothing and keeps the attempt count when QA is already full", async () => {
+    const qaTasks = [
+      buildTask({ id: "qa-1", requestId: "request-1", parentTaskId: "parent-1", status: "qa" }),
+      buildTask({ id: "qa-2", requestId: "request-1", parentTaskId: "parent-1", status: "qa" }),
+    ];
+    const deps = createInMemoryDependencies({ tasks: [subtask(), ...qaTasks] });
+    const workspace = createInMemoryWorkspaceWriter({ "src/app/page.tsx": "export default 'old';" });
+    const run = runDevelop({ ...deps, llm: createScriptedLlmClient({ ok: true, json: validOutput }), workspace });
+
+    const outcome = await run({ kind: "RunDevelop", taskId: "subtask-1" });
+
+    expect(outcome.ok).toBe(false);
+    expect(workspace.files()).toEqual({ "src/app/page.tsx": "export default 'old';" });
+    const task = await taskById(deps, "subtask-1");
+    expect([task?.status, task?.attempts]).toEqual(["in_progress", 0]);
+  });
+
   it("refuses to run a subtask that is not in progress", async () => {
     const { run } = setup(subtask({ status: "ready" }), { ok: true, json: validOutput });
 

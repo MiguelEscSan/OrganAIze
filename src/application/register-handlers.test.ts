@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { createInMemoryDependencies } from "@/adapters/in-memory/in-memory-dependencies";
 import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-client";
+import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
+import { buildTask } from "@/adapters/in-memory/task-fixtures";
 import { createMediator } from "./register-handlers";
 
 const createDependenciesWithLlm = () => ({
   ...createInMemoryDependencies(),
   llm: createScriptedLlmClient({ ok: false, reason: "not used in this test" }),
+  workspace: createInMemoryWorkspaceWriter({}),
 });
 
 describe("createMediator", () => {
@@ -18,6 +21,32 @@ describe("createMediator", () => {
     });
 
     expect(summaries).toEqual([expect.objectContaining({ total: 1, request: expect.objectContaining({ title: "Landing page" }) })]);
+  });
+
+  it("runs a develop subtask through the mediator and writes its files", async () => {
+    const task = buildTask({
+      id: "subtask-1",
+      requestId: "request-1",
+      parentTaskId: "parent-1",
+      status: "in_progress",
+      assignedAgent: "develop",
+      files: ["src/app/page.tsx"],
+    });
+    const workspace = createInMemoryWorkspaceWriter({});
+    const deps = {
+      ...createInMemoryDependencies({ tasks: [task] }),
+      llm: createScriptedLlmClient({ ok: true, json: { files: [{ path: "src/app/page.tsx", content: "new" }] } }),
+      workspace,
+    };
+    const mediator = createMediator(deps);
+
+    const outcome = await mediator.send<{ kind: "RunDevelop"; taskId: string }, { ok: boolean }>({
+      kind: "RunDevelop",
+      taskId: "subtask-1",
+    });
+
+    expect(outcome.ok).toBe(true);
+    expect(workspace.files()).toEqual({ "src/app/page.tsx": "new" });
   });
 
   it("routes a claim through the mediator and moves the next ready task", async () => {
