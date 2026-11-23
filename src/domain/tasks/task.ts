@@ -13,4 +13,4 @@ export type Task = {
   reviewReason: ReviewReason | null;
 };
 
-export type ReviewReason = "attempts" | "budget";
+export type ReviewReason = "attempts" | "budget" | "orchestration";

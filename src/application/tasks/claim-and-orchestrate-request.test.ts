@@ -49,6 +49,24 @@ describe("claimAndOrchestrateRequest", () => {
     ]);
   });
 
+  it("sends the request to review with the reason when the LLM call fails", async () => {
+    const deps = createInMemoryDependencies({ requests: [request], tasks: [readyTask] });
+    const claimAndOrchestrate = claimAndOrchestrateRequest({
+      ...deps,
+      llm: createScriptedLlmClient({ ok: false, reason: "Gemini is unavailable" }),
+    });
+
+    const outcome = await claimAndOrchestrate();
+
+    expect(outcome).toEqual({ ok: false, reason: "Gemini is unavailable" });
+    const [task] = await deps.tasks.list();
+    expect([task.status, task.reviewReason, task.lastFeedback]).toEqual([
+      "review",
+      "orchestration",
+      "Gemini is unavailable",
+    ]);
+  });
+
   it("reports that nothing is ready and creates nothing", async () => {
     const deps = createInMemoryDependencies({ requests: [request], tasks: [] });
     const claimAndOrchestrate = claimAndOrchestrateRequest({
