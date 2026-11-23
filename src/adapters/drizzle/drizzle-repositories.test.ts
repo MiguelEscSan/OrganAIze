@@ -23,6 +23,8 @@ const taskOf = (id: string, status: Task["status"] = "definition"): Task => ({
   attempts: 0,
   lastFeedback: null,
   reviewReason: null,
+
+  parentTaskId: null,
 });
 
 const transitionEvent = (taskId: string, from: Task["status"], to: Task["status"]): TaskEvent => ({
@@ -200,6 +202,35 @@ describe("drizzle task repository", () => {
     ).rejects.toThrow();
 
     expect((await tasks.list()).map((task) => task.status)).toEqual(["ready"]);
+  });
+
+  it("lets several subtasks of the same request be in progress together", async () => {
+    const requests = createDrizzleRequestRepository(db);
+    const tasks = createDrizzleTaskRepository(db);
+    const parent = { ...taskOf("t1", "in_progress") };
+    const subtaskOf = (id: string) => ({ ...taskOf(id, "in_progress"), parentTaskId: parent.id });
+
+    await requests.saveWithTasks(request, [parent, subtaskOf("s1"), subtaskOf("s2")]);
+
+    expect((await tasks.list()).filter((task) => task.status === "in_progress").map((task) => task.id)).toEqual([
+      "t1",
+      "s1",
+      "s2",
+    ]);
+  });
+
+  it("refuses a second request in progress while the first one is still running", async () => {
+    const requests = createDrizzleRequestRepository(db);
+    const tasks = createDrizzleTaskRepository(db);
+    await requests.saveWithTasks(request, [taskOf("t1", "in_progress"), taskOf("t2", "ready")]);
+
+    const outcome = await tasks.applyTransition({
+      task: taskOf("t2", "in_progress"),
+      expectedStatus: "ready",
+      event: transitionEvent("t2", "ready", "in_progress"),
+    });
+
+    expect(outcome).toBe("conflict");
   });
 
   it("removes a task only while its stored status is allowed", async () => {

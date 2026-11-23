@@ -12,6 +12,8 @@ const createTask = (overrides: Partial<Task>): Task => ({
   attempts: 0,
   lastFeedback: null,
   reviewReason: null,
+
+  parentTaskId: null,
   ...overrides,
 });
 

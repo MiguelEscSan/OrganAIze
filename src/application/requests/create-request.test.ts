@@ -27,6 +27,7 @@ describe("createRequest", () => {
         attempts: 0,
         lastFeedback: null,
         reviewReason: null,
+        parentTaskId: null,
       },
     ]);
   });

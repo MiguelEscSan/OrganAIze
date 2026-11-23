@@ -11,6 +11,7 @@ export const sampleTasks: readonly Task[] = [
     attempts: 3,
     lastFeedback: "3. Subscribe button submits an empty email without an error message.",
     reviewReason: "attempts",
+    parentTaskId: null,
   },
   {
     id: "task-0",
@@ -22,6 +23,8 @@ export const sampleTasks: readonly Task[] = [
     attempts: 0,
     lastFeedback: null,
     reviewReason: null,
+
+    parentTaskId: null,
   },
   {
     id: "task-1",
@@ -33,6 +36,8 @@ export const sampleTasks: readonly Task[] = [
     attempts: 0,
     lastFeedback: null,
     reviewReason: null,
+
+    parentTaskId: null,
   },
   {
     id: "task-2",
@@ -44,6 +49,8 @@ export const sampleTasks: readonly Task[] = [
     attempts: 0,
     lastFeedback: null,
     reviewReason: null,
+
+    parentTaskId: null,
   },
   {
     id: "task-3",
@@ -55,6 +62,8 @@ export const sampleTasks: readonly Task[] = [
     attempts: 1,
     lastFeedback: null,
     reviewReason: null,
+
+    parentTaskId: null,
   },
   {
     id: "task-4",
@@ -66,6 +75,8 @@ export const sampleTasks: readonly Task[] = [
     attempts: 2,
     lastFeedback: "1. Email validation accepts 'a@b' without a dot.",
     reviewReason: null,
+
+    parentTaskId: null,
   },
   {
     id: "task-5",
@@ -77,5 +88,7 @@ export const sampleTasks: readonly Task[] = [
     attempts: 1,
     lastFeedback: null,
     reviewReason: null,
+
+    parentTaskId: null,
   },
 ];

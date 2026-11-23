@@ -12,6 +12,8 @@ const createTask = (overrides: Partial<Task>): Task => ({
   attempts: 1,
   lastFeedback: null,
   reviewReason: null,
+
+  parentTaskId: null,
   ...overrides,
 });
 
@@ -27,6 +29,8 @@ describe("rejectFromQa", () => {
       attempts: 2,
       lastFeedback: "1. Email accepts 'a@b'.",
       reviewReason: null,
+
+      parentTaskId: null,
     });
   });
 

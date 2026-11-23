@@ -9,5 +9,6 @@ export const buildTask = (overrides: Partial<Task> & Pick<Task, "id">): Task => 
   attempts: 0,
   lastFeedback: null,
   reviewReason: null,
+  parentTaskId: null,
   ...overrides,
 });

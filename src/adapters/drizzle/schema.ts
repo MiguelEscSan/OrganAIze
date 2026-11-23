@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, integer, pgTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import { type AnyPgColumn, boolean, check, integer, pgTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 
 export const requests = pgTable("requests", {
   id: text("id").primaryKey(),
@@ -15,6 +15,7 @@ export const tasks = pgTable(
     requestId: text("request_id")
       .notNull()
       .references(() => requests.id, { onDelete: "cascade" }),
+    parentTaskId: text("parent_task_id").references((): AnyPgColumn => tasks.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     description: text("description").notNull(),
     status: varchar("status", { length: 16 }).notNull(),
@@ -24,7 +25,9 @@ export const tasks = pgTable(
     reviewReason: varchar("review_reason", { length: 16 }),
   },
   (table) => [
-    uniqueIndex("tasks_one_in_progress").on(table.status).where(sql`${table.status} = 'in_progress'`),
+    uniqueIndex("tasks_one_request_in_progress")
+      .on(table.status)
+      .where(sql`${table.status} = 'in_progress' and ${table.parentTaskId} is null`),
     check(
       "tasks_status_valid",
       sql`${table.status} in ('definition', 'ready', 'in_progress', 'qa', 'deploy', 'review')`,

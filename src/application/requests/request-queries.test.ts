@@ -19,6 +19,7 @@ const taskOf = (id: string, requestId: string, status: Task["status"]): Task => 
   attempts: 0,
   lastFeedback: null,
   reviewReason: null,
+  parentTaskId: null,
 });
 const tasks: Task[] = [
   taskOf("task-1", "request-1", "deploy"),
