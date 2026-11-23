@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { createInMemoryDependencies } from "@/adapters/in-memory/in-memory-dependencies";
 import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-client";
 import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
-import { inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
+import { developSeed, inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
 import type { Request } from "@/domain/requests/request";
 import type { Task } from "@/domain/tasks/task";
+import type { LlmClient, LlmReply } from "@/ports/llm-client";
 import { claimAndOrchestrateRequest } from "./claim-and-orchestrate-request";
 
 const request: Request = { id: "request-1", boardId: "board-1", title: "Landing", description: "A landing page" };
@@ -119,5 +120,85 @@ describe("claimAndOrchestrateRequest", () => {
 
     expect(outcome).toEqual({ ok: false, reason: "No task is ready to claim" });
     expect(await deps.tasks.list()).toEqual([]);
+  });
+
+  describe("after develop leaves subtasks in qa", () => {
+    const heroPath = "src/app/page.tsx";
+    const validPage = "export default function Page() { return <main>Hero</main>; }";
+
+    const answeringLlm = (review: LlmReply): LlmClient => ({
+      generateJson: async (prompt: string) => {
+        if (prompt.includes("Review this subtask")) {
+          return review;
+        }
+
+        if (prompt.includes("Implement this subtask")) {
+          return { ok: true, json: { files: [{ path: heroPath, content: validPage }] } };
+        }
+
+        return { ok: true, json: validPlan };
+      },
+    });
+
+    const runClaim = async (review: LlmReply) => {
+      const deps = createInMemoryDependencies({ ...developSeed, tasks: [readyTask] });
+      const claimAndOrchestrate = claimAndOrchestrateRequest({
+        ...deps,
+        ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+        llm: answeringLlm(review),
+      });
+
+      const outcome = await claimAndOrchestrate();
+      const subtask = (await deps.tasks.list()).find((task) => task.parentTaskId === "task-1");
+
+      return { outcome, subtask };
+    };
+
+    it("moves the subtask to deploy when the testing review passes", async () => {
+      const { outcome, subtask } = await runClaim({ ok: true, json: { passed: true, failures: [] } });
+
+      expect(outcome.ok).toBe(true);
+      expect([subtask?.status, subtask?.attempts]).toEqual(["deploy", 0]);
+    });
+
+    it("sends the subtask back to in progress with the feedback when the testing review fails", async () => {
+      const failing: LlmReply = {
+        ok: true,
+        json: {
+          passed: false,
+          failures: [{ criterion: "Hero shows the headline", file: heroPath, line: 1, message: "Headline missing" }],
+        },
+      };
+
+      const { outcome, subtask } = await runClaim(failing);
+
+      expect(outcome.ok).toBe(true);
+      expect([subtask?.status, subtask?.attempts]).toEqual(["in_progress", 1]);
+      expect(subtask?.lastFeedback).toContain("Headline missing");
+    });
+
+    it("returns the split outcome when the testing run throws", async () => {
+      const throwingLlm: LlmClient = {
+        generateJson: async (prompt: string) => {
+          if (prompt.includes("Review this subtask")) {
+            throw new Error("review crashed");
+          }
+
+          return answeringLlm({ ok: true, json: { passed: true, failures: [] } }).generateJson(prompt);
+        },
+      };
+      const deps = createInMemoryDependencies({ ...developSeed, tasks: [readyTask] });
+      const claimAndOrchestrate = claimAndOrchestrateRequest({
+        ...deps,
+        ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+        llm: throwingLlm,
+      });
+
+      const outcome = await claimAndOrchestrate();
+
+      expect(outcome.ok).toBe(true);
+      const subtask = (await deps.tasks.list()).find((task) => task.parentTaskId === "task-1");
+      expect(subtask?.status).toBe("qa");
+    });
   });
 });
