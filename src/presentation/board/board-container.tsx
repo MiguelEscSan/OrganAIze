@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { TasksByStatus } from "@/domain/tasks/group-tasks-by-status";
+import type { Task } from "@/domain/tasks/task";
 import type { TaskStatus } from "@/domain/tasks/task-status";
+import { sendJson } from "../shared/send-json";
 import { KanbanBoard } from "./kanban-board";
 import type { TaskDialogValues } from "./task-dialog";
 
@@ -17,8 +19,6 @@ const emptyBoard: TasksByStatus = {
   deploy: [],
 };
 
-const unconnectedNotice = "Editing, deleting and continuing tasks is not connected to the server yet.";
-
 type BoardContainerProps = {
   initialTasksByStatus: TasksByStatus | null;
   initialError: string | null;
@@ -26,26 +26,10 @@ type BoardContainerProps = {
 
 type BoardResponse = { ok: boolean; reason?: string; tasksByStatus?: TasksByStatus };
 
-const unreachableServerReason = "The server could not be reached";
-
-const postJson = async (url: string, body: unknown): Promise<BoardResponse> => {
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const parsed = (await response.json()) as BoardResponse | null;
-
-    if (!response.ok || !parsed?.ok) {
-      return { ok: false, reason: parsed?.reason ?? `The server answered with status ${response.status}` };
-    }
-
-    return parsed;
-  } catch {
-    return { ok: false, reason: unreachableServerReason };
-  }
-};
+const findTask = (tasksByStatus: TasksByStatus, taskId: string): Task | undefined =>
+  Object.values(tasksByStatus)
+    .flat()
+    .find((task) => task.id === taskId);
 
 export const BoardContainer = ({ initialTasksByStatus, initialError }: BoardContainerProps) => {
   const [tasksByStatus, setTasksByStatus] = useState<TasksByStatus>(initialTasksByStatus ?? emptyBoard);
@@ -75,11 +59,52 @@ export const BoardContainer = ({ initialTasksByStatus, initialError }: BoardCont
     return () => clearInterval(timer);
   }, [refresh]);
 
-  const handleCreateTask = async ({ title, description }: TaskDialogValues) => {
-    const body = await postJson("/api/requests", { title, description });
+  const runAction = async (outcome: Promise<{ ok: boolean; reason?: string }>, fallbackReason: string) => {
+    const result = await outcome;
 
-    setActionError(body.ok ? null : (body.reason ?? "The request could not be created"));
+    setActionError(result.ok ? null : (result.reason ?? fallbackReason));
     await refresh();
+  };
+
+  const handleCreateTask = async ({ title, description }: TaskDialogValues) => {
+    await runAction(sendJson("POST", "/api/requests", { title, description }), "The request could not be created");
+  };
+
+  const handleEditTask = async (taskId: string, { title, description }: TaskDialogValues) => {
+    const task = findTask(tasksByStatus, taskId);
+
+    if (!task) {
+      setActionError("The request could not be found");
+      return;
+    }
+
+    await runAction(
+      sendJson("PUT", `/api/requests/${task.requestId}`, { title, description }),
+      "The request could not be saved",
+    );
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    const task = findTask(tasksByStatus, taskId);
+
+    if (!task) {
+      setActionError("The task could not be found");
+      return;
+    }
+
+    const outcome =
+      task.status === "definition"
+        ? sendJson("DELETE", `/api/requests/${task.requestId}`)
+        : sendJson("POST", `/api/tasks/${taskId}/review`, { decision: "delete" });
+
+    await runAction(outcome, "The task could not be deleted");
+  };
+
+  const handleContinueTask = async (taskId: string) => {
+    await runAction(
+      sendJson("POST", `/api/tasks/${taskId}/review`, { decision: "continue" }),
+      "The task could not be continued",
+    );
   };
 
   const handleMoveTask = async (taskId: string, to: TaskStatus) => {
@@ -88,13 +113,8 @@ export const BoardContainer = ({ initialTasksByStatus, initialError }: BoardCont
       return;
     }
 
-    const body = await postJson(`/api/tasks/${taskId}`, { to });
-
-    setActionError(body.ok ? null : (body.reason ?? "The task could not be moved"));
-    await refresh();
+    await runAction(sendJson("POST", `/api/tasks/${taskId}`, { to }), "The task could not be moved");
   };
-
-  const notConnected = () => setActionError(unconnectedNotice);
 
   return (
     <div className="flex flex-col gap-3">
@@ -111,9 +131,9 @@ export const BoardContainer = ({ initialTasksByStatus, initialError }: BoardCont
       <KanbanBoard
         tasksByStatus={tasksByStatus}
         onCreateTask={handleCreateTask}
-        onEditTask={notConnected}
-        onDeleteTask={notConnected}
-        onContinueTask={notConnected}
+        onEditTask={handleEditTask}
+        onDeleteTask={handleDeleteTask}
+        onContinueTask={handleContinueTask}
         onMoveTask={handleMoveTask}
       />
     </div>
