@@ -55,7 +55,8 @@ Testing agent, Playwright, Edit and Continue changes.
 
 - DEV-07 partial: the QA-capacity gap is fixed. `runDevelop` checks the shared `qaFullReason` before writing, so a full QA writes nothing and keeps the attempt count (test added). `RunDevelop` is registered in `register-handlers.ts`, and the server wires a disk writer rooted at `PROJECT_ROOT`.
 - DEV-07 trigger (automatic, chosen by the user): after a request is split, `runDevelopSubtasks` runs its develop subtasks in turn until each reaches qa, or stops when QA is full or an attempt is not counted. It runs inside the Ready request, so the HTTP call waits for the whole develop pass. Moving that to a background worker is deferred.
-- DEV-07 still pending: the live Develop status on the Team/agent panel (the page shows static sample data).
+- DEV-07 done: the Team page shows Develop as working (with the subtask title) or idle, derived from the board's tasks by `developActivity` (2 domain tests). The Orchestrator and Testing cards stay static.
+- DEV-07 status: the Team page reads the board through `ListBoard`; if that read fails it falls back to the static cards.
 
 ## Next step
-Build the live Develop status on the agent panel, deriving it from the subtasks of the request in progress.
+DEV-08: end-to-end run on a sample project (needs the target project path and an LLM key from the user).
