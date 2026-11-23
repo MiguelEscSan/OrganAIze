@@ -22,4 +22,12 @@ describe("validateAppSettings", () => {
     expect(validateAppSettings({ ...defaultAppSettings, maxTokens: 999 }).ok).toBe(false);
     expect(validateAppSettings({ ...defaultAppSettings, maxTokens: 1_000_001 }).ok).toBe(false);
   });
+
+  it("refuses a QA capacity outside 1 to 10 tasks", () => {
+    expect(validateAppSettings({ ...defaultAppSettings, maxQaTasks: 0 })).toEqual({
+      ok: false,
+      reason: "QA capacity must be a whole number between 1 and 10",
+    });
+    expect(validateAppSettings({ ...defaultAppSettings, maxQaTasks: 11 }).ok).toBe(false);
+  });
 });

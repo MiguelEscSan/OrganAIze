@@ -17,6 +17,13 @@ export const submitDevelopResult =
       return fail(result.ok ? "Task not found" : result.reason);
     }
 
+    const settings = await deps.settings.get();
+    const tasksInQa = tasks.filter((task) => task.status === "qa").length;
+
+    if (tasksInQa >= settings.maxQaTasks) {
+      return fail(`QA is full: ${tasksInQa} of ${settings.maxQaTasks} tasks are already in qa`);
+    }
+
     const after = result.tasks.find((task) => task.id === command.taskId);
 
     if (!after) {

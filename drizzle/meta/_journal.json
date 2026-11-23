@@ -29,6 +29,13 @@
       "when": 1795452265532,
       "tag": "0003_requests_board",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795454582803,
+      "tag": "0004_settings_qa_capacity",
+      "breakpoints": true
     }
   ]
 }
