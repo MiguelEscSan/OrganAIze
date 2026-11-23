@@ -1,6 +1,5 @@
 import type { Mediator } from "@/application/cqrs/mediator";
 import { createMediator } from "@/application/register-handlers";
-import { normalizeBoardDetails } from "@/domain/boards/board";
 import type { BoardRepository } from "@/ports/board-repository";
 import type { LlmClient } from "@/ports/llm-client";
 import { createLlmClientFromEnv } from "../config/llm-client-from-env";
@@ -56,26 +55,8 @@ export const getAppServices = (): AppServices => {
   return globalWithServices.agentTeamServices;
 };
 
-const defaultBoardId = "default-board";
-
-export const resolveDefaultBoardId = async (boards: BoardRepository): Promise<string> => {
+export const resolveDefaultBoardId = async (boards: BoardRepository): Promise<string | null> => {
   const [existing] = await boards.list();
 
-  if (existing) {
-    return existing.id;
-  }
-
-  const details = normalizeBoardDetails({ name: "Agent Team", rootPath: requiredEnv("PROJECT_ROOT") }, process.cwd());
-
-  if (!details.ok) {
-    throw new Error(details.reason);
-  }
-
-  const saved = await boards.save({ id: defaultBoardId, ...details.details });
-
-  if (saved !== "applied") {
-    throw new Error("The default board could not be saved");
-  }
-
-  return defaultBoardId;
+  return existing?.id ?? null;
 };

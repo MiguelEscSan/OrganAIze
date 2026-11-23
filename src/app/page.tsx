@@ -50,9 +50,10 @@ const loadAutoRefresh = async (): Promise<boolean> => {
   }
 };
 
-const LiveBoard = async ({ boardParam }: { boardParam: string | undefined }) => {
+const LiveBoard = async ({ searchParams }: { searchParams: Promise<HomeSearchParams> }) => {
   await connection();
-  const [view, autoRefresh] = await Promise.all([loadBoardView(boardParam), loadAutoRefresh()]);
+  const { board } = await searchParams;
+  const [view, autoRefresh] = await Promise.all([loadBoardView(readBoardParam(board)), loadAutoRefresh()]);
 
   return (
     <BoardContainer
@@ -66,9 +67,7 @@ const LiveBoard = async ({ boardParam }: { boardParam: string | undefined }) => 
   );
 };
 
-export default async function Home({ searchParams }: { searchParams: Promise<HomeSearchParams> }) {
-  const { board } = await searchParams;
-
+export default function Home({ searchParams }: { searchParams: Promise<HomeSearchParams> }) {
   return (
     <section className="flex flex-col gap-2">
       <header className="flex flex-col gap-1 px-6 pt-6 md:px-10 md:pt-10">
@@ -76,7 +75,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Hom
         <p className="text-muted">Define a request, send it to Ready, and the agents take it from there.</p>
       </header>
       <Suspense fallback={<p className="px-6 text-muted md:px-10">Loading the board…</p>}>
-        <LiveBoard boardParam={readBoardParam(board)} />
+        <LiveBoard searchParams={searchParams} />
       </Suspense>
     </section>
   );

@@ -13,6 +13,8 @@ const requestedBoardId = async (body: Record<string, unknown>, boards: BoardRepo
   return typeof body.boardId === "string" ? body.boardId : null;
 };
 
+const noBoardReason = "Create a project before adding a request";
+
 export const POST = async (request: Request): Promise<Response> => {
   const body = await readJsonObject(request);
 
@@ -29,7 +31,7 @@ export const POST = async (request: Request): Promise<Response> => {
     const boardId = await requestedBoardId(body, boards);
 
     if (boardId === null) {
-      return refused("The board must be text");
+      return refused(body.boardId === undefined ? noBoardReason : "The board must be text");
     }
 
     const outcome = await mediator.send<{ kind: "CreateRequest"; boardId: string; title: string; description: string }, Outcome<CreatedRequest>>({
