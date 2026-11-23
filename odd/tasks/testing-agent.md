@@ -36,7 +36,7 @@ Budgets for Testing runs, parallel Testing, changing the Develop or Orchestrator
 - [x] T1 Deterministic checks (08349c0)
 - [x] T2 runTesting with LLM review (2ae2670)
 - [x] T3 Trigger and Team panel (trigger 56a2b02; panel in the commit that adds this line)
-- [ ] T4 Playwright with confirmation
+- [x] T4 Playwright with confirmation (button "Run browser check" on QA cards; native confirm per run; adapter tested against test-fixtures/interface-sample with real Chromium)
 - [ ] Verification
 
 ## Next step

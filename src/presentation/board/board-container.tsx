@@ -138,6 +138,21 @@ export const BoardContainer = ({
     );
   };
 
+  const handleBrowserCheckTask = async (taskId: string) => {
+    const confirmed = window.confirm(
+      "Run this project with npm run dev and open it in a headless browser to check the page? The check runs only this time.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await runAction(
+      sendJson("POST", `/api/tasks/${taskId}/browser-check`, { confirmed: true }),
+      "The browser check could not run",
+    );
+  };
+
   const handleMoveTask = async (taskId: string, to: TaskStatus) => {
     if (to !== "ready" && to !== "definition") {
       setActionError("The system moves tasks after Ready");
@@ -181,6 +196,7 @@ export const BoardContainer = ({
         onDeleteTask={handleDeleteTask}
         onContinueTask={handleContinueTask}
         onSendToReadyTask={handleSendToReadyTask}
+        onBrowserCheckTask={handleBrowserCheckTask}
         onMoveTask={handleMoveTask}
       />
     </div>

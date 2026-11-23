@@ -9,12 +9,21 @@ export type TaskWorkspaceDependencies<Workspace> = {
   workspaceFor: (rootPath: string) => Workspace;
 };
 
+export const rootPathOfTask = async <Workspace>(
+  deps: TaskWorkspaceDependencies<Workspace>,
+  task: Task,
+): Promise<Outcome<string>> => {
+  const request = (await deps.requests.list()).find((candidate) => candidate.id === task.requestId);
+  const board = request ? (await deps.boards.list()).find((candidate) => candidate.id === request.boardId) : undefined;
+
+  return board ? succeed(board.rootPath) : fail("The board for this task was not found");
+};
+
 export const workspaceOfTask = async <Workspace>(
   deps: TaskWorkspaceDependencies<Workspace>,
   task: Task,
 ): Promise<Outcome<Workspace>> => {
-  const request = (await deps.requests.list()).find((candidate) => candidate.id === task.requestId);
-  const board = request ? (await deps.boards.list()).find((candidate) => candidate.id === request.boardId) : undefined;
+  const rootPath = await rootPathOfTask(deps, task);
 
-  return board ? succeed(deps.workspaceFor(board.rootPath)) : fail("The board for this task was not found");
+  return rootPath.ok ? succeed(deps.workspaceFor(rootPath.value)) : fail(rootPath.reason);
 };

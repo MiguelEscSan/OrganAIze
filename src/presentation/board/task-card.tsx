@@ -15,6 +15,7 @@ type TaskCardProps = {
   onDelete?: (taskId: string) => void;
   onContinue?: (taskId: string) => void;
   onSendToReady?: (taskId: string) => void;
+  onBrowserCheck?: (taskId: string) => void;
 };
 
 export const TaskCard = ({
@@ -26,6 +27,7 @@ export const TaskCard = ({
   onDelete,
   onContinue,
   onSendToReady,
+  onBrowserCheck,
 }: TaskCardProps) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
@@ -96,6 +98,18 @@ export const TaskCard = ({
             className="rounded-full bg-amber px-3 py-1 text-xs font-bold text-ink hover:opacity-90"
           >
             Send to Ready
+          </button>
+        </div>
+      )}
+
+      {task.status === "qa" && onBrowserCheck && (
+        <div className="flex justify-end gap-2 border-t border-line pt-2">
+          <button
+            type="button"
+            onClick={() => onBrowserCheck(task.id)}
+            className="rounded-full bg-sky px-3 py-1 text-xs font-bold text-paper hover:opacity-90"
+          >
+            Run browser check
           </button>
         </div>
       )}
