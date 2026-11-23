@@ -1,5 +1,5 @@
 import type { Task } from "@/domain/tasks/task";
-import type { Outcome } from "../shared/outcome";
+import { succeed, type Outcome } from "../shared/outcome";
 import { claimAndOrchestrateRequest } from "./claim-and-orchestrate-request";
 import { moveTask } from "./move-task";
 import type { OrchestrationDependencies } from "./orchestrate-request";
@@ -17,5 +17,7 @@ export const releaseTaskToReady =
 
     await claimAndOrchestrateRequest(deps)();
 
-    return moved;
+    const current = (await deps.tasks.list()).find((task) => task.id === command.taskId);
+
+    return current ? succeed(current) : moved;
   };

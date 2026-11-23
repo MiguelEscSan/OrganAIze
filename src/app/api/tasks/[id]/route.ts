@@ -1,17 +1,20 @@
 import { getAppServices } from "@/adapters/server/app-services";
-import { failedServer, refused, succeeded } from "@/adapters/server/json-responses";
+import { failedServer, readJsonObject, refused, succeeded } from "@/adapters/server/json-responses";
 import type { Task } from "@/domain/tasks/task";
 import type { Outcome } from "@/application/shared/outcome";
-
-type MoveTaskBody = { to?: unknown };
 
 export const POST = async (
   request: Request,
   context: { params: Promise<{ id: string }> },
 ): Promise<Response> => {
+  const body = await readJsonObject(request);
+
+  if (!body) {
+    return refused("The request body must be a JSON object");
+  }
+
   try {
     const { id } = await context.params;
-    const body = (await request.json()) as MoveTaskBody;
     const { mediator } = getAppServices();
 
     if (body.to === "ready") {

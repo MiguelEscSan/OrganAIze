@@ -5,7 +5,6 @@ import { BoardContainer } from "@/presentation/board/board-container";
 
 const loadBoard = async (): Promise<{ tasksByStatus: TasksByStatus | null; loadError: string | null }> => {
   try {
-    await connection();
     const { mediator } = getAppServices();
     const tasksByStatus = await mediator.ask<{ kind: "ListBoard" }, TasksByStatus>({ kind: "ListBoard" });
 
@@ -19,6 +18,7 @@ const loadBoard = async (): Promise<{ tasksByStatus: TasksByStatus | null; loadE
 };
 
 export default async function Home() {
+  await connection();
   const { tasksByStatus, loadError } = await loadBoard();
 
   return (

@@ -26,14 +26,25 @@ type BoardContainerProps = {
 
 type BoardResponse = { ok: boolean; reason?: string; tasksByStatus?: TasksByStatus };
 
-const postJson = async (url: string, body: unknown, method: "POST" = "POST"): Promise<BoardResponse> => {
-  const response = await fetch(url, {
-    method,
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
+const unreachableServerReason = "The server could not be reached";
 
-  return (await response.json()) as BoardResponse;
+const postJson = async (url: string, body: unknown): Promise<BoardResponse> => {
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const parsed = (await response.json()) as BoardResponse | null;
+
+    if (!response.ok || !parsed?.ok) {
+      return { ok: false, reason: parsed?.reason ?? `The server answered with status ${response.status}` };
+    }
+
+    return parsed;
+  } catch {
+    return { ok: false, reason: unreachableServerReason };
+  }
 };
 
 export const BoardContainer = ({ initialTasksByStatus, initialError }: BoardContainerProps) => {

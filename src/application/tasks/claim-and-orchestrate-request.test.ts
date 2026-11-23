@@ -67,6 +67,24 @@ describe("claimAndOrchestrateRequest", () => {
     ]);
   });
 
+  it("sends the request to review with a fallback reason when the failure has no text", async () => {
+    const deps = createInMemoryDependencies({ requests: [request], tasks: [readyTask] });
+    const claimAndOrchestrate = claimAndOrchestrateRequest({
+      ...deps,
+      llm: createScriptedLlmClient({ ok: false, reason: "   " }),
+    });
+
+    const outcome = await claimAndOrchestrate();
+
+    expect(outcome).toEqual({ ok: false, reason: "Orchestration failed without a reason" });
+    const [task] = await deps.tasks.list();
+    expect([task.status, task.reviewReason, task.lastFeedback]).toEqual([
+      "review",
+      "orchestration",
+      "Orchestration failed without a reason",
+    ]);
+  });
+
   it("retries an invalid plan and sends the request to review after three attempts", async () => {
     const deps = createInMemoryDependencies({ requests: [request], tasks: [readyTask] });
     const claimAndOrchestrate = claimAndOrchestrateRequest({

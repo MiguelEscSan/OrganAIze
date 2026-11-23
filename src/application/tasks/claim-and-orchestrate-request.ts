@@ -7,16 +7,19 @@ import { conflictReason } from "./record-transition";
 
 export type ClaimAndOrchestrateRequest = { kind: "ClaimAndOrchestrateRequest" };
 
+const fallbackReviewReason = "Orchestration failed without a reason";
+
 const sendClaimedRequestToReview = async (
   deps: OrchestrationDependencies,
   taskId: string,
-  reason: string,
+  failureReason: string,
 ): Promise<Outcome<Task[]>> => {
+  const reason = failureReason.trim().length > 0 ? failureReason : fallbackReviewReason;
   const tasks = await deps.tasks.list();
   const result = sendToReview(tasks, taskId, reason);
 
   if (!result.ok) {
-    return fail(reason);
+    return fail(result.reason);
   }
 
   const outcome = await deps.tasks.applyTransition({

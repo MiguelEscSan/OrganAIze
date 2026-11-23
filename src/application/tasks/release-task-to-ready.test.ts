@@ -29,7 +29,7 @@ describe("releaseTaskToReady", () => {
 
     const outcome = await release({ kind: "ReleaseTaskToReady", taskId: "task-1" });
 
-    expect(outcome.ok).toBe(true);
+    expect(outcome).toMatchObject({ ok: true, value: { id: "task-1", status: "in_progress" } });
     const tasks = await deps.tasks.list();
     expect(tasks.find((task) => task.id === "task-1")?.status).toBe("in_progress");
     expect(tasks.filter((task) => task.parentTaskId === "task-1").map((task) => task.title)).toEqual([
@@ -49,7 +49,7 @@ describe("releaseTaskToReady", () => {
 
     const outcome = await release({ kind: "ReleaseTaskToReady", taskId: "task-1" });
 
-    expect(outcome.ok).toBe(true);
+    expect(outcome).toMatchObject({ ok: true, value: { id: "task-1", status: "ready" } });
     const tasks = await deps.tasks.list();
     expect(tasks.find((task) => task.id === "task-1")?.status).toBe("ready");
     expect(tasks.filter((task) => task.parentTaskId === "task-1")).toEqual([]);

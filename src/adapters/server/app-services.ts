@@ -50,6 +50,8 @@ export const getAppServices = (): AppServices => {
   return globalWithServices.agentTeamServices;
 };
 
+const defaultBoardId = "default-board";
+
 export const resolveDefaultBoardId = async (boards: BoardRepository): Promise<string> => {
   const [existing] = await boards.list();
 
@@ -63,12 +65,11 @@ export const resolveDefaultBoardId = async (boards: BoardRepository): Promise<st
     throw new Error(details.reason);
   }
 
-  const board = { id: crypto.randomUUID(), ...details.details };
-  const saved = await boards.save(board);
+  const saved = await boards.save({ id: defaultBoardId, ...details.details });
 
   if (saved !== "applied") {
     throw new Error("The default board could not be saved");
   }
 
-  return board.id;
+  return defaultBoardId;
 };

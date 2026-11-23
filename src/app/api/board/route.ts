@@ -3,8 +3,9 @@ import { getAppServices } from "@/adapters/server/app-services";
 import { failedServer, succeeded } from "@/adapters/server/json-responses";
 
 export const GET = async (): Promise<Response> => {
+  await connection();
+
   try {
-    await connection();
     const { mediator } = getAppServices();
     const tasksByStatus = await mediator.ask({ kind: "ListBoard" });
 

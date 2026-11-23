@@ -1,13 +1,22 @@
 import { getAppServices, resolveDefaultBoardId } from "@/adapters/server/app-services";
-import { failedServer, refused, succeeded } from "@/adapters/server/json-responses";
+import { failedServer, readJsonObject, refused, succeeded } from "@/adapters/server/json-responses";
 import type { CreatedRequest } from "@/application/requests/create-request";
 import type { Outcome } from "@/application/shared/outcome";
 
-type CreateRequestBody = { title?: unknown; description?: unknown };
+const isOptionalText = (value: unknown): boolean => value === undefined || typeof value === "string";
 
 export const POST = async (request: Request): Promise<Response> => {
+  const body = await readJsonObject(request);
+
+  if (!body) {
+    return refused("The request body must be a JSON object");
+  }
+
+  if (!isOptionalText(body.title) || !isOptionalText(body.description)) {
+    return refused("Title and description must be text");
+  }
+
   try {
-    const body = (await request.json()) as CreateRequestBody;
     const { mediator, boards } = getAppServices();
     const boardId = await resolveDefaultBoardId(boards);
     const outcome = await mediator.send<{ kind: "CreateRequest"; boardId: string; title: string; description: string }, Outcome<CreatedRequest>>({
