@@ -71,6 +71,38 @@ describe("drizzle request repository", () => {
     expect(await tasks.list()).toEqual([]);
   });
 
+  it("updates the request and its tasks only while every task is in an allowed status", async () => {
+    const repository = createDrizzleRequestRepository(db);
+    const tasks = createDrizzleTaskRepository(db);
+    await repository.saveWithTasks(request, [taskOf("t1")]);
+
+    const outcome = await repository.updateWithTasksIfStatuses(
+      { ...request, title: "Renamed" },
+      [{ ...taskOf("t1"), title: "Renamed" }],
+      ["definition"],
+    );
+
+    expect(outcome).toBe("applied");
+    expect(await repository.list()).toEqual([{ ...request, title: "Renamed" }]);
+    expect((await tasks.list()).map((task) => task.title)).toEqual(["Renamed"]);
+  });
+
+  it("leaves the request and its tasks untouched when a task is outside the allowed statuses", async () => {
+    const repository = createDrizzleRequestRepository(db);
+    const tasks = createDrizzleTaskRepository(db);
+    await repository.saveWithTasks(request, [taskOf("t1"), taskOf("t2", "ready")]);
+
+    const outcome = await repository.updateWithTasksIfStatuses(
+      { ...request, title: "Renamed" },
+      [taskOf("t1"), taskOf("t2", "ready")].map((task) => ({ ...task, title: "Renamed" })),
+      ["definition"],
+    );
+
+    expect(outcome).toBe("conflict");
+    expect(await repository.list()).toEqual([request]);
+    expect((await tasks.list()).map((task) => task.title)).toEqual(["t1", "t2"]);
+  });
+
   it("keeps the request and its tasks when one task is outside the allowed statuses", async () => {
     const repository = createDrizzleRequestRepository(db);
     const tasks = createDrizzleTaskRepository(db);

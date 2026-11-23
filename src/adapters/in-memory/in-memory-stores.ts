@@ -42,6 +42,18 @@ export const createInMemoryRequestRepository = (state: InMemoryState): RequestRe
     ];
   },
 
+  updateWithTasksIfStatuses: async (request, tasks, allowedStatuses) => {
+    const own = state.tasks.filter((task) => task.requestId === request.id);
+
+    if (own.some((task) => !allowedStatuses.includes(task.status))) {
+      return "conflict";
+    }
+
+    await createInMemoryRequestRepository(state).saveWithTasks(request, tasks);
+
+    return "applied";
+  },
+
   removeWithTasksIfStatuses: async (requestId, allowedStatuses) => {
     const own = state.tasks.filter((task) => task.requestId === requestId);
 

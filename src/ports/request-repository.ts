@@ -6,5 +6,6 @@ import type { WriteOutcome } from "./task-repository";
 export type RequestRepository = {
   list(): Promise<Request[]>;
   saveWithTasks(request: Request, tasks: readonly Task[]): Promise<void>;
+  updateWithTasksIfStatuses(request: Request, tasks: readonly Task[], allowedStatuses: readonly TaskStatus[]): Promise<WriteOutcome>;
   removeWithTasksIfStatuses(requestId: string, allowedStatuses: readonly TaskStatus[]): Promise<WriteOutcome>;
 };

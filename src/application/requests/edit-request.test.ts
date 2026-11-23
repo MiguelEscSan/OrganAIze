@@ -48,6 +48,23 @@ describe("editRequest", () => {
     expect(await deps.requests.list()).toEqual([request]);
   });
 
+  it("refuses the edit when a task leaves definition after the snapshot was read", async () => {
+    const readyTask: Task = { ...definitionTask, status: "ready" };
+    const deps = createInMemoryDependencies({ requests: [request], tasks: [readyTask] });
+    const staleDeps = { ...deps, tasks: { ...deps.tasks, list: async () => [definitionTask] } };
+
+    const outcome = await editRequest(staleDeps)({
+      kind: "EditRequest",
+      requestId: "request-1",
+      title: "New",
+      description: "new text",
+    });
+
+    expect(outcome).toEqual({ ok: false, reason: "Only requests whose tasks are all in definition can be edited" });
+    expect(await deps.requests.list()).toEqual([request]);
+    expect((await deps.tasks.list())[0]).toMatchObject({ title: "Old", status: "ready" });
+  });
+
   it("refuses an unknown request", async () => {
     const deps = createInMemoryDependencies();
 

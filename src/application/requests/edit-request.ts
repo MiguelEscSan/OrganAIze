@@ -37,10 +37,15 @@ export const editRequest =
     const { title, description } = normalized.details;
     const updated: Request = { ...current, title, description };
 
-    await deps.requests.saveWithTasks(
+    const outcome = await deps.requests.updateWithTasksIfStatuses(
       updated,
       own.map((task) => ({ ...task, title, description })),
+      ["definition"],
     );
+
+    if (outcome === "conflict") {
+      return fail("Only requests whose tasks are all in definition can be edited");
+    }
 
     return succeed(updated);
   };
