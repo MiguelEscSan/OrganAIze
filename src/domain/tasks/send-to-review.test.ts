@@ -8,6 +8,8 @@ const inProgress: Task = {
   parentTaskId: null,
   title: "Landing",
   description: "A landing page",
+  acceptanceCriteria: [],
+  files: [],
   status: "in_progress",
   assignedAgent: null,
   attempts: 0,

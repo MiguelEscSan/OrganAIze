@@ -33,6 +33,8 @@ export const createRequest =
       requestId: request.id,
       title,
       description,
+      acceptanceCriteria: [],
+      files: [],
       status: "definition",
       assignedAgent: null,
       attempts: 0,

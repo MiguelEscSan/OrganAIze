@@ -32,6 +32,8 @@ const subtasksFrom = (parent: Task, plan: OrchestrationPlan, ids: () => string):
     parentTaskId: parent.id,
     title: subtask.title,
     description: subtask.description,
+    acceptanceCriteria: subtask.acceptanceCriteria,
+    files: subtask.files,
     status: "in_progress",
     assignedAgent: "develop",
     attempts: 0,

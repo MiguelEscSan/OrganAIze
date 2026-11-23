@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { type AnyPgColumn, boolean, check, integer, pgTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import { type AnyPgColumn, boolean, check, integer, jsonb, pgTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 
 export const requests = pgTable("requests", {
   id: text("id").primaryKey(),
@@ -21,6 +21,8 @@ export const tasks = pgTable(
     parentTaskId: text("parent_task_id").references((): AnyPgColumn => tasks.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     description: text("description").notNull(),
+    acceptanceCriteria: jsonb("acceptance_criteria").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    files: jsonb("files").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
     status: varchar("status", { length: 16 }).notNull(),
     assignedAgent: varchar("assigned_agent", { length: 16 }),
     attempts: integer("attempts").notNull().default(0),

@@ -10,6 +10,8 @@ const taskOf = (id: string, status: Task["status"]): Task => ({
   requestId: "request-1",
   title: "Landing",
   description: "",
+  acceptanceCriteria: [],
+  files: [],
   status,
   assignedAgent: null,
   attempts: 0,

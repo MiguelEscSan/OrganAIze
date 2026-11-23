@@ -3,9 +3,12 @@ import type { TaskStatus } from "./task-status";
 
 export type Task = {
   id: string;
-  requestId: string;  parentTaskId: string | null;
+  requestId: string;
+  parentTaskId: string | null;
   title: string;
   description: string;
+  acceptanceCriteria: string[];
+  files: string[];
   status: TaskStatus;
   assignedAgent: AgentName | null;
   attempts: number;

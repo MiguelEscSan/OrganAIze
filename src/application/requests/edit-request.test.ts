@@ -10,6 +10,8 @@ const definitionTask: Task = {
   requestId: "request-1",
   title: "Old",
   description: "old text",
+  acceptanceCriteria: [],
+  files: [],
   status: "definition",
   assignedAgent: null,
   attempts: 0,
