@@ -61,7 +61,7 @@ export const TaskCard = ({
       {task.description.trim() && (
         <RichTextView
           html={task.description}
-          className={`text-xs leading-relaxed text-muted ${task.status === "review" ? "line-clamp-3" : ""}`}
+          className="line-clamp-3 text-xs leading-relaxed text-muted"
         />
       )}
 
