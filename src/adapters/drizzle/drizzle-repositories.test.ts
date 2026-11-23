@@ -46,7 +46,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await resetTestDatabase(db);
-  await createDrizzleBoardRepository(db).save({ id: "board-1", name: "Shop", rootPath: "C:\Projects\shop" });
+  await createDrizzleBoardRepository(db).save({ id: "board-1", name: "Shop", rootPath: "C:\\Projects\\shop" });
 });
 
 afterAll(async () => {

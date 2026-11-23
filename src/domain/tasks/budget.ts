@@ -14,8 +14,25 @@ export type BudgetResult =
   | { ok: true; tasks: Task[] }
   | { ok: false; reason: string };
 
+const MILLISECONDS_PER_MINUTE = 60_000;
+
+export const minutesBetween = (startedAt: string, endedAt: string): number =>
+  (Date.parse(endedAt) - Date.parse(startedAt)) / MILLISECONDS_PER_MINUTE;
+
+export const budgetOverrunReason = (usage: RunUsage, budget: Budget): string | undefined => {
+  if (usage.minutes > budget.maxMinutes) {
+    return `Stopped after ${Math.floor(usage.minutes)} min, over the ${budget.maxMinutes} min budget`;
+  }
+
+  if (usage.tokens > budget.maxTokens) {
+    return `Stopped after ${usage.tokens} tokens, over the ${budget.maxTokens} token budget`;
+  }
+
+  return undefined;
+};
+
 export const exceedsBudget = (usage: RunUsage, budget: Budget): boolean =>
-  usage.minutes > budget.maxMinutes || usage.tokens > budget.maxTokens;
+  budgetOverrunReason(usage, budget) !== undefined;
 
 export const stopForBudget = (
   tasks: readonly Task[],

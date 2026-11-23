@@ -3,6 +3,17 @@ import { failedServer, readJsonObject, refused, succeeded } from "@/adapters/ser
 import { hasOptionalRequestText } from "@/adapters/server/request-body";
 import type { CreatedRequest } from "@/application/requests/create-request";
 import type { Outcome } from "@/application/shared/outcome";
+import type { BoardRepository } from "@/ports/board-repository";
+
+const requestedBoardId = async (body: Record<string, unknown>, boards: BoardRepository): Promise<string | null> => {
+  if (body.boardId === undefined) {
+    return resolveDefaultBoardId(boards);
+  }
+
+  return typeof body.boardId === "string" ? body.boardId : null;
+};
+
+const noBoardReason = "Create a project before adding a request";
 
 export const POST = async (request: Request): Promise<Response> => {
   const body = await readJsonObject(request);
@@ -17,7 +28,12 @@ export const POST = async (request: Request): Promise<Response> => {
 
   try {
     const { mediator, boards } = getAppServices();
-    const boardId = await resolveDefaultBoardId(boards);
+    const boardId = await requestedBoardId(body, boards);
+
+    if (boardId === null) {
+      return refused(body.boardId === undefined ? noBoardReason : "The board must be text");
+    }
+
     const outcome = await mediator.send<{ kind: "CreateRequest"; boardId: string; title: string; description: string }, Outcome<CreatedRequest>>({
       kind: "CreateRequest",
       boardId,

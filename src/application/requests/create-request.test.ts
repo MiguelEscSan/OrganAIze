@@ -35,6 +35,14 @@ describe("createRequest", () => {
     ]);
   });
 
+  it("stores the request under the board it was created in", async () => {
+    const deps = createInMemoryDependencies();
+
+    await createRequest(deps)({ kind: "CreateRequest", boardId: "board-2", title: "Shop", description: "" });
+
+    expect((await deps.requests.list()).map((request) => request.boardId)).toEqual(["board-2"]);
+  });
+
   it("refuses a request without a title and stores nothing", async () => {
     const deps = createInMemoryDependencies();
 

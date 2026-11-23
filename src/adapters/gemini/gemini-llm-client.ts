@@ -20,9 +20,17 @@ const textOf = (body: unknown): string | undefined => {
   return typeof text === "string" ? text : undefined;
 };
 
-const parseJson = (text: string): LlmReply => {
+const totalTokensOf = (body: unknown): number | undefined => {
+  const total = (body as { usageMetadata?: { totalTokenCount?: unknown } }).usageMetadata?.totalTokenCount;
+
+  return typeof total === "number" ? total : undefined;
+};
+
+const parseJson = (text: string, totalTokens: number | undefined): LlmReply => {
   try {
-    return { ok: true, json: JSON.parse(text) };
+    const json: unknown = JSON.parse(text);
+
+    return totalTokens === undefined ? { ok: true, json } : { ok: true, json, totalTokens };
   } catch {
     return { ok: false, reason: "Gemini reply is not valid JSON" };
   }
@@ -43,12 +51,13 @@ export const createGeminiLlmClient = (config: GeminiConfig, fetcher: FetchLike):
       return { ok: false, reason: `Gemini request failed with status ${response.status}` };
     }
 
-    const text = textOf(await response.json());
+    const body = await response.json();
+    const text = textOf(body);
 
     if (text === undefined) {
       return { ok: false, reason: "Gemini reply has no text" };
     }
 
-    return parseJson(text);
+    return parseJson(text, totalTokensOf(body));
   },
 });

@@ -4,6 +4,8 @@ import { fail, type Outcome } from "../shared/outcome";
 import { claimNextReadyTask } from "./claim-next-ready-task";
 import { orchestrateRequest, type OrchestrationDependencies } from "./orchestrate-request";
 import { conflictReason } from "./record-transition";
+import type { DevelopDependencies } from "./run-develop";
+import { runDevelopSubtasks } from "./run-develop-subtasks";
 
 export type ClaimAndOrchestrateRequest = { kind: "ClaimAndOrchestrateRequest" };
 
@@ -56,7 +58,7 @@ const splitUntilSettled = async (
 };
 
 export const claimAndOrchestrateRequest =
-  (deps: OrchestrationDependencies) =>
+  (deps: OrchestrationDependencies & DevelopDependencies) =>
   async (): Promise<Outcome<Task[]>> => {
     const claimed = await claimNextReadyTask(deps)();
 
@@ -64,5 +66,11 @@ export const claimAndOrchestrateRequest =
       return fail(claimed.reason);
     }
 
-    return splitUntilSettled(deps, claimed.value.id, claimed.value.attempts);
+    const split = await splitUntilSettled(deps, claimed.value.id, claimed.value.attempts);
+
+    if (split.ok) {
+      await runDevelopSubtasks(deps)(claimed.value.id);
+    }
+
+    return split;
   };

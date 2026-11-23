@@ -1,3 +1,4 @@
+import type { BoardRepository } from "@/ports/board-repository";
 import type { Clock } from "@/ports/clock";
 import type { EventLog } from "@/ports/event-log";
 import type { IdGenerator } from "@/ports/id-generator";
@@ -12,4 +13,12 @@ export type ApplicationDependencies = {
   events: EventLog;
   ids: IdGenerator;
   clock: Clock;
+};
+
+export type BoardDependencies = {
+  boards: BoardRepository;
+  requests: RequestRepository;
+  tasks: TaskRepository;
+  ids: IdGenerator;
+  appRoot: string;
 };

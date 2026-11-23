@@ -1,7 +1,10 @@
 import type { AgentProfile } from "@/adapters/in-memory/sample-agents";
+import type { AgentName } from "@/domain/agents/agent-name";
+import type { AgentActivity } from "@/domain/agents/develop-activity";
 
 type TeamListProps = {
   agents: readonly AgentProfile[];
+  activities: Partial<Record<AgentName, AgentActivity>>;
 };
 
 const accentByAgent: Record<AgentProfile["name"], string> = {
@@ -10,7 +13,7 @@ const accentByAgent: Record<AgentProfile["name"], string> = {
   testing: "bg-amber",
 };
 
-export const TeamList = ({ agents }: TeamListProps) => (
+export const TeamList = ({ agents, activities }: TeamListProps) => (
   <section className="flex flex-col gap-6 p-6 md:p-10">
     <header className="flex flex-col gap-1">
       <h1 className="text-3xl font-extrabold tracking-tight">Team</h1>
@@ -23,6 +26,12 @@ export const TeamList = ({ agents }: TeamListProps) => (
           <h2 className="text-lg font-bold">{agent.displayName}</h2>
           <p className="text-sm font-semibold text-terracotta">{agent.role}</p>
           <p className="text-sm text-muted">{agent.responsibility}</p>
+          {activities[agent.name] ? (
+            <p className="mt-auto rounded-lg bg-cream px-3 py-2 text-sm">
+              <span className="font-semibold capitalize">{activities[agent.name]?.state}</span>
+              <span className="text-muted"> · {activities[agent.name]?.message}</span>
+            </p>
+          ) : null}
         </li>
       ))}
     </ul>

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createInMemoryDependencies } from "@/adapters/in-memory/in-memory-dependencies";
 import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-client";
+import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
+import { inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
 import type { Request } from "@/domain/requests/request";
 import type { Task } from "@/domain/tasks/task";
 import { claimAndOrchestrateRequest } from "./claim-and-orchestrate-request";
@@ -38,6 +40,7 @@ describe("claimAndOrchestrateRequest", () => {
     const deps = createInMemoryDependencies({ requests: [request], tasks: [readyTask] });
     const claimAndOrchestrate = claimAndOrchestrateRequest({
       ...deps,
+      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
       llm: createScriptedLlmClient({ ok: true, json: validPlan }),
     });
 
@@ -55,6 +58,7 @@ describe("claimAndOrchestrateRequest", () => {
     const deps = createInMemoryDependencies({ requests: [request], tasks: [readyTask] });
     const claimAndOrchestrate = claimAndOrchestrateRequest({
       ...deps,
+      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
       llm: createScriptedLlmClient({ ok: false, reason: "Gemini is unavailable" }),
     });
 
@@ -73,6 +77,7 @@ describe("claimAndOrchestrateRequest", () => {
     const deps = createInMemoryDependencies({ requests: [request], tasks: [readyTask] });
     const claimAndOrchestrate = claimAndOrchestrateRequest({
       ...deps,
+      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
       llm: createScriptedLlmClient({ ok: false, reason: "   " }),
     });
 
@@ -91,6 +96,7 @@ describe("claimAndOrchestrateRequest", () => {
     const deps = createInMemoryDependencies({ requests: [request], tasks: [readyTask] });
     const claimAndOrchestrate = claimAndOrchestrateRequest({
       ...deps,
+      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
       llm: createScriptedLlmClient({ ok: true, json: { subtasks: [] } }),
     });
 
@@ -105,6 +111,7 @@ describe("claimAndOrchestrateRequest", () => {
     const deps = createInMemoryDependencies({ requests: [request], tasks: [] });
     const claimAndOrchestrate = claimAndOrchestrateRequest({
       ...deps,
+      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
       llm: createScriptedLlmClient({ ok: true, json: validPlan }),
     });
 

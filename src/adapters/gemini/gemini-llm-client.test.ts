@@ -45,6 +45,15 @@ describe("createGeminiLlmClient", () => {
     expect(reply).toEqual({ ok: false, reason: "Gemini request failed with status 429" });
   });
 
+  it("reports the total tokens Gemini counted for the call", async () => {
+    const fetcher: FetchLike = async () =>
+      jsonResponse(200, { ...candidateWithText("{}"), usageMetadata: { totalTokenCount: 321 } });
+
+    const reply = await createGeminiLlmClient(config, fetcher).generateJson("prompt");
+
+    expect(reply).toEqual({ ok: true, json: {}, totalTokens: 321 });
+  });
+
   it("reports a reply that is not JSON", async () => {
     const fetcher: FetchLike = async () => jsonResponse(200, candidateWithText("Sure, here is a plan"));
 

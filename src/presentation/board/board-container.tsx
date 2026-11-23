@@ -20,6 +20,7 @@ const emptyBoard: TasksByStatus = {
 };
 
 type BoardContainerProps = {
+  boardId: string;
   initialTasksByStatus: TasksByStatus | null;
   initialError: string | null;
   autoRefresh: boolean;
@@ -32,14 +33,21 @@ const findTask = (tasksByStatus: TasksByStatus, taskId: string): Task | undefine
     .flat()
     .find((task) => task.id === taskId);
 
-export const BoardContainer = ({ initialTasksByStatus, initialError, autoRefresh }: BoardContainerProps) => {
+const boardUrl = (boardId: string): string => `/api/board?boardId=${encodeURIComponent(boardId)}`;
+
+export const BoardContainer = ({
+  boardId,
+  initialTasksByStatus,
+  initialError,
+  autoRefresh,
+}: BoardContainerProps) => {
   const [tasksByStatus, setTasksByStatus] = useState<TasksByStatus>(initialTasksByStatus ?? emptyBoard);
   const [loadError, setLoadError] = useState<string | null>(initialError);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
-      const response = await fetch("/api/board", { cache: "no-store" });
+      const response = await fetch(boardUrl(boardId), { cache: "no-store" });
       const body = (await response.json()) as BoardResponse;
 
       if (!response.ok || !body.ok || !body.tasksByStatus) {
@@ -52,7 +60,7 @@ export const BoardContainer = ({ initialTasksByStatus, initialError, autoRefresh
     } catch {
       setLoadError("The board could not be loaded");
     }
-  }, []);
+  }, [boardId]);
 
   useEffect(() => {
     if (!autoRefresh) {
@@ -72,7 +80,10 @@ export const BoardContainer = ({ initialTasksByStatus, initialError, autoRefresh
   };
 
   const handleCreateTask = async ({ title, description }: TaskDialogValues) => {
-    await runAction(sendJson("POST", "/api/requests", { title, description }), "The request could not be created");
+    await runAction(
+      sendJson("POST", "/api/requests", { title, description, boardId }),
+      "The request could not be created",
+    );
   };
 
   const handleEditTask = async (taskId: string, { title, description }: TaskDialogValues) => {
