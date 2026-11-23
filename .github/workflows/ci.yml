@@ -12,6 +12,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: agent_team
+          POSTGRES_PASSWORD: agent_team_local
+          POSTGRES_DB: agent_team_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agent_team -d agent_team_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgres://agent_team:agent_team_local@localhost:5432/agent_team_test
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
