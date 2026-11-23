@@ -4,6 +4,6 @@ import type { BoardDependencies } from "../shared/dependencies";
 export type ListBoards = { kind: "ListBoards" };
 
 export const listBoards =
-  (deps: BoardDependencies) =>
+  (deps: Pick<BoardDependencies, "boards">) =>
   async (): Promise<Board[]> =>
     deps.boards.list();

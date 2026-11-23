@@ -1,6 +1,8 @@
 import type { Request } from "@/domain/requests/request";
 import type { Task } from "@/domain/tasks/task";
-import type { ApplicationDependencies } from "@/application/shared/dependencies";
+import type { Board } from "@/domain/boards/board";
+import type { ApplicationDependencies, BoardDependencies } from "@/application/shared/dependencies";
+import { createInMemoryBoardRepository } from "./in-memory-board-repository";
 import { createInMemorySettingsRepository } from "./in-memory-settings-repository";
 import {
   createFixedClock,
@@ -12,11 +14,14 @@ import {
 } from "./in-memory-stores";
 
 type Seed = {
+  boards?: readonly Board[];
   requests?: readonly Request[];
   tasks?: readonly Task[];
 };
 
-export const createInMemoryDependencies = (seed: Seed = {}): ApplicationDependencies => {
+export const inMemoryAppRoot = "C:/projects/agent-team";
+
+export const createInMemoryDependencies = (seed: Seed = {}): ApplicationDependencies & BoardDependencies => {
   const clock = createFixedClock("2026-11-23T10:00:00.000Z");
   const state = createInMemoryState(seed);
 
@@ -27,5 +32,7 @@ export const createInMemoryDependencies = (seed: Seed = {}): ApplicationDependen
     events: createInMemoryEventLog(state, clock),
     ids: createSequentialIdGenerator("id"),
     clock,
+    boards: createInMemoryBoardRepository(seed.boards),
+    appRoot: inMemoryAppRoot,
   };
 };

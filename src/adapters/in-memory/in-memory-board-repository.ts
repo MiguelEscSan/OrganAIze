@@ -8,6 +8,10 @@ export const createInMemoryBoardRepository = (seed: readonly Board[] = []): Boar
     list: async () => [...boards],
 
     save: async (board) => {
+      if (boards.some((candidate) => candidate.id !== board.id && candidate.rootPath === board.rootPath)) {
+        return "conflict";
+      }
+
       const index = boards.findIndex((candidate) => candidate.id === board.id);
 
       if (index === -1) {
@@ -15,6 +19,18 @@ export const createInMemoryBoardRepository = (seed: readonly Board[] = []): Boar
       } else {
         boards[index] = board;
       }
+
+      return "applied";
+    },
+
+    remove: async (boardId) => {
+      const index = boards.findIndex((candidate) => candidate.id === boardId);
+
+      if (index === -1) {
+        return "conflict";
+      }
+
+      boards.splice(index, 1);
 
       return "applied";
     },

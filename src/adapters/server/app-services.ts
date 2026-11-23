@@ -43,6 +43,7 @@ const buildServices = (): AppServices => {
       ...createDrizzleDependencies(db),
       llm: llmFromEnvironment(),
       boards: createDrizzleBoardRepository(db),
+      appRoot: process.cwd(),
       workspaceFor: (rootPath) => createDiskWorkspaceWriter(rootPath),
     }),
     boards: createDrizzleBoardRepository(db),

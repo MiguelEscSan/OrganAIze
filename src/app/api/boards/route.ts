@@ -1,10 +1,8 @@
-import { randomUUID } from "node:crypto";
 import { connection } from "next/server";
 import { getAppServices } from "@/adapters/server/app-services";
 import { failedServer, readJsonObject, refused, succeeded } from "@/adapters/server/json-responses";
-import { normalizeBoardDetails, type Board } from "@/domain/boards/board";
-
-const duplicateBoardReason = "A board already uses this folder";
+import type { Outcome } from "@/application/shared/outcome";
+import type { Board } from "@/domain/boards/board";
 
 export const GET = async (): Promise<Response> => {
   await connection();
@@ -27,16 +25,14 @@ export const POST = async (request: Request): Promise<Response> => {
   }
 
   try {
-    const details = normalizeBoardDetails({ name: body.name, rootPath: body.rootPath }, process.cwd());
+    const { mediator } = getAppServices();
+    const outcome = await mediator.send<{ kind: "CreateBoard"; name: string; rootPath: string }, Outcome<Board>>({
+      kind: "CreateBoard",
+      name: body.name,
+      rootPath: body.rootPath,
+    });
 
-    if (!details.ok) {
-      return refused(details.reason);
-    }
-
-    const board: Board = { id: randomUUID(), ...details.details };
-    const saved = await getAppServices().boards.save(board);
-
-    return saved === "applied" ? succeeded({ board }, 201) : refused(duplicateBoardReason);
+    return outcome.ok ? succeeded({ board: outcome.value }, 201) : refused(outcome.reason);
   } catch (error) {
     return failedServer(error);
   }

@@ -17,4 +17,8 @@ export type ApplicationDependencies = {
 
 export type BoardDependencies = {
   boards: BoardRepository;
+  requests: RequestRepository;
+  tasks: TaskRepository;
+  ids: IdGenerator;
+  appRoot: string;
 };

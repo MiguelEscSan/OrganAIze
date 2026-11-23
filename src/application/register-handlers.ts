@@ -11,6 +11,9 @@ import { claimNextReadyTask } from "./tasks/claim-next-ready-task";
 import { decideReview } from "./tasks/review-decision";
 import { listBoard } from "./tasks/list-board";
 import { listBoards } from "./tasks/list-boards";
+import { createBoard } from "./boards/create-board";
+import { updateBoard } from "./boards/update-board";
+import { deleteBoard } from "./boards/delete-board";
 import { moveTask } from "./tasks/move-task";
 import { orchestrateRequest, type OrchestrationDependencies } from "./tasks/orchestrate-request";
 import { releaseTaskToReady } from "./tasks/release-task-to-ready";
@@ -18,8 +21,9 @@ import { stopTaskForBudget } from "./tasks/stop-task-for-budget";
 import { submitDevelopResult } from "./tasks/submit-develop-result";
 import { submitTestResult } from "./tasks/submit-test-result";
 import { Mediator } from "./cqrs/mediator";
+import type { BoardDependencies } from "./shared/dependencies";
 
-export const createMediator = (deps: OrchestrationDependencies & DevelopDependencies): Mediator => {
+export const createMediator = (deps: OrchestrationDependencies & DevelopDependencies & BoardDependencies): Mediator => {
   const mediator = new Mediator();
 
   mediator.registerCommand("CreateRequest", createRequest(deps));
@@ -36,6 +40,9 @@ export const createMediator = (deps: OrchestrationDependencies & DevelopDependen
   mediator.registerCommand("StopTaskForBudget", stopTaskForBudget(deps));
   mediator.registerCommand("DecideReview", decideReview(deps));
   mediator.registerCommand("UpdateSettings", updateSettings(deps));
+  mediator.registerCommand("CreateBoard", createBoard(deps));
+  mediator.registerCommand("UpdateBoard", updateBoard(deps));
+  mediator.registerCommand("DeleteBoard", deleteBoard(deps));
 
   mediator.registerQuery("ListRequests", listRequests(deps));
   mediator.registerQuery("GetRequest", getRequest(deps));
