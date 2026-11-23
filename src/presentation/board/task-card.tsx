@@ -14,9 +14,19 @@ type TaskCardProps = {
   onEdit?: (taskId: string, values: TaskDialogValues) => void;
   onDelete?: (taskId: string) => void;
   onContinue?: (taskId: string) => void;
+  onSendToReady?: (taskId: string) => void;
 };
 
-export const TaskCard = ({ task, isDraggable, isEditable, isDeletable, onEdit, onDelete, onContinue }: TaskCardProps) => {
+export const TaskCard = ({
+  task,
+  isDraggable,
+  isEditable,
+  isDeletable,
+  onEdit,
+  onDelete,
+  onContinue,
+  onSendToReady,
+}: TaskCardProps) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
     data: { status: task.status },
@@ -66,14 +76,23 @@ export const TaskCard = ({ task, isDraggable, isEditable, isDeletable, onEdit, o
         </p>
       )}
 
-      {task.status === "review" && task.reviewReason === "budget" && onContinue && (
+      {task.status === "review" && onSendToReady && (
         <div className="flex justify-end gap-2 border-t border-line pt-2">
+          {task.reviewReason === "budget" && onContinue && (
+            <button
+              type="button"
+              onClick={() => onContinue(task.id)}
+              className="rounded-full bg-sky px-3 py-1 text-xs font-bold text-paper hover:opacity-90"
+            >
+              Continue
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => onContinue(task.id)}
-            className="rounded-full bg-sky px-3 py-1 text-xs font-bold text-paper hover:opacity-90"
+            onClick={() => onSendToReady(task.id)}
+            className="rounded-full bg-amber px-3 py-1 text-xs font-bold text-ink hover:opacity-90"
           >
-            Continue
+            Send to Ready
           </button>
         </div>
       )}

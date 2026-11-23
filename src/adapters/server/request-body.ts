@@ -13,7 +13,7 @@ const isOptionalText = (value: unknown): boolean => value === undefined || typeo
 export const hasOptionalRequestText = (body: Record<string, unknown>): boolean =>
   isOptionalText(body.title) && isOptionalText(body.description);
 
-const reviewDecisions: readonly ReviewDecisionKind[] = ["continue", "delete"];
+const reviewDecisions: readonly ReviewDecisionKind[] = ["continue", "send_to_ready", "delete"];
 
 export const parseReviewDecision = (value: unknown): ReviewDecisionKind | null =>
   reviewDecisions.find((decision) => decision === value) ?? null;
