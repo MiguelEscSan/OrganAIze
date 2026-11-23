@@ -3,10 +3,11 @@ import { parseDevelopOutput } from "@/domain/agents/develop-output";
 import { budgetOverrunReason, minutesBetween } from "@/domain/tasks/budget";
 import { countFailedAttempt } from "@/domain/tasks/count-failed-attempt";
 import type { Task } from "@/domain/tasks/task";
+import type { BoardRepository } from "@/ports/board-repository";
 import type { LlmClient, LlmReply } from "@/ports/llm-client";
 import type { WorkspaceWriter } from "@/ports/workspace-writer";
 import type { ApplicationDependencies } from "../shared/dependencies";
-import { fail, type Outcome } from "../shared/outcome";
+import { fail, succeed, type Outcome } from "../shared/outcome";
 import { qaFullReason } from "./qa-capacity";
 import { conflictReason } from "./record-transition";
 import { stopTaskForBudget } from "./stop-task-for-budget";
@@ -16,7 +17,8 @@ export type RunDevelop = { kind: "RunDevelop"; taskId: string };
 
 export type DevelopDependencies = ApplicationDependencies & {
   llm: LlmClient;
-  workspace: WorkspaceWriter;
+  boards: BoardRepository;
+  workspaceFor: (rootPath: string) => WorkspaceWriter;
 };
 
 type CurrentFile = { path: string; content: string | null };
@@ -58,8 +60,15 @@ const countFailure = async (
   return outcome === "applied" ? fail(reason) : fail(conflictReason);
 };
 
-const readCurrentFiles = async (deps: DevelopDependencies, task: Task): Promise<CurrentFile[]> =>
-  Promise.all(task.files.map(async (path) => ({ path, content: await deps.workspace.read(path) })));
+const workspaceOfSubtask = async (deps: DevelopDependencies, task: Task): Promise<Outcome<WorkspaceWriter>> => {
+  const request = (await deps.requests.list()).find((candidate) => candidate.id === task.requestId);
+  const board = request ? (await deps.boards.list()).find((candidate) => candidate.id === request.boardId) : undefined;
+
+  return board ? succeed(deps.workspaceFor(board.rootPath)) : fail("The board for this subtask was not found");
+};
+
+const readCurrentFiles = async (workspace: WorkspaceWriter, task: Task): Promise<CurrentFile[]> =>
+  Promise.all(task.files.map(async (path) => ({ path, content: await workspace.read(path) })));
 
 const tokensUsed = (reply: LlmReply): number => (reply.ok ? (reply.totalTokens ?? 0) : 0);
 
@@ -73,8 +82,14 @@ export const runDevelop =
       return fail("Only a develop subtask in progress can run");
     }
 
+    const workspace = await workspaceOfSubtask(deps, task);
+
+    if (!workspace.ok) {
+      return fail(workspace.reason);
+    }
+
     const startedAt = deps.clock.now();
-    const reply = await deps.llm.generateJson(developPrompt(task, await readCurrentFiles(deps, task)));
+    const reply = await deps.llm.generateJson(developPrompt(task, await readCurrentFiles(workspace.value, task)));
     const settings = await deps.settings.get();
     const overrun = budgetOverrunReason(
       { minutes: minutesBetween(startedAt, deps.clock.now()), tokens: tokensUsed(reply) },
@@ -107,7 +122,7 @@ export const runDevelop =
       return fail(full);
     }
 
-    await deps.workspace.write(parsed.output.files);
+    await workspace.value.write(parsed.output.files);
 
     return submitDevelopResult(deps)({ kind: "SubmitDevelopResult", taskId: task.id });
   };

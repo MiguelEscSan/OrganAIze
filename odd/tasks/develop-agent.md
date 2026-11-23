@@ -58,5 +58,7 @@ Testing agent, Playwright, Edit and Continue changes.
 - DEV-07 done: the Team page shows Develop as working (with the subtask title) or idle, derived from the board's tasks by `developActivity` (2 domain tests). The Orchestrator and Testing cards stay static.
 - DEV-07 status: the Team page reads the board through `ListBoard`; if that read fails it falls back to the static cards.
 
+- Board root: Develop writes into the `rootPath` of the board that owns the subtask's request, not into `PROJECT_ROOT`. `PROJECT_ROOT` only seeds the default board on first use. Switching boards switches the project. The run resolves the board through `BoardRepository` and opens a writer with `workspaceFor(rootPath)`. Covered by one test in `run-develop.test.ts`.
+
 ## Next step
-DEV-08: end-to-end run on a sample project (needs the target project path and an LLM key from the user).
+DEV-08: end-to-end run on a sample project. The project path is the `rootPath` of a board, so the user creates or picks a board whose root is the sample project, and provides an LLM key.

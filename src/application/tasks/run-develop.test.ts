@@ -3,6 +3,8 @@ import { createInMemoryDependencies } from "@/adapters/in-memory/in-memory-depen
 import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-client";
 import { buildTask } from "@/adapters/in-memory/task-fixtures";
 import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
+import { createInMemoryBoardRepository } from "@/adapters/in-memory/in-memory-board-repository";
+import { developSeed, inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
 import type { Task } from "@/domain/tasks/task";
 import { runDevelop } from "./run-develop";
 
@@ -21,9 +23,9 @@ const subtask = (overrides: Partial<Task> = {}): Task =>
 const validOutput = { files: [{ path: "src/app/page.tsx", content: "export default 'new';" }] };
 
 const setup = (task: Task, llm: Parameters<typeof createScriptedLlmClient>[0]) => {
-  const deps = createInMemoryDependencies({ tasks: [task] });
+  const deps = createInMemoryDependencies({ ...developSeed, tasks: [task] });
   const workspace = createInMemoryWorkspaceWriter({ "src/app/page.tsx": "export default 'old';" });
-  const run = runDevelop({ ...deps, llm: createScriptedLlmClient(llm), workspace });
+  const run = runDevelop({ ...deps, ...inMemoryWorkspaceDependencies(workspace), llm: createScriptedLlmClient(llm) });
 
   return { deps, workspace, run };
 };
@@ -98,7 +100,7 @@ describe("runDevelop", () => {
     const START = "2026-11-23T10:00:00.000Z";
 
     const runWithUsage = (usage: { minutesLater: number; totalTokens?: number }) => {
-      const deps = createInMemoryDependencies({ tasks: [subtask()] });
+      const deps = createInMemoryDependencies({ ...developSeed, tasks: [subtask()] });
       const workspace = createInMemoryWorkspaceWriter({ "src/app/page.tsx": "export default 'old';" });
       const startedMs = Date.parse(START);
       let now = START;
@@ -109,7 +111,7 @@ describe("runDevelop", () => {
         },
       };
       const clock = { now: () => now };
-      const run = runDevelop({ ...deps, clock, llm, workspace });
+      const run = runDevelop({ ...deps, ...inMemoryWorkspaceDependencies(workspace), clock, llm });
 
       return { deps, workspace, run };
     };
@@ -151,9 +153,13 @@ describe("runDevelop", () => {
       buildTask({ id: "qa-1", requestId: "request-1", parentTaskId: "parent-1", status: "qa" }),
       buildTask({ id: "qa-2", requestId: "request-1", parentTaskId: "parent-1", status: "qa" }),
     ];
-    const deps = createInMemoryDependencies({ tasks: [subtask(), ...qaTasks] });
+    const deps = createInMemoryDependencies({ ...developSeed, tasks: [subtask(), ...qaTasks] });
     const workspace = createInMemoryWorkspaceWriter({ "src/app/page.tsx": "export default 'old';" });
-    const run = runDevelop({ ...deps, llm: createScriptedLlmClient({ ok: true, json: validOutput }), workspace });
+    const run = runDevelop({
+      ...deps,
+      ...inMemoryWorkspaceDependencies(workspace),
+      llm: createScriptedLlmClient({ ok: true, json: validOutput }),
+    });
 
     const outcome = await run({ kind: "RunDevelop", taskId: "subtask-1" });
 
@@ -161,6 +167,32 @@ describe("runDevelop", () => {
     expect(workspace.files()).toEqual({ "src/app/page.tsx": "export default 'old';" });
     const task = await taskById(deps, "subtask-1");
     expect([task?.status, task?.attempts]).toEqual(["in_progress", 0]);
+  });
+
+  it("writes into the root path of the board that owns the subtask's request", async () => {
+    const roots: string[] = [];
+    const deps = createInMemoryDependencies({
+      requests: [{ id: "request-1", boardId: "board-a", title: "Landing", description: "" }],
+      tasks: [subtask()],
+    });
+    const workspace = createInMemoryWorkspaceWriter({ "src/app/page.tsx": "export default 'old';" });
+    const run = runDevelop({
+      ...deps,
+      boards: createInMemoryBoardRepository([
+        { id: "board-a", name: "A", rootPath: "C:/projects/a" },
+        { id: "board-b", name: "B", rootPath: "C:/projects/b" },
+      ]),
+      workspaceFor: (rootPath) => {
+        roots.push(rootPath);
+        return workspace;
+      },
+      llm: createScriptedLlmClient({ ok: true, json: validOutput }),
+    });
+
+    await run({ kind: "RunDevelop", taskId: "subtask-1" });
+
+    expect(roots).toEqual(["C:/projects/a"]);
+    expect(workspace.files()["src/app/page.tsx"]).toBe("export default 'new';");
   });
 
   it("refuses to run a subtask that is not in progress", async () => {

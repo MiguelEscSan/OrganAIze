@@ -3,12 +3,13 @@ import { createInMemoryDependencies } from "@/adapters/in-memory/in-memory-depen
 import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-client";
 import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
 import { buildTask } from "@/adapters/in-memory/task-fixtures";
+import { developSeed, inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
 import { createMediator } from "./register-handlers";
 
 const createDependenciesWithLlm = () => ({
   ...createInMemoryDependencies(),
   llm: createScriptedLlmClient({ ok: false, reason: "not used in this test" }),
-  workspace: createInMemoryWorkspaceWriter({}),
+  ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
 });
 
 describe("createMediator", () => {
@@ -34,9 +35,9 @@ describe("createMediator", () => {
     });
     const workspace = createInMemoryWorkspaceWriter({});
     const deps = {
-      ...createInMemoryDependencies({ tasks: [task] }),
+      ...createInMemoryDependencies({ ...developSeed, tasks: [task] }),
       llm: createScriptedLlmClient({ ok: true, json: { files: [{ path: "src/app/page.tsx", content: "new" }] } }),
-      workspace,
+      ...inMemoryWorkspaceDependencies(workspace),
     };
     const mediator = createMediator(deps);
 

@@ -43,7 +43,8 @@ const buildServices = (): AppServices => {
     mediator: createMediator({
       ...createDrizzleDependencies(db),
       llm: llmFromEnvironment(),
-      workspace: createDiskWorkspaceWriter(requiredEnv("PROJECT_ROOT")),
+      boards: createDrizzleBoardRepository(db),
+      workspaceFor: (rootPath) => createDiskWorkspaceWriter(rootPath),
     }),
     boards: createDrizzleBoardRepository(db),
   };
