@@ -52,7 +52,7 @@ export const TaskDetails = ({ task, events, loadError, onClose }: TaskDetailsPro
       ref={dialogRef}
       aria-labelledby={headingId}
       onClose={onClose}
-      className="w-[min(640px,calc(100vw-2rem))] rounded-2xl bg-paper p-0 text-ink shadow-xl backdrop:bg-ink/40"
+      className="m-auto w-[min(640px,calc(100vw-2rem))] rounded-2xl bg-paper p-0 text-ink shadow-xl backdrop:bg-ink/40"
     >
       <div className="flex flex-col gap-5 p-6">
         <header className="flex flex-col gap-1">
