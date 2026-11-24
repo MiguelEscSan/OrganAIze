@@ -1,3 +1,4 @@
+import type { AgentActivityRepository } from "@/ports/agent-activity-repository";
 import type { BoardRepository } from "@/ports/board-repository";
 import type { Clock } from "@/ports/clock";
 import type { EventLog } from "@/ports/event-log";
@@ -13,6 +14,7 @@ export type ApplicationDependencies = {
   events: EventLog;
   ids: IdGenerator;
   clock: Clock;
+  activity: AgentActivityRepository;
 };
 
 export type BoardDependencies = {

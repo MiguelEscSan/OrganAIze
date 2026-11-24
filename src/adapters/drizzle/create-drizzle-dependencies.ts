@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { ApplicationDependencies } from "@/application/shared/dependencies";
 import type { Clock } from "@/ports/clock";
 import type { Database } from "./client";
+import { createDrizzleAgentActivityRepository } from "./drizzle-agent-activity-repository";
 import { createDrizzleEventLog } from "./drizzle-event-log";
 import { createDrizzleRequestRepository } from "./drizzle-request-repository";
 import { createDrizzleSettingsRepository } from "./drizzle-settings-repository";
@@ -16,4 +17,5 @@ export const createDrizzleDependencies = (db: Database): ApplicationDependencies
   events: createDrizzleEventLog(db, systemClock),
   ids: { next: () => randomUUID() },
   clock: systemClock,
+  activity: createDrizzleAgentActivityRepository(db),
 });

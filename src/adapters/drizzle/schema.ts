@@ -60,6 +60,12 @@ export const boards = pgTable(
   (table) => [uniqueIndex("boards_root_path").on(table.rootPath)],
 );
 
+export const agentActivity = pgTable("agent_activity", {
+  agent: varchar("agent", { length: 16 }).primaryKey(),
+  state: varchar("state", { length: 16 }).notNull(),
+  message: text("message").notNull(),
+});
+
 export const settings = pgTable(
   "settings",
   {

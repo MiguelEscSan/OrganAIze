@@ -8,6 +8,7 @@ import type { ApplicationDependencies } from "../shared/dependencies";
 import { fail, succeed, type Outcome } from "../shared/outcome";
 import { workspaceOfTask } from "../shared/task-workspace";
 import { submitTestResult, type TestVerdict } from "../tasks/submit-test-result";
+import { withAgentActivity } from "../agents/with-agent-activity";
 
 export type TestingDependencies = ApplicationDependencies & {
   llm: LlmClient;
@@ -130,12 +131,20 @@ const reviewTask = async (deps: TestingDependencies, task: Task): Promise<void> 
   await submitVerdict(deps, task, verdict.value);
 };
 
+const reviewQueuedTasks = async (deps: TestingDependencies): Promise<void> => {
+  const queued = (await deps.tasks.list()).filter((task) => task.status === "qa");
+
+  for (const task of queued) {
+    await reviewTask(deps, task);
+  }
+};
+
 export const runTesting =
   (deps: TestingDependencies) =>
-  async (): Promise<void> => {
-    const queued = (await deps.tasks.list()).filter((task) => task.status === "qa");
-
-    for (const task of queued) {
-      await reviewTask(deps, task);
-    }
-  };
+  (): Promise<void> =>
+    withAgentActivity(
+      deps.activity,
+      { agent: "testing", state: "reviewing", message: "Reviewing a subtask in QA" },
+      { agent: "testing", state: "idle", message: "Waiting for a subtask in QA" },
+      () => reviewQueuedTasks(deps),
+    );

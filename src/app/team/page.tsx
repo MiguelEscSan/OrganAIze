@@ -2,30 +2,25 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { getAppServices } from "@/adapters/server/app-services";
 import { sampleAgents } from "@/adapters/in-memory/sample-agents";
-import { developActivity } from "@/domain/agents/develop-activity";
-import { testingActivity } from "@/domain/agents/testing-activity";
-import type { TasksByStatus } from "@/domain/tasks/group-tasks-by-status";
+import type { AgentActivityRecord } from "@/domain/agents/agent-activity";
+import type { AgentName } from "@/domain/agents/agent-name";
+import { TeamAutoRefresh } from "@/presentation/team/team-auto-refresh";
 import { TeamList } from "@/presentation/team/team-list";
 
-const allTasks = (tasksByStatus: TasksByStatus) =>
-  Object.values(tasksByStatus).flat();
-
-const activitiesOf = (tasksByStatus: TasksByStatus | null) =>
-  tasksByStatus
-    ? { develop: developActivity(allTasks(tasksByStatus)), testing: testingActivity(allTasks(tasksByStatus)) }
-    : {};
+const activitiesByAgent = (records: AgentActivityRecord[]): Partial<Record<AgentName, AgentActivityRecord>> =>
+  Object.fromEntries(records.map((record) => [record.agent, record]));
 
 const LiveTeam = async () => {
   await connection();
-  const tasksByStatus = await getAppServices()
-    .mediator.ask<{ kind: "ListBoard" }, TasksByStatus>({ kind: "ListBoard" })
-    .catch(() => null);
+  const records = await getAppServices()
+    .mediator.ask<{ kind: "ListAgentActivity" }, AgentActivityRecord[]>({ kind: "ListAgentActivity" })
+    .catch(() => []);
 
   return (
-    <TeamList
-      agents={sampleAgents}
-      activities={activitiesOf(tasksByStatus)}
-    />
+    <>
+      <TeamList agents={sampleAgents} activities={activitiesByAgent(records)} />
+      <TeamAutoRefresh />
+    </>
   );
 };
 

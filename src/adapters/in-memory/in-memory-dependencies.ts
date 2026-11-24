@@ -2,6 +2,7 @@ import type { Request } from "@/domain/requests/request";
 import type { Task } from "@/domain/tasks/task";
 import type { Board } from "@/domain/boards/board";
 import type { ApplicationDependencies, BoardDependencies } from "@/application/shared/dependencies";
+import { createInMemoryAgentActivityRepository } from "./in-memory-agent-activity-repository";
 import { createInMemoryBoardRepository } from "./in-memory-board-repository";
 import { createInMemorySettingsRepository } from "./in-memory-settings-repository";
 import {
@@ -32,6 +33,7 @@ export const createInMemoryDependencies = (seed: Seed = {}): ApplicationDependen
     events: createInMemoryEventLog(state, clock),
     ids: createSequentialIdGenerator("id"),
     clock,
+    activity: createInMemoryAgentActivityRepository(),
     boards: createInMemoryBoardRepository(seed.boards),
     appRoot: inMemoryAppRoot,
   };
