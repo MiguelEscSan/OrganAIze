@@ -21,6 +21,7 @@ export const ProjectPreview = ({ files }: ProjectPreviewProps) => {
     <div className="px-6 pb-8 md:px-10">
       <Sandpack
         template="react-ts"
+        customSetup={{ dependencies: { react: "^18.3.1", "react-dom": "^18.3.1" } }}
         files={sandpackFilesOf(files)}
         options={{ showConsole: false, showNavigator: false, showTabs: false }}
       />

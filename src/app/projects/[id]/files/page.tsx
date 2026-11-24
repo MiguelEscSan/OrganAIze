@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { loadProjectFiles } from "@/adapters/server/project-files-loader";
-import { FilesBrowser } from "@/presentation/project-files/files-browser";
+import { LiveFilesBrowser } from "@/presentation/project-files/live-project-files";
 
 type FilesPageProps = { params: Promise<{ id: string }> };
 
@@ -15,7 +15,7 @@ const LiveFiles = async ({ params }: FilesPageProps) => {
     notFound();
   }
 
-  return <FilesBrowser files={files} />;
+  return <LiveFilesBrowser boardId={id} initialFiles={files} />;
 };
 
 export default function FilesPage({ params }: FilesPageProps) {
