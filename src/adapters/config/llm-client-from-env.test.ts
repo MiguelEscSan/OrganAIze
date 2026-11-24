@@ -30,4 +30,19 @@ describe("createLlmClientFromEnv", () => {
       "https://generativelanguage.googleapis.com/v1beta/models/model-x:generateContent",
     ]);
   });
+
+  it("builds a local Ollama client without a key when the provider is ollama", async () => {
+    const urls: string[] = [];
+    const fetcher: FetchLike = async (url) => {
+      urls.push(url);
+      return { ok: true, status: 200, json: async () => ({ message: { content: "{}" } }) };
+    };
+
+    const outcome = createLlmClientFromEnv({ LLM_PROVIDER: "ollama", LLM_MODEL: "qwen3:4b-instruct" }, fetcher);
+
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(await outcome.llm.generateJson("prompt")).toEqual({ ok: true, json: {}, totalTokens: 0 });
+    expect(urls).toEqual(["http://127.0.0.1:11434/api/chat"]);
+  });
 });
