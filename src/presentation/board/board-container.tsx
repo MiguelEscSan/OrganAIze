@@ -26,6 +26,7 @@ type BoardContainerProps = {
   initialTasksByStatus: TasksByStatus | null;
   initialError: string | null;
   autoRefresh: boolean;
+  browserCheckEnabled: boolean;
 };
 
 type BoardResponse = { ok: boolean; reason?: string; tasksByStatus?: TasksByStatus };
@@ -47,6 +48,7 @@ export const BoardContainer = ({
   initialTasksByStatus,
   initialError,
   autoRefresh,
+  browserCheckEnabled,
 }: BoardContainerProps) => {
   const [tasksByStatus, setTasksByStatus] = useState<TasksByStatus>(initialTasksByStatus ?? emptyBoard);
   const [loadError, setLoadError] = useState<string | null>(initialError);
@@ -196,7 +198,7 @@ export const BoardContainer = ({
         onDeleteTask={handleDeleteTask}
         onContinueTask={handleContinueTask}
         onSendToReadyTask={handleSendToReadyTask}
-        onBrowserCheckTask={handleBrowserCheckTask}
+        onBrowserCheckTask={browserCheckEnabled ? handleBrowserCheckTask : undefined}
         onMoveTask={handleMoveTask}
       />
     </div>

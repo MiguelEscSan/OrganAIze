@@ -1,3 +1,4 @@
+import { browserCheckEnabled } from "@/adapters/server/browser-check-enabled";
 import { getAppServices } from "@/adapters/server/app-services";
 import { failedServer, readJsonObject, refused, succeeded } from "@/adapters/server/json-responses";
 import type { Outcome } from "@/application/shared/outcome";
@@ -5,6 +6,10 @@ import type { Outcome } from "@/application/shared/outcome";
 type BrowserCheckRouteContext = { params: Promise<{ id: string }> };
 
 export const POST = async (request: Request, context: BrowserCheckRouteContext): Promise<Response> => {
+  if (!browserCheckEnabled()) {
+    return refused("The browser check runs only on a local machine");
+  }
+
   const body = await readJsonObject(request);
 
   if (!body || body.confirmed !== true) {

@@ -15,7 +15,7 @@ type KanbanBoardProps = {
   onDeleteTask: (taskId: string) => void;
   onContinueTask: (taskId: string) => void;
   onSendToReadyTask: (taskId: string) => void;
-  onBrowserCheckTask: (taskId: string) => void;
+  onBrowserCheckTask?: (taskId: string) => void;
   onMoveTask: (taskId: string, to: TaskStatus) => void;
 };
 
