@@ -11,6 +11,7 @@ const createDependenciesWithLlm = () => ({
   llm: createScriptedLlmClient({ ok: false, reason: "not used in this test" }),
   ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
   interfaceProbe: { inspect: async () => ({ ok: false as const, reason: "not used in this test" }) },
+  projectFiles: { list: async () => [] },
 });
 
 describe("createMediator", () => {
@@ -40,6 +41,7 @@ describe("createMediator", () => {
       llm: createScriptedLlmClient({ ok: true, json: { files: [{ path: "src/app/page.tsx", content: "new" }] } }),
       ...inMemoryWorkspaceDependencies(workspace),
       interfaceProbe: { inspect: async () => ({ ok: false as const, reason: "not used in this test" }) },
+  projectFiles: { list: async () => [] },
     };
     const mediator = createMediator(deps);
 

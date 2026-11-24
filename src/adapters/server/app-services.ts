@@ -7,6 +7,7 @@ import { createDrizzleBoardRepository } from "../drizzle/drizzle-board-repositor
 import { createDrizzleDependencies } from "../drizzle/create-drizzle-dependencies";
 import { createDatabase } from "../drizzle/client";
 import { createDiskWorkspaceWriter } from "../workspace/disk-workspace-writer";
+import { createDiskProjectFiles } from "../workspace/disk-project-files";
 import { createPlaywrightInterfaceProbe } from "../playwright/playwright-interface-probe";
 
 export type AppServices = {
@@ -47,6 +48,7 @@ const buildServices = (): AppServices => {
       appRoot: process.cwd(),
       workspaceFor: (rootPath) => createDiskWorkspaceWriter(rootPath),
       interfaceProbe: createPlaywrightInterfaceProbe(),
+      projectFiles: createDiskProjectFiles(),
     }),
     boards: createDrizzleBoardRepository(db),
   };

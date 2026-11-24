@@ -22,11 +22,12 @@ import { submitDevelopResult } from "./tasks/submit-develop-result";
 import { submitTestResult } from "./tasks/submit-test-result";
 import { runTesting } from "./testing/run-testing";
 import { runBrowserCheck, type BrowserCheckDependencies } from "./testing/run-browser-check";
+import { listProjectFiles, type ProjectFilesDependencies } from "./projects/list-project-files";
 import { Mediator } from "./cqrs/mediator";
 import type { BoardDependencies } from "./shared/dependencies";
 
 export const createMediator = (
-  deps: OrchestrationDependencies & DevelopDependencies & BoardDependencies & BrowserCheckDependencies,
+  deps: OrchestrationDependencies & DevelopDependencies & BoardDependencies & BrowserCheckDependencies & ProjectFilesDependencies,
 ): Mediator => {
   const mediator = new Mediator();
 
@@ -55,6 +56,7 @@ export const createMediator = (
   mediator.registerQuery("ListBoard", listBoard(deps));
   mediator.registerQuery("ListBoards", listBoards(deps));
   mediator.registerQuery("GetSettings", getSettings(deps));
+  mediator.registerQuery("ListProjectFiles", listProjectFiles(deps));
 
   return mediator;
 };
