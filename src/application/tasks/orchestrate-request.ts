@@ -42,6 +42,7 @@ const subtasksFrom = (parent: Task, plan: OrchestrationPlan, ids: () => string):
     attempts: 0,
     lastFeedback: null,
     reviewReason: null,
+    runsInParallel: subtask.runsInParallel,
   }));
 
 const countInvalidPlan = async (

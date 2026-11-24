@@ -21,6 +21,7 @@ const toTaskRow = (task: Task) => ({
   attempts: task.attempts,
   lastFeedback: task.lastFeedback,
   reviewReason: task.reviewReason,
+  runsInParallel: task.runsInParallel ?? false,
 });
 
 export const createDrizzleRequestRepository = (db: Database): RequestRepository => ({

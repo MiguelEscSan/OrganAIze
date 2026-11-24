@@ -28,6 +28,7 @@ export const tasks = pgTable(
     attempts: integer("attempts").notNull().default(0),
     lastFeedback: text("last_feedback"),
     reviewReason: varchar("review_reason", { length: 16 }),
+    runsInParallel: boolean("runs_in_parallel").notNull().default(false),
   },
   (table) => [
     uniqueIndex("tasks_one_request_in_progress")
