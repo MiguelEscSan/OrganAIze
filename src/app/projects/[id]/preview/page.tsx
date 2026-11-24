@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { loadProjectFiles } from "@/adapters/server/project-files-loader";
-import { ProjectPreview } from "@/presentation/project-files/project-preview";
+import { LiveProjectPreview } from "@/presentation/project-files/live-project-files";
 
 type PreviewPageProps = { params: Promise<{ id: string }> };
 
@@ -15,7 +15,7 @@ const LivePreview = async ({ params }: PreviewPageProps) => {
     notFound();
   }
 
-  return <ProjectPreview files={files} />;
+  return <LiveProjectPreview boardId={id} initialFiles={files} />;
 };
 
 export default function PreviewPage({ params }: PreviewPageProps) {
