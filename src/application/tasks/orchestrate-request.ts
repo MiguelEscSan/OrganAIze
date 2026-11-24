@@ -6,6 +6,7 @@ import { fail, succeed, type Outcome } from "../shared/outcome";
 import type { LlmClient } from "@/ports/llm-client";
 import { countFailedAttempt } from "@/domain/tasks/count-failed-attempt";
 import { conflictReason } from "./record-transition";
+import { withAgentActivity } from "../agents/with-agent-activity";
 
 export type OrchestrateRequest = {
   kind: "OrchestrateRequest";
@@ -63,7 +64,7 @@ const countInvalidPlan = async (
   return outcome === "applied" ? fail(reason) : fail(conflictReason);
 };
 
-export const orchestrateRequest =
+const splitRequest =
   (deps: OrchestrationDependencies) =>
   async (command: OrchestrateRequest): Promise<Outcome<Task[]>> => {
     const tasks = await deps.tasks.list();
@@ -115,3 +116,13 @@ export const orchestrateRequest =
 
     return succeed(subtasks);
   };
+
+export const orchestrateRequest =
+  (deps: OrchestrationDependencies) =>
+  (command: OrchestrateRequest): Promise<Outcome<Task[]>> =>
+    withAgentActivity(
+      deps.activity,
+      { agent: "orchestrator", state: "working", message: "Splitting a request into subtasks" },
+      { agent: "orchestrator", state: "idle", message: "Waiting for a request in Ready" },
+      () => splitRequest(deps)(command),
+    );

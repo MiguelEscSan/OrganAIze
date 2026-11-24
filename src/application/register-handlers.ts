@@ -23,6 +23,7 @@ import { submitTestResult } from "./tasks/submit-test-result";
 import { runTesting } from "./testing/run-testing";
 import { runBrowserCheck, type BrowserCheckDependencies } from "./testing/run-browser-check";
 import { listProjectFiles, type ProjectFilesDependencies } from "./projects/list-project-files";
+import { listAgentActivity } from "./agents/list-agent-activity";
 import { Mediator } from "./cqrs/mediator";
 import type { BoardDependencies } from "./shared/dependencies";
 
@@ -57,6 +58,7 @@ export const createMediator = (
   mediator.registerQuery("ListBoards", listBoards(deps));
   mediator.registerQuery("GetSettings", getSettings(deps));
   mediator.registerQuery("ListProjectFiles", listProjectFiles(deps));
+  mediator.registerQuery("ListAgentActivity", listAgentActivity(deps));
 
   return mediator;
 };

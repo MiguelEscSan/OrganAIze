@@ -1,10 +1,10 @@
 import type { AgentProfile } from "@/adapters/in-memory/sample-agents";
+import type { AgentActivityRecord } from "@/domain/agents/agent-activity";
 import type { AgentName } from "@/domain/agents/agent-name";
-import type { AgentActivity } from "@/domain/agents/develop-activity";
 
 type TeamListProps = {
   agents: readonly AgentProfile[];
-  activities: Partial<Record<AgentName, AgentActivity>>;
+  activities: Partial<Record<AgentName, AgentActivityRecord>>;
 };
 
 const accentByAgent: Record<AgentProfile["name"], string> = {
