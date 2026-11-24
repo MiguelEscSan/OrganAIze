@@ -11,24 +11,7 @@ const subtaskPlanSchema = z.object({
   runsInParallel: z.boolean(),
 });
 
-const orchestrationPlanSchema = z
-  .object({ subtasks: z.array(subtaskPlanSchema).min(1) })
-  .superRefine((plan, context) => {
-    plan.subtasks.forEach((subtask, index) => {
-      const sharesFile = plan.subtasks.some(
-        (other, otherIndex) =>
-          otherIndex !== index && other.files.some((file) => subtask.files.includes(file)),
-      );
-
-      if (subtask.runsInParallel && sharesFile) {
-        context.addIssue({
-          code: "custom",
-          path: ["subtasks", index, "runsInParallel"],
-          message: "A parallel subtask cannot share a file with another subtask",
-        });
-      }
-    });
-  });
+const orchestrationPlanSchema = z.object({ subtasks: z.array(subtaskPlanSchema).min(1) });
 
 export type SubtaskPlan = z.infer<typeof subtaskPlanSchema>;
 export type OrchestrationPlan = z.infer<typeof orchestrationPlanSchema>;

@@ -30,15 +30,15 @@ describe("parseOrchestrationPlan", () => {
     expect(outcome.ok).toBe(true);
   });
 
-  it("rejects a parallel subtask that shares a file with another subtask", () => {
+  it("accepts a parallel subtask that shares a file, because the merge step reconciles it", () => {
     const outcome = parseOrchestrationPlan({
       subtasks: [
         subtask({ runsInParallel: true, files: ["src/presentation/board.tsx"] }),
-        subtask({ title: "Style column", files: ["src/presentation/board.tsx"] }),
+        subtask({ title: "Style column", runsInParallel: true, files: ["src/presentation/board.tsx"] }),
       ],
     });
 
-    expect(outcome).toEqual({ ok: false, reason: "A parallel subtask cannot share a file with another subtask" });
+    expect(outcome.ok).toBe(true);
   });
 
   it("rejects a plan without subtasks", () => {
