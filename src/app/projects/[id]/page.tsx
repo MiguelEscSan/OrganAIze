@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
+import { browserCheckEnabled } from "@/adapters/server/browser-check-enabled";
 import { getAppServices } from "@/adapters/server/app-services";
 import { defaultAppSettings, type AppSettings } from "@/domain/settings/app-settings";
 import type { TasksByStatus } from "@/domain/tasks/group-tasks-by-status";
@@ -51,6 +52,7 @@ const LiveBoard = async ({ params }: ProjectPageProps) => {
       initialTasksByStatus={view.tasksByStatus}
       initialError={view.loadError}
       autoRefresh={autoRefresh}
+      browserCheckEnabled={browserCheckEnabled()}
     />
   );
 };
