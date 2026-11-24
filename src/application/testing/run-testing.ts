@@ -121,7 +121,7 @@ export const submitVerdict = async (deps: TestingDependencies, task: Task, verdi
   await submitTestResult(deps)({ kind: "SubmitTestResult", taskId: task.id, verdict });
 };
 
-const reviewTask = async (deps: TestingDependencies, task: Task): Promise<void> => {
+const judgeTask = async (deps: TestingDependencies, task: Task): Promise<void> => {
   const verdict = await verdictForTask(deps, task);
 
   if (!verdict.ok) {
@@ -131,20 +131,20 @@ const reviewTask = async (deps: TestingDependencies, task: Task): Promise<void> 
   await submitVerdict(deps, task, verdict.value);
 };
 
-const reviewQueuedTasks = async (deps: TestingDependencies): Promise<void> => {
-  const queued = (await deps.tasks.list()).filter((task) => task.status === "qa");
-
-  for (const task of queued) {
-    await reviewTask(deps, task);
-  }
-};
+const reviewTask = (deps: TestingDependencies, task: Task): Promise<void> =>
+  withAgentActivity(
+    deps.activity,
+    { agent: "testing", state: "reviewing", message: `Reviewing "${task.title}"` },
+    { agent: "testing", state: "idle", message: "Waiting for a subtask in QA" },
+    () => judgeTask(deps, task),
+  );
 
 export const runTesting =
   (deps: TestingDependencies) =>
-  (): Promise<void> =>
-    withAgentActivity(
-      deps.activity,
-      { agent: "testing", state: "reviewing", message: "Reviewing a subtask in QA" },
-      { agent: "testing", state: "idle", message: "Waiting for a subtask in QA" },
-      () => reviewQueuedTasks(deps),
-    );
+  async (): Promise<void> => {
+    const queued = (await deps.tasks.list()).filter((task) => task.status === "qa");
+
+    for (const task of queued) {
+      await reviewTask(deps, task);
+    }
+  };

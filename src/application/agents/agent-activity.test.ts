@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { AgentActivityRecord } from "@/domain/agents/agent-activity";
+import type { AgentActivityRepository } from "@/ports/agent-activity-repository";
 import { createInMemoryDependencies } from "@/adapters/in-memory/in-memory-dependencies";
 import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-client";
 import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
@@ -81,5 +83,39 @@ describe("agent activity", () => {
 
     const testings = (await deps.activity.list()).filter((record) => record.agent === "testing");
     expect(testings).toEqual([expect.objectContaining({ state: "idle" })]);
+  });
+
+  it("names the subtask that develop is writing", async () => {
+    const subtask = buildTask({
+      id: "subtask-1",
+      requestId: "request-1",
+      parentTaskId: "parent-1",
+      title: "Hero",
+      status: "in_progress",
+      assignedAgent: "develop",
+      files: ["src/app/page.tsx"],
+    });
+    const deps = createInMemoryDependencies({ ...developSeed, tasks: [subtask] });
+    const recorded: AgentActivityRecord[] = [];
+    const activity: AgentActivityRepository = {
+      list: async () => [],
+      record: async (record) => {
+        recorded.push(record);
+      },
+    };
+    const llm = createScriptedLlmClient({
+      ok: true,
+      json: { files: [{ path: "src/app/page.tsx", content: "export default 1;" }] },
+    });
+    const develop = runDevelop({
+      ...deps,
+      activity,
+      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+      llm,
+    });
+
+    await develop({ kind: "RunDevelop", taskId: "subtask-1" });
+
+    expect(recorded[0]).toEqual({ agent: "develop", state: "working", message: expect.stringContaining("Hero") });
   });
 });

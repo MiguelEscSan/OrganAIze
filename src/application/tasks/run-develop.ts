@@ -13,6 +13,7 @@ import { qaFullReason } from "./qa-capacity";
 import { conflictReason } from "./record-transition";
 import { stopTaskForBudget } from "./stop-task-for-budget";
 import { withAgentActivity } from "../agents/with-agent-activity";
+import { taskTitleOf } from "../agents/task-title";
 import { submitDevelopResult } from "./submit-develop-result";
 
 export type RunDevelop = { kind: "RunDevelop"; taskId: string };
@@ -125,10 +126,13 @@ const writeSubtask =
 
 export const runDevelop =
   (deps: DevelopDependencies) =>
-  (command: RunDevelop): Promise<Outcome<Task>> =>
-    withAgentActivity(
+  async (command: RunDevelop): Promise<Outcome<Task>> => {
+    const title = await taskTitleOf(deps.tasks, command.taskId, "a subtask");
+
+    return withAgentActivity(
       deps.activity,
-      { agent: "develop", state: "working", message: "Writing a subtask" },
+      { agent: "develop", state: "working", message: `Writing "${title}"` },
       { agent: "develop", state: "idle", message: "Waiting for a subtask in progress" },
       () => writeSubtask(deps)(command),
     );
+  };
