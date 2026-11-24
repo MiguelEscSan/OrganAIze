@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import type { Task } from "@/domain/tasks/task";
 import { RichTextView } from "../rich-text/rich-text-view";
+import { LiveTaskDetails } from "./live-task-details";
 import { TaskDialog, type TaskDialogValues } from "./task-dialog";
 
 type TaskCardProps = {
@@ -35,6 +37,7 @@ export const TaskCard = ({
     disabled: !isDraggable,
   });
 
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const style = { transform: CSS.Translate.toString(transform) };
 
   return (
@@ -57,8 +60,16 @@ export const TaskCard = ({
             ⠿
           </button>
         )}
-        <h3 className="select-none text-sm font-bold leading-snug">{task.title}</h3>
+        <button
+          type="button"
+          onClick={() => setDetailsOpen(true)}
+          className="select-none text-left text-sm font-bold leading-snug hover:underline"
+        >
+          {task.title}
+        </button>
       </div>
+
+      {detailsOpen && <LiveTaskDetails task={task} onClose={() => setDetailsOpen(false)} />}
 
       {task.description.trim() && (
         <RichTextView
