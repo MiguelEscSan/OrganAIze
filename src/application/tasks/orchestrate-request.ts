@@ -23,6 +23,7 @@ const planPrompt = (request: Request, plan: { title: string; description: string
     `Task description: ${plan.description}`,
     "Reply with JSON only, shaped as { subtasks: [{ title, description, acceptanceCriteria: string[], files: string[], runsInParallel: boolean }] }.",
     "Set runsInParallel to true only when the subtask's files do not overlap with any other subtask.",
+    "The project is a React app: its entry component lives in App.tsx at the project root. Give the first subtask App.tsx in its files when that file does not exist yet.",
   ].join("\n");
 
 const subtasksFrom = (parent: Task, plan: OrchestrationPlan, ids: () => string): Task[] =>

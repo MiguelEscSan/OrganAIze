@@ -203,3 +203,22 @@ describe("runDevelop", () => {
     expect(outcome.ok).toBe(false);
   });
 });
+
+describe("runDevelop prompt", () => {
+  it("tells the developer that a React entry lives in App.tsx at the project root", async () => {
+    const prompts: string[] = [];
+    const llm = {
+      generateJson: async (prompt: string) => {
+        prompts.push(prompt);
+        return { ok: true as const, json: validOutput };
+      },
+    };
+    const deps = createInMemoryDependencies({ ...developSeed, tasks: [subtask()] });
+    const workspace = createInMemoryWorkspaceWriter({});
+    const runWith = runDevelop({ ...deps, ...inMemoryWorkspaceDependencies(workspace), llm });
+
+    await runWith({ kind: "RunDevelop", taskId: "subtask-1" });
+
+    expect(prompts[0]).toContain("App.tsx at the project root");
+  });
+});
