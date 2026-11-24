@@ -38,6 +38,7 @@ const developPrompt = (task: Task, currentFiles: readonly CurrentFile[]): string
     ...currentFiles.map(describeCurrentFile),
     'Reply with JSON only, in the form {"files":[{"path":"...","content":"full file content"}]}.',
     "Include the full content of every file you change. Do not write any other path.",
+    "A React project keeps its entry component in App.tsx at the project root, as a default export named App.",
   ].join("\n\n");
 
 const countFailure = async (
