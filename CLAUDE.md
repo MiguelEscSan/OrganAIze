@@ -5,7 +5,7 @@
 A small Next.js app where a team of three AI agents works together on a user request:
 
 1. **Orchestrator**: receives a request card, splits it into subtasks, assigns them.
-2. **Develop**: implements subtasks against the target web project. The Orchestrator decides whether subtasks run in parallel or in sequence; it runs them in parallel only when their declared files do not overlap.
+2. **Develop**: implements subtasks against the target web project. The Orchestrator decides whether subtasks run in parallel or in sequence; it may run them in parallel even when their declared files overlap, because a Merge agent reconciles the shared files before QA.
 3. **Testing**: checks Develop's output against the subtask's acceptance criteria and returns concrete failures until everything passes.
 
 Everything the agents do must be visible on a kanban board.
@@ -81,7 +81,7 @@ Columns: **Definition | Ready to develop | In progress | QA | Review | Deploy**.
 These apply to the agent prompts and to the code that runs them.
 
 1. **Single responsibility.** Orchestrator plans, Develop writes code, Testing judges. No agent does another agent's job.
-2. **No write conflicts.** Subtasks in progress may modify the target project only within their declared file scope, and two subtasks never write the same file at the same time.
+2. **Shared files are merged, not overwritten.** Subtasks in progress may modify the target project only within their declared file scope. Two subtasks may declare the same file. Develop writes its change as a diff against the file's base content, and a Merge agent combines the diffs before Testing judges the result. A merge that cannot be applied cleanly counts as a failed attempt with the conflict as feedback.
 3. **Bounded scope.** Each subtask states exactly which files and behavior it covers. Develop must not touch anything outside that scope.
 4. **Explicit acceptance criteria.** The Orchestrator writes them. Testing judges only against them, never against its own taste.
 5. **Concrete feedback.** Testing returns a numbered list of failures, each with the criterion it violates and the file/line when possible. Vague feedback ("looks wrong") is rejected.
