@@ -107,7 +107,7 @@ export const createOllamaLlmClient = (config: OllamaConfig, fetcher: OllamaFetch
       });
 
       if (!response.ok) {
-        return { ok: false, reason: `Ollama request failed with status ${response.status}` };
+        return { ok: false, reason: `Ollama request failed with status ${response.status}`, unavailable: true };
       }
 
       if (!response.body) {
@@ -116,7 +116,11 @@ export const createOllamaLlmClient = (config: OllamaConfig, fetcher: OllamaFetch
 
       streamed = await readStream(response.body, onProgress);
     } catch (error) {
-      return { ok: false, reason: `Ollama request failed: ${error instanceof Error ? error.message : String(error)}` };
+      return {
+        ok: false,
+        reason: `Ollama request failed: ${error instanceof Error ? error.message : String(error)}`,
+        unavailable: true,
+      };
     }
 
     return toLlmReply(streamed);
