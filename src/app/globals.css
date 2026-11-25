@@ -11,6 +11,18 @@
   --color-sage: #5f8f6a;
   --color-sky: #4a86b8;
   --color-plum: #7d5ba6;
+  --color-family: #ebdfcf;
+  --color-family-line: #8a6b4a;
+  --color-family-ink: #6b4f33;
+  --color-sky-deep: #2f6a99;
+  --color-sky-soft: #e6f0f8;
+  --color-sky-ink: #1f5580;
+  --color-amber-soft: #fbf0d3;
+  --color-amber-ink: #6b4f0f;
+  --color-amber-deep: #c78f12;
+  --color-sage-deep: #3f6e4a;
+  --color-terracotta-deep: #a8431f;
+  --color-terracotta-soft: #fdeee8;
   --font-sans: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
 }
 

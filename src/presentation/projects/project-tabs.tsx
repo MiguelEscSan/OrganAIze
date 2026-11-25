@@ -24,14 +24,16 @@ export const ProjectTabs = ({ boardId }: { boardId: string }) => {
 
   return (
   <nav aria-label="Project sections" className="px-6 md:px-10">
-    <ul className="flex w-fit gap-1 rounded-xl bg-cream p-1">
+    <ul className="flex gap-1">
       {tabs.map(({ tab, label, href }) => (
         <li key={tab}>
           <Link
             href={href(boardId)}
             aria-current={tab === active ? "page" : undefined}
-            className={`block rounded-lg px-4 py-1.5 text-sm font-bold ${
-              tab === active ? "bg-paper text-ink shadow-[0_1px_0_var(--color-line)]" : "text-muted hover:text-ink"
+            className={`inline-flex min-h-11 items-center rounded-full border px-4 text-sm ${
+              tab === active
+                ? "border-ink bg-paper font-extrabold text-ink"
+                : "border-transparent font-bold text-muted hover:bg-cream hover:text-ink"
             }`}
           >
             {label}

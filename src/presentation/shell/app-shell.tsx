@@ -1,6 +1,5 @@
-import Link from "next/link";
-import type { ReactNode } from "react";
-import { navItems } from "./nav-items";
+import { Suspense, type ReactNode } from "react";
+import { NavLinks, NavLinksView } from "./nav-links";
 
 type AppShellProps = {
   children: ReactNode;
@@ -16,15 +15,9 @@ export const AppShell = ({ children }: AppShellProps) => (
         <span className="text-base font-extrabold">Agent Team</span>
       </div>
       <nav aria-label="Main" className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:pb-0">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold text-muted transition-colors hover:bg-cream hover:text-ink"
-          >
-            {item.label}
-          </Link>
-        ))}
+        <Suspense fallback={<NavLinksView pathname={null} />}>
+          <NavLinks />
+        </Suspense>
       </nav>
     </aside>
     <main className="min-w-0 flex-1">{children}</main>

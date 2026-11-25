@@ -26,6 +26,20 @@ const subscribeToNothing = () => () => {};
 const isClient = () => true;
 const isServer = () => false;
 
+const PlusIcon = () => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    className="size-4"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+  >
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
 export const KanbanBoard = ({
   tasksByStatus,
   onCreateTask,
@@ -53,6 +67,26 @@ export const KanbanBoard = ({
     onMoveTask(taskId, target);
   };
 
+  const toolbar = (
+    <div className="flex justify-end px-6 pt-2 md:px-10">
+      <TaskDialog
+        heading="New request"
+        submitLabel="Create"
+        onSubmit={onCreateTask}
+        renderTrigger={(open) => (
+          <button
+            type="button"
+            onClick={open}
+            className="flex min-h-11 items-center gap-2 rounded-full bg-ink px-5 text-sm font-extrabold text-paper transition-opacity hover:opacity-90"
+          >
+            <PlusIcon />
+            New request
+          </button>
+        )}
+      />
+    </div>
+  );
+
   const columns = (
     <div className="flex gap-4 overflow-x-auto px-6 pb-8 pt-2 md:px-10">
       {boardColumns.map((column) => (
@@ -61,42 +95,33 @@ export const KanbanBoard = ({
           status={column.status}
           title={column.title}
           accentClass={column.accentClass}
+          hint={column.hint}
+          isAutomatic={column.isAutomatic}
           tasks={tasksByStatus[column.status]}
+          tasksByStatus={tasksByStatus}
           isUserEditable={isMounted && userEditableStatuses.includes(column.status)}
+          onMoveToReady={(taskId) => onMoveTask(taskId, "ready")}
           onEdit={onEditTask}
           onDelete={onDeleteTask}
           onContinue={onContinueTask}
           onSendToReady={onSendToReadyTask}
           onResume={onResumeTask}
           onBrowserCheck={onBrowserCheckTask}
-          headerAction={
-            column.status === "definition" ? (
-              <TaskDialog
-                heading="New request"
-                submitLabel="Create"
-                onSubmit={onCreateTask}
-                renderTrigger={(open) => (
-                  <button
-                    type="button"
-                    onClick={open}
-                    className="rounded-full bg-ink px-3 py-1 text-xs font-bold text-paper transition-opacity hover:opacity-90"
-                  >
-                    New request
-                  </button>
-                )}
-              />
-            ) : undefined
-          }
         />
       ))}
     </div>
   );
 
-  return isMounted ? (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      {columns}
-    </DndContext>
-  ) : (
-    columns
+  return (
+    <>
+      {toolbar}
+      {isMounted ? (
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+          {columns}
+        </DndContext>
+      ) : (
+        columns
+      )}
+    </>
   );
 };
