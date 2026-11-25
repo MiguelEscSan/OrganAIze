@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { FamilySiblings } from "@/domain/tasks/list-family-siblings";
 import type { Task } from "@/domain/tasks/task";
 import type { RecordedTaskEvent } from "@/ports/event-log";
 import { TaskDetails } from "./task-details";
 
 type LiveTaskDetailsProps = {
   task: Task;
+  family?: FamilySiblings | null;
   onClose: () => void;
 };
 
@@ -18,7 +20,7 @@ const loadTaskEvents = async (taskId: string): Promise<TaskEventsResponse> => {
   return (await response.json()) as TaskEventsResponse;
 };
 
-export const LiveTaskDetails = ({ task, onClose }: LiveTaskDetailsProps) => {
+export const LiveTaskDetails = ({ task, family, onClose }: LiveTaskDetailsProps) => {
   const [events, setEvents] = useState<RecordedTaskEvent[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -48,5 +50,5 @@ export const LiveTaskDetails = ({ task, onClose }: LiveTaskDetailsProps) => {
     };
   }, [task.id]);
 
-  return <TaskDetails task={task} events={events} loadError={loadError} onClose={onClose} />;
+  return <TaskDetails task={task} events={events} loadError={loadError} family={family} onClose={onClose} />;
 };

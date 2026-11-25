@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import type { FamilySummary } from "@/domain/tasks/group-column-into-families";
+import type { FamilySiblings } from "@/domain/tasks/list-family-siblings";
 import type { ReviewReason, Task } from "@/domain/tasks/task";
 import { RichTextView } from "../rich-text/rich-text-view";
 import { AgentActivity, agentChipClass, agentLabel } from "./agent-activity";
@@ -20,6 +21,7 @@ type TaskCardProps = {
   variant?: TaskCardVariant;
   subtaskCount?: number;
   summary?: FamilySummary;
+  family?: FamilySiblings | null;
   isDraggable: boolean;
   isEditable: boolean;
   isDeletable: boolean;
@@ -84,6 +86,7 @@ export const TaskCard = ({
   variant = "standalone",
   subtaskCount,
   summary,
+  family,
   isDraggable,
   isEditable,
   isDeletable,
@@ -175,7 +178,7 @@ export const TaskCard = ({
         </button>
       </div>
 
-      {detailsOpen && <LiveTaskDetails task={task} onClose={() => setDetailsOpen(false)} />}
+      {detailsOpen && <LiveTaskDetails task={task} family={family} onClose={() => setDetailsOpen(false)} />}
 
       <p className="self-start">
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-extrabold ${agentChipClass(task.assignedAgent)}`}>

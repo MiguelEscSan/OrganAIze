@@ -3,6 +3,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import { groupColumnIntoFamilies, type FamilySummary } from "@/domain/tasks/group-column-into-families";
 import type { TasksByStatus } from "@/domain/tasks/group-tasks-by-status";
+import { listFamilySiblings } from "@/domain/tasks/list-family-siblings";
 import type { Task } from "@/domain/tasks/task";
 import type { TaskStatus } from "@/domain/tasks/task-status";
 import { RequestFamily } from "./request-family";
@@ -70,6 +71,7 @@ export const KanbanColumn = ({
       variant={variant}
       subtaskCount={summary?.total}
       summary={summary}
+      family={listFamilySiblings(task, tasksByStatus)}
       isDraggable={isUserEditable}
       isEditable={isUserEditable && status === "definition"}
       isDeletable={isUserEditable && (status === "definition" || status === "review")}
