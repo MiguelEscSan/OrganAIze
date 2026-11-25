@@ -221,4 +221,22 @@ describe("runDevelop prompt", () => {
 
     expect(prompts[0]).not.toContain("App.tsx");
   });
+
+  it("includes the feedback from the last review so the developer can fix it", async () => {
+    const prompts: string[] = [];
+    const llm = {
+      generateJson: async (prompt: string) => {
+        prompts.push(prompt);
+        return { ok: true as const, json: validOutput };
+      },
+    };
+    const feedback = "1. src/app/card.tsx:2: Headline missing";
+    const deps = createInMemoryDependencies({ ...developSeed, tasks: [subtask({ lastFeedback: feedback })] });
+    const workspace = createInMemoryWorkspaceWriter({});
+    const runWith = runDevelop({ ...deps, ...inMemoryWorkspaceDependencies(workspace), llm });
+
+    await runWith({ kind: "RunDevelop", taskId: "subtask-1" });
+
+    expect(prompts[0]).toContain(feedback);
+  });
 });

@@ -30,12 +30,16 @@ type CurrentFile = { path: string; content: string | null };
 const describeCurrentFile = (file: CurrentFile): string =>
   file.content === null ? `### ${file.path}\n(new file)` : `### ${file.path}\n${file.content}`;
 
+const feedbackSection = (feedback: string | null): string[] =>
+  feedback ? ["Feedback from the last review, fix every point:", feedback] : [];
+
 const developPrompt = (task: Task, currentFiles: readonly CurrentFile[]): string =>
   [
     `Implement this subtask: ${task.title}`,
     task.description,
     "Acceptance criteria:",
     ...task.acceptanceCriteria.map((criterion) => `- ${criterion}`),
+    ...feedbackSection(task.lastFeedback),
     `You may write only these files: ${task.files.join(", ")}`,
     "Current content of those files:",
     ...currentFiles.map(describeCurrentFile),
