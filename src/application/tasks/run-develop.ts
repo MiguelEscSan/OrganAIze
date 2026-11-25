@@ -135,7 +135,7 @@ const writeSubtask =
     }
 
     if (!reply.ok) {
-      return countFailure(deps, tasks, task, reply.reason);
+      return reply.unavailable ? fail(reply.reason) : countFailure(deps, tasks, task, reply.reason);
     }
 
     const parsed = parseDevelopOutput(reply.json);

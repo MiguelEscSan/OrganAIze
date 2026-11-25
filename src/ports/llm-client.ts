@@ -1,6 +1,6 @@
 export type LlmReply =
   | { ok: true; json: unknown; totalTokens?: number }
-  | { ok: false; reason: string };
+  | { ok: false; reason: string; unavailable?: true };
 
 export type LlmProgress = { characters: number };
 

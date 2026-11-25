@@ -87,6 +87,20 @@ describe("runDevelop", () => {
     ]);
   });
 
+  it("does not count a model that cannot be reached as a failed attempt", async () => {
+    const { deps, run } = setup(subtask(), {
+      ok: false,
+      reason: "Ollama request failed: fetch failed",
+      unavailable: true,
+    });
+
+    const outcome = await run({ kind: "RunDevelop", taskId: "subtask-1" });
+
+    expect(outcome.ok).toBe(false);
+    const task = await taskById(deps, "subtask-1");
+    expect([task?.status, task?.attempts]).toEqual(["in_progress", 0]);
+  });
+
   it("sends the subtask to review after its third failed attempt", async () => {
     const { deps, run } = setup(subtask({ attempts: 2 }), { ok: true, json: { files: [] } });
 

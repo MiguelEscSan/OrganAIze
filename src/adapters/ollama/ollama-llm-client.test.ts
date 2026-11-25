@@ -99,7 +99,7 @@ describe("ollama llm client", () => {
 
     const reply = await createOllamaLlmClient(config, fetcher).generateJson("review this");
 
-    expect(reply).toEqual({ ok: false, reason: "Ollama request failed: fetch failed" });
+    expect(reply).toEqual({ ok: false, reason: "Ollama request failed: fetch failed", unavailable: true });
   });
 
   it("fails with the status when the server refuses the request", async () => {
@@ -107,6 +107,6 @@ describe("ollama llm client", () => {
 
     const reply = await createOllamaLlmClient(config, fetcher).generateJson("split this");
 
-    expect(reply).toEqual({ ok: false, reason: "Ollama request failed with status 404" });
+    expect(reply).toEqual({ ok: false, reason: "Ollama request failed with status 404", unavailable: true });
   });
 });
