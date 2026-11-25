@@ -47,7 +47,7 @@ Binary or large files in the zip, other frameworks or templates, installing depe
 - [x] T3 Orchestrator prompt (prompt test asserts the scaffold exists and no App.tsx creation rule)
 - [x] T4 Archive port, adapter and use case (ArchiveWriter port, fflate adapter, in-memory twin, ArchiveProject query; 6 tests incl. unzipSync round trip)
 - [x] T5 Route, button and Preview filter (GET /api/boards/[id]/download, Download link in the project header, previewSourceFilesOf with 3 tests)
-- [ ] T6 Verification
+- [x] T6 Verification: vitest 68 files / 358 tests, tsc, lint and build pass. In the running app, creating a project on a missing folder wrote App.tsx, index.html, main.tsx, package.json, tsconfig.json and vite.config.ts; `GET /api/boards/<id>/download` returned 200 `application/zip` with `attachment; filename="scaffold-check.zip"` (404 for an unknown board); the unzipped project ran `npm install` and `npm run build` with exit 0; the Preview tab rendered the template App. Not covered: a full agent run on a scaffolded project, and an existing project that already has package.json was not re-checked in the UI (covered by unit tests).
 
 ## Next step
-T6.
+None for this feature. Remaining decision for the user: push and open a pull request.
