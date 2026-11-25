@@ -17,6 +17,7 @@ type TaskCardProps = {
   onDelete?: (taskId: string) => void;
   onContinue?: (taskId: string) => void;
   onSendToReady?: (taskId: string) => void;
+  onResume?: (taskId: string) => void;
   onBrowserCheck?: (taskId: string) => void;
 };
 
@@ -29,6 +30,7 @@ export const TaskCard = ({
   onDelete,
   onContinue,
   onSendToReady,
+  onResume,
   onBrowserCheck,
 }: TaskCardProps) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -90,6 +92,18 @@ export const TaskCard = ({
           <span className="font-bold">Testing: </span>
           {task.lastFeedback}
         </p>
+      )}
+
+      {task.status === "in_progress" && task.parentTaskId !== null && onResume && (
+        <div className="flex justify-end border-t border-line pt-2">
+          <button
+            type="button"
+            onClick={() => onResume(task.id)}
+            className="rounded-full bg-sky px-3 py-1 text-xs font-bold text-paper hover:opacity-90"
+          >
+            Resume
+          </button>
+        </div>
       )}
 
       {task.status === "review" && onSendToReady && (
