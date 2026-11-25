@@ -42,6 +42,32 @@ const sendClaimedRequestToReview = async (
   return outcome === "applied" ? fail(reason) : fail(conflictReason);
 };
 
+const subtaskSnapshot = async (deps: OrchestrationDependencies, parentTaskId: string): Promise<string> =>
+  (await deps.tasks.list())
+    .filter((task) => task.parentTaskId === parentTaskId)
+    .map((task) => `${task.id}:${task.status}:${task.attempts}`)
+    .join("|");
+
+const hasDevelopWork = async (deps: OrchestrationDependencies, parentTaskId: string): Promise<boolean> =>
+  (await deps.tasks.list()).some(
+    (task) => task.parentTaskId === parentTaskId && task.status === "in_progress" && task.assignedAgent === "develop",
+  );
+
+const developAndTestUntilSettled = async (deps: OrchestrationDependencies & DevelopDependencies, parentTaskId: string) => {
+  for (;;) {
+    const before = await subtaskSnapshot(deps, parentTaskId);
+
+    await runDevelopSubtasks(deps)(parentTaskId);
+    await testSubtasksSafely(deps);
+
+    const after = await subtaskSnapshot(deps, parentTaskId);
+
+    if (before === after || !(await hasDevelopWork(deps, parentTaskId))) {
+      return;
+    }
+  }
+};
+
 const splitUntilSettled = async (
   deps: OrchestrationDependencies,
   taskId: string,
@@ -78,8 +104,7 @@ export const claimAndOrchestrateRequest =
     const split = await splitUntilSettled(deps, claimed.value.id, claimed.value.attempts);
 
     if (split.ok) {
-      await runDevelopSubtasks(deps)(claimed.value.id);
-      await testSubtasksSafely(deps);
+      await developAndTestUntilSettled(deps, claimed.value.id);
     }
 
     return split;
