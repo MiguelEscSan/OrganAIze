@@ -25,13 +25,14 @@ import { runTesting } from "./testing/run-testing";
 import { runBrowserCheck, type BrowserCheckDependencies } from "./testing/run-browser-check";
 import { scaffoldProject } from "./projects/scaffold-project";
 import { listProjectFiles, type ProjectFilesDependencies } from "./projects/list-project-files";
+import { archiveProject, type ArchiveProjectDependencies } from "./projects/archive-project";
 import { listAgentActivity } from "./agents/list-agent-activity";
 import { listTaskEvents } from "./tasks/list-task-events";
 import { Mediator } from "./cqrs/mediator";
 import type { BoardDependencies } from "./shared/dependencies";
 
 export const createMediator = (
-  deps: OrchestrationDependencies & DevelopDependencies & BoardDependencies & BrowserCheckDependencies & ProjectFilesDependencies,
+  deps: OrchestrationDependencies & DevelopDependencies & BoardDependencies & BrowserCheckDependencies & ProjectFilesDependencies & ArchiveProjectDependencies,
 ): Mediator => {
   const mediator = new Mediator();
 
@@ -63,6 +64,7 @@ export const createMediator = (
   mediator.registerQuery("ListBoards", listBoards(deps));
   mediator.registerQuery("GetSettings", getSettings(deps));
   mediator.registerQuery("ListProjectFiles", listProjectFiles(deps));
+  mediator.registerQuery("ArchiveProject", archiveProject(deps));
   mediator.registerQuery("ListAgentActivity", listAgentActivity(deps));
   mediator.registerQuery("ListTaskEvents", listTaskEvents(deps));
 

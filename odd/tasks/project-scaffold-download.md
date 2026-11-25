@@ -45,7 +45,7 @@ Binary or large files in the zip, other frameworks or templates, installing depe
 - [x] T1 Domain scaffold (scaffold template and missing-files rule, 6 tests in src/domain/projects)
 - [x] T2 ScaffoldProject use case and wiring (scaffold-project, create-board and orchestrate-request tests; disk project files lists a missing folder as empty)
 - [x] T3 Orchestrator prompt (prompt test asserts the scaffold exists and no App.tsx creation rule)
-- [ ] T4 Archive port, adapter and use case
+- [x] T4 Archive port, adapter and use case (ArchiveWriter port, fflate adapter, in-memory twin, ArchiveProject query; 6 tests incl. unzipSync round trip)
 - [ ] T5 Route, button and Preview filter
 - [ ] T6 Verification
 

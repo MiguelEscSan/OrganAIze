@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createInMemoryArchiveWriter } from "@/adapters/in-memory/in-memory-archive-writer";
 import { createInMemoryDependencies } from "@/adapters/in-memory/in-memory-dependencies";
 import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-client";
 import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
@@ -12,6 +13,7 @@ const createDependenciesWithLlm = () => ({
   ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
   interfaceProbe: { inspect: async () => ({ ok: false as const, reason: "not used in this test" }) },
   projectFiles: { list: async () => [] },
+  archiveWriter: createInMemoryArchiveWriter(),
 });
 
 describe("createMediator", () => {
@@ -42,6 +44,7 @@ describe("createMediator", () => {
       ...inMemoryWorkspaceDependencies(workspace),
       interfaceProbe: { inspect: async () => ({ ok: false as const, reason: "not used in this test" }) },
   projectFiles: { list: async () => [] },
+      archiveWriter: createInMemoryArchiveWriter(),
     };
     const mediator = createMediator(deps);
 
