@@ -21,7 +21,7 @@ import { releaseTaskToReady } from "./tasks/release-task-to-ready";
 import { stopTaskForBudget } from "./tasks/stop-task-for-budget";
 import { submitDevelopResult } from "./tasks/submit-develop-result";
 import { submitTestResult } from "./tasks/submit-test-result";
-import { runTesting } from "./testing/run-testing";
+import { runTesting, type TypeCheckDependencies } from "./testing/run-testing";
 import { runBrowserCheck, type BrowserCheckDependencies } from "./testing/run-browser-check";
 import { scaffoldProject } from "./projects/scaffold-project";
 import { listProjectFiles, type ProjectFilesDependencies } from "./projects/list-project-files";
@@ -32,7 +32,7 @@ import { Mediator } from "./cqrs/mediator";
 import type { BoardDependencies } from "./shared/dependencies";
 
 export const createMediator = (
-  deps: OrchestrationDependencies & DevelopDependencies & BoardDependencies & BrowserCheckDependencies & ProjectFilesDependencies & ArchiveProjectDependencies,
+  deps: OrchestrationDependencies & DevelopDependencies & BoardDependencies & BrowserCheckDependencies & ProjectFilesDependencies & ArchiveProjectDependencies & TypeCheckDependencies,
 ): Mediator => {
   const mediator = new Mediator();
 
