@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createInMemoryDependencies } from "@/adapters/in-memory/in-memory-dependencies";
 import { buildTask } from "@/adapters/in-memory/task-fixtures";
 import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
-import { developSeed, inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
+import { developSeed, inMemoryDevelopDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
 import type { LlmClient } from "@/ports/llm-client";
 import { runDevelopSubtasks } from "./run-develop-subtasks";
 
@@ -43,7 +43,7 @@ const runWith = async (subtasks: ReturnType<typeof subtaskOf>[]) => {
   const tracking = trackingLlm();
   const writer = createInMemoryWorkspaceWriter({});
 
-  await runDevelopSubtasks({ ...deps, ...inMemoryWorkspaceDependencies(writer), llm: tracking.llm })("parent-1");
+  await runDevelopSubtasks({ ...deps, ...inMemoryDevelopDependencies(writer), llm: tracking.llm })("parent-1");
 
   return { deps, peak: tracking.peakConcurrentCalls() };
 };

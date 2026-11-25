@@ -6,7 +6,7 @@ import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-clie
 import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
 import { buildTask } from "@/adapters/in-memory/task-fixtures";
 import { createInMemoryWorkspaceReader } from "@/adapters/in-memory/in-memory-workspace-reader";
-import { developSeed, inMemoryScaffoldDependencies, inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
+import { developSeed, inMemoryDevelopDependencies, inMemoryScaffoldDependencies, inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
 import { orchestrateRequest } from "@/application/tasks/orchestrate-request";
 import { runDevelop } from "@/application/tasks/run-develop";
 import { runTesting } from "@/application/testing/run-testing";
@@ -57,7 +57,7 @@ describe("agent activity", () => {
       ok: true,
       json: { files: [{ path: "src/app/page.tsx", content: "export default 1;" }] },
     });
-    const develop = runDevelop({ ...deps, ...inMemoryWorkspaceDependencies(workspace), llm });
+    const develop = runDevelop({ ...deps, ...inMemoryDevelopDependencies(workspace), llm });
 
     await develop({ kind: "RunDevelop", taskId: "subtask-1" });
 
@@ -114,7 +114,7 @@ describe("agent activity", () => {
     const develop = runDevelop({
       ...deps,
       activity,
-      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+      ...inMemoryDevelopDependencies(createInMemoryWorkspaceWriter({})),
       llm,
     });
 

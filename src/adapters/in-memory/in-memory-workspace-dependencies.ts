@@ -14,7 +14,9 @@ export const inMemoryWorkspaceDependencies = <Workspace>(workspace: Workspace) =
   workspaceFor: () => workspace,
 });
 
-export const inMemoryScaffoldDependencies = (workspace: InMemoryWorkspace) => ({
+export const inMemoryDevelopDependencies = (workspace: InMemoryWorkspace) => ({
   ...inMemoryWorkspaceDependencies(workspace),
   projectFiles: createInMemoryProjectFiles(workspace),
 });
+
+export const inMemoryScaffoldDependencies = inMemoryDevelopDependencies;
