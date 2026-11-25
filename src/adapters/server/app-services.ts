@@ -10,6 +10,7 @@ import { createDatabase } from "../drizzle/client";
 import { createDiskWorkspaceWriter } from "../workspace/disk-workspace-writer";
 import { createDiskProjectFiles } from "../workspace/disk-project-files";
 import { createPlaywrightInterfaceProbe } from "../playwright/playwright-interface-probe";
+import { createTypeScriptProjectTypeChecker } from "../typescript/typescript-project-type-checker";
 
 export type AppServices = {
   mediator: Mediator;
@@ -50,6 +51,7 @@ const buildServices = (): AppServices => {
       workspaceFor: (rootPath) => createDiskWorkspaceWriter(rootPath),
       interfaceProbe: createPlaywrightInterfaceProbe(),
       projectFiles: createDiskProjectFiles(),
+      typeChecker: createTypeScriptProjectTypeChecker(),
       archiveWriter: createFflateArchiveWriter(),
     }),
     boards: createDrizzleBoardRepository(db),
