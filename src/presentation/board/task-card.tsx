@@ -87,6 +87,13 @@ export const TaskCard = ({
         <span className="font-semibold text-muted">{task.attempts}/3 attempts</span>
       </div>
 
+      {task.liveStatus && (
+        <p className="flex items-center gap-2 rounded-lg bg-sky/10 p-2.5 text-xs font-semibold text-ink">
+          <span aria-hidden="true" className="inline-block size-2 animate-pulse rounded-full bg-sky" />
+          {task.liveStatus}
+        </p>
+      )}
+
       {task.lastFeedback && (
         <p className="rounded-lg bg-terracotta/10 p-2.5 text-xs leading-relaxed text-terracotta">
           <span className="font-bold">Testing: </span>

@@ -22,6 +22,7 @@ const toTask = (row: TaskRow): Task => ({
   reviewReason: row.reviewReason as Task["reviewReason"],
   parentTaskId: row.parentTaskId,
   runsInParallel: row.runsInParallel,
+  liveStatus: row.liveStatus,
 });
 
 export const createDrizzleTaskRepository = (db: Database): TaskRepository => ({
@@ -72,4 +73,8 @@ export const createDrizzleTaskRepository = (db: Database): TaskRepository => ({
         throw new WriteConflict();
       }
     }),
+
+  setLiveStatus: async (taskId: string, liveStatus: string | null): Promise<void> => {
+    await db.update(tasks).set({ liveStatus }).where(eq(tasks.id, taskId));
+  },
 });

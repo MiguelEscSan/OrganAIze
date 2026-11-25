@@ -14,7 +14,8 @@ import { qaFullReason } from "./qa-capacity";
 import { conflictReason } from "./record-transition";
 import { stopTaskForBudget } from "./stop-task-for-budget";
 import type { AgentActivityRecord } from "@/domain/agents/agent-activity";
-import { streamedActivityLlm } from "../agents/streamed-activity-llm";
+import { streamedLlm } from "../agents/streamed-llm";
+import { liveProgressOf, withLiveStatus } from "../agents/live-progress";
 import { withAgentActivity } from "../agents/with-agent-activity";
 import { taskTitleOf } from "../agents/task-title";
 import { submitDevelopResult } from "./submit-develop-result";
@@ -174,10 +175,15 @@ export const runDevelop =
 
     const working: AgentActivityRecord = { agent: "develop", state: "working", message: `Writing "${title}"` };
 
+    const report = liveProgressOf(deps, command.taskId, working, "Writing");
+
     return withAgentActivity(
       deps.activity,
       working,
       { agent: "develop", state: "idle", message: "Waiting for a subtask in progress" },
-      () => writeSubtask({ ...deps, llm: streamedActivityLlm(deps.llm, deps.activity, working) })(command),
+      () =>
+        withLiveStatus(deps.tasks, command.taskId, () =>
+          writeSubtask({ ...deps, llm: streamedLlm(deps.llm, report) })(command),
+        ),
     );
   };

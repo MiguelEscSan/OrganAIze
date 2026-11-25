@@ -103,6 +103,12 @@ export const createInMemoryTaskRepository = (state: InMemoryState, clock: Clock)
 
     return "applied";
   },
+
+  setLiveStatus: async (taskId: string, liveStatus: string | null): Promise<void> => {
+    state.tasks = state.tasks.map((candidate) =>
+      candidate.id === taskId && (candidate.liveStatus ?? null) !== liveStatus ? { ...candidate, liveStatus } : candidate,
+    );
+  },
 });
 
 export const createInMemoryEventLog = (state: InMemoryState, clock: Clock): EventLog => ({
