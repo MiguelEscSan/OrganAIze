@@ -34,17 +34,23 @@ const parseReply = (body: OllamaChatBody): LlmReply => {
 
 export const createOllamaLlmClient = (config: OllamaConfig, fetcher: OllamaFetch): LlmClient => ({
   generateJson: async (prompt: string): Promise<LlmReply> => {
-    const response = await fetcher(`${config.baseUrl}/api/chat`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        model: config.model,
-        stream: false,
-        format: "json",
-        options: { num_ctx: 8192 },
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
+    let response: Awaited<ReturnType<OllamaFetch>>;
+
+    try {
+      response = await fetcher(`${config.baseUrl}/api/chat`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          model: config.model,
+          stream: false,
+          format: "json",
+          options: { num_ctx: 8192 },
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+    } catch (error) {
+      return { ok: false, reason: `Ollama request failed: ${error instanceof Error ? error.message : String(error)}` };
+    }
 
     if (!response.ok) {
       return { ok: false, reason: `Ollama request failed with status ${response.status}` };

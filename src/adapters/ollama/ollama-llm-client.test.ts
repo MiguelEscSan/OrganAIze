@@ -49,6 +49,16 @@ describe("ollama llm client", () => {
     expect(reply).toEqual({ ok: false, reason: "Ollama reply is not valid JSON" });
   });
 
+  it("fails with a reason instead of throwing when the request itself breaks off", async () => {
+    const fetcher: OllamaFetch = async () => {
+      throw new Error("fetch failed");
+    };
+
+    const reply = await createOllamaLlmClient(config, fetcher).generateJson("review this");
+
+    expect(reply).toEqual({ ok: false, reason: "Ollama request failed: fetch failed" });
+  });
+
   it("fails with the status when the server refuses the request", async () => {
     const fetcher: OllamaFetch = async () => ({ ok: false, status: 404, json: async () => ({}) });
 
