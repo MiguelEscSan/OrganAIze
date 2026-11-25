@@ -25,7 +25,9 @@ const planPrompt = (request: Request, plan: { title: string; description: string
     `Task description: ${plan.description}`,
     "Reply with JSON only, shaped as { subtasks: [{ title, description, acceptanceCriteria: string[], files: string[], runsInParallel: boolean }] }.",
     "Set runsInParallel to true only when the subtask's files do not overlap with any other subtask.",
-    "The project is a React app: its entry component lives in App.tsx at the project root. Give the first subtask App.tsx in its files when that file does not exist yet.",
+    "The project is a React app. App.tsx at the project root is the entry of the app: the first subtask creates it when it does not exist yet.",
+    "Every later file grows from App.tsx as in a normal app: a subtask creates a component or module in its own file, and the subtask that uses it adds the import to App.tsx or to a file that App.tsx imports.",
+    "Keep subtasks in parallel only when their files do not overlap; the subtask that wires new files into App.tsx must run in sequence.",
   ].join("\n");
 
 const subtasksFrom = (parent: Task, plan: OrchestrationPlan, ids: () => string): Task[] =>
@@ -42,6 +44,7 @@ const subtasksFrom = (parent: Task, plan: OrchestrationPlan, ids: () => string):
     attempts: 0,
     lastFeedback: null,
     reviewReason: null,
+    runsInParallel: subtask.runsInParallel,
   }));
 
 const countInvalidPlan = async (

@@ -15,6 +15,7 @@ type KanbanBoardProps = {
   onDeleteTask: (taskId: string) => void;
   onContinueTask: (taskId: string) => void;
   onSendToReadyTask: (taskId: string) => void;
+  onResumeTask?: (taskId: string) => void;
   onBrowserCheckTask?: (taskId: string) => void;
   onMoveTask: (taskId: string, to: TaskStatus) => void;
 };
@@ -32,6 +33,7 @@ export const KanbanBoard = ({
   onDeleteTask,
   onContinueTask,
   onSendToReadyTask,
+  onResumeTask,
   onBrowserCheckTask,
   onMoveTask,
 }: KanbanBoardProps) => {
@@ -65,6 +67,7 @@ export const KanbanBoard = ({
           onDelete={onDeleteTask}
           onContinue={onContinueTask}
           onSendToReady={onSendToReadyTask}
+          onResume={onResumeTask}
           onBrowserCheck={onBrowserCheckTask}
           headerAction={
             column.status === "definition" ? (

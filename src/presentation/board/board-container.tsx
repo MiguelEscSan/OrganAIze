@@ -133,6 +133,10 @@ export const BoardContainer = ({
     );
   };
 
+  const handleResumeTask = async (taskId: string) => {
+    await runAction(sendJson("POST", `/api/tasks/${taskId}/resume`, {}), "The subtask could not be resumed");
+  };
+
   const handleSendToReadyTask = async (taskId: string) => {
     await runAction(
       sendJson("POST", `/api/tasks/${taskId}/review`, { decision: "send_to_ready" }),
@@ -198,6 +202,7 @@ export const BoardContainer = ({
         onDeleteTask={handleDeleteTask}
         onContinueTask={handleContinueTask}
         onSendToReadyTask={handleSendToReadyTask}
+        onResumeTask={handleResumeTask}
         onBrowserCheckTask={browserCheckEnabled ? handleBrowserCheckTask : undefined}
         onMoveTask={handleMoveTask}
       />

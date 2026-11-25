@@ -1,5 +1,5 @@
 import { checkFileScope } from "@/domain/agents/check-file-scope";
-import { parseDevelopOutput } from "@/domain/agents/develop-output";
+import { parseDevelopOutput, type DevelopFile } from "@/domain/agents/develop-output";
 import { budgetOverrunReason, minutesBetween } from "@/domain/tasks/budget";
 import { countFailedAttempt } from "@/domain/tasks/count-failed-attempt";
 import type { Task } from "@/domain/tasks/task";
@@ -7,7 +7,8 @@ import type { BoardRepository } from "@/ports/board-repository";
 import type { LlmClient, LlmReply } from "@/ports/llm-client";
 import type { WorkspaceWriter } from "@/ports/workspace-writer";
 import type { ApplicationDependencies } from "../shared/dependencies";
-import { fail, type Outcome } from "../shared/outcome";
+import { fail, succeed, type Outcome } from "../shared/outcome";
+import { mergeSharedFile } from "./merge-shared-file";
 import { workspaceOfTask } from "../shared/task-workspace";
 import { qaFullReason } from "./qa-capacity";
 import { conflictReason } from "./record-transition";
@@ -29,18 +30,21 @@ type CurrentFile = { path: string; content: string | null };
 const describeCurrentFile = (file: CurrentFile): string =>
   file.content === null ? `### ${file.path}\n(new file)` : `### ${file.path}\n${file.content}`;
 
+const feedbackSection = (feedback: string | null): string[] =>
+  feedback ? ["Feedback from the last review, fix every point:", feedback] : [];
+
 const developPrompt = (task: Task, currentFiles: readonly CurrentFile[]): string =>
   [
     `Implement this subtask: ${task.title}`,
     task.description,
     "Acceptance criteria:",
     ...task.acceptanceCriteria.map((criterion) => `- ${criterion}`),
+    ...feedbackSection(task.lastFeedback),
     `You may write only these files: ${task.files.join(", ")}`,
     "Current content of those files:",
     ...currentFiles.map(describeCurrentFile),
     'Reply with JSON only, in the form {"files":[{"path":"...","content":"full file content"}]}.',
     "Include the full content of every file you change. Do not write any other path.",
-    "A React project keeps its entry component in App.tsx at the project root, as a default export named App.",
   ].join("\n\n");
 
 const countFailure = async (
@@ -62,6 +66,35 @@ const countFailure = async (
   });
 
   return outcome === "applied" ? fail(reason) : fail(conflictReason);
+};
+
+const reconcileFiles = async (
+  deps: DevelopDependencies,
+  workspace: WorkspaceWriter,
+  baseFiles: readonly CurrentFile[],
+  proposed: readonly DevelopFile[],
+): Promise<Outcome<DevelopFile[]>> => {
+  const reconciled: DevelopFile[] = [];
+
+  for (const file of proposed) {
+    const base = baseFiles.find((candidate) => candidate.path === file.path)?.content ?? null;
+    const current = await workspace.read(file.path);
+
+    if (current === base) {
+      reconciled.push(file);
+      continue;
+    }
+
+    const merged = await mergeSharedFile(deps.llm, { path: file.path, base, current: current ?? "", proposed: file.content });
+
+    if (!merged.ok) {
+      return fail(merged.reason);
+    }
+
+    reconciled.push({ path: file.path, content: merged.value });
+  }
+
+  return succeed(reconciled);
 };
 
 const readCurrentFiles = async (workspace: WorkspaceWriter, task: Task): Promise<CurrentFile[]> =>
@@ -86,7 +119,8 @@ const writeSubtask =
     }
 
     const startedAt = deps.clock.now();
-    const reply = await deps.llm.generateJson(developPrompt(task, await readCurrentFiles(workspace.value, task)));
+    const currentFiles = await readCurrentFiles(workspace.value, task);
+    const reply = await deps.llm.generateJson(developPrompt(task, currentFiles));
     const settings = await deps.settings.get();
     const overrun = budgetOverrunReason(
       { minutes: minutesBetween(startedAt, deps.clock.now()), tokens: tokensUsed(reply) },
@@ -119,7 +153,13 @@ const writeSubtask =
       return fail(full);
     }
 
-    await workspace.value.write(parsed.output.files);
+    const reconciled = await reconcileFiles(deps, workspace.value, currentFiles, parsed.output.files);
+
+    if (!reconciled.ok) {
+      return countFailure(deps, tasks, task, reconciled.reason);
+    }
+
+    await workspace.value.write(reconciled.value);
 
     return submitDevelopResult(deps)({ kind: "SubmitDevelopResult", taskId: task.id });
   };

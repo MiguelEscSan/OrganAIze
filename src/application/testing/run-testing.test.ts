@@ -4,6 +4,7 @@ import { createInMemoryDependencies } from "@/adapters/in-memory/in-memory-depen
 import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-client";
 import { buildTask } from "@/adapters/in-memory/task-fixtures";
 import { createInMemoryWorkspaceReader } from "@/adapters/in-memory/in-memory-workspace-reader";
+import { createInMemoryBoardRepository } from "@/adapters/in-memory/in-memory-board-repository";
 import { developSeed, inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
 import type { Task } from "@/domain/tasks/task";
 import { runTesting } from "./run-testing";
@@ -51,6 +52,22 @@ describe("runTesting", () => {
     expect([task?.status, task?.attempts]).toEqual(["in_progress", 1]);
     expect(task?.lastFeedback).toContain(`1. ${cardPath}: File ${cardPath} does not exist`);
     expect(llm.generateJson).not.toHaveBeenCalled();
+  });
+
+  it("sends a task back to in progress with the reason when its board cannot be found", async () => {
+    const deps = createInMemoryDependencies({ ...developSeed, tasks: [qaTask()] });
+    const testing = runTesting({
+      ...deps,
+      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceReader({ [cardPath]: validCard })),
+      boards: createInMemoryBoardRepository([]),
+      llm: reviewingLlm(passingReview),
+    });
+
+    await testing();
+
+    const task = await taskById(deps, "subtask-1");
+    expect([task?.status, task?.attempts]).toEqual(["in_progress", 1]);
+    expect(task?.lastFeedback).toContain("The board for this task was not found");
   });
 
   it("sends a task with a tsx syntax error back to in progress with the file and line", async () => {

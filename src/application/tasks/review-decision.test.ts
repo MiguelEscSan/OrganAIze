@@ -71,6 +71,47 @@ describe("decideReview", () => {
     );
   });
 
+  it("sends a rejected subtask straight back to in progress and develops it again", async () => {
+    const deps = createInMemoryDependencies({
+      requests: [request],
+      tasks: [
+        buildTask({ id: "p1", requestId: "request-1", status: "in_progress" }),
+        buildTask({
+          id: "t1",
+          requestId: "request-1",
+          parentTaskId: "p1",
+          status: "review",
+          assignedAgent: "develop",
+          attempts: 3,
+          lastFeedback: "1. Headline missing",
+          reviewReason: "attempts",
+        }),
+      ],
+    });
+    const decide = decideReview({
+      ...deps,
+      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+      llm: createScriptedLlmClient({ ok: false, reason: "Ollama is unavailable" }),
+    });
+
+    const outcome = await decide({ kind: "DecideReview", taskId: "t1", decision: "send_to_ready" });
+
+    expect(outcome.ok).toBe(true);
+    const subtask = (await deps.tasks.list()).find((task) => task.id === "t1");
+    expect([subtask?.status, subtask?.attempts, subtask?.lastFeedback, subtask?.parentTaskId]).toEqual([
+      "review",
+      3,
+      "Ollama is unavailable",
+      "p1",
+    ]);
+    expect(await deps.events.list()).toEqual(
+      expect.arrayContaining([expect.objectContaining({ taskId: "t1", from: "review", to: "in_progress", actor: "user" })]),
+    );
+    expect(await deps.events.list()).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ taskId: "t1", to: "ready" })]),
+    );
+  });
+
   it("continues a budget-stopped task into in_progress with the same attempts", async () => {
     const deps = createInMemoryDependencies({
       tasks: [buildTask({ id: "t1", status: "review", attempts: 1, reviewReason: "budget" })],

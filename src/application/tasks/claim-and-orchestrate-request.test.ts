@@ -173,7 +173,7 @@ describe("claimAndOrchestrateRequest", () => {
       const { outcome, subtask } = await runClaim(failing);
 
       expect(outcome.ok).toBe(true);
-      expect([subtask?.status, subtask?.attempts]).toEqual(["in_progress", 1]);
+      expect([subtask?.status, subtask?.attempts]).toEqual(["review", 3]);
       expect(subtask?.lastFeedback).toContain("Headline missing");
     });
 
@@ -199,6 +199,39 @@ describe("claimAndOrchestrateRequest", () => {
       expect(outcome.ok).toBe(true);
       const subtask = (await deps.tasks.list()).find((task) => task.parentTaskId === "task-1");
       expect(subtask?.status).toBe("qa");
+    });
+
+    it("develops and tests every subtask when qa holds only one task at a time", async () => {
+      const twoFilePlan = {
+        subtasks: [
+          { title: "First", description: "Write A", acceptanceCriteria: ["ok"], files: ["src/a.tsx"], runsInParallel: false },
+          { title: "Second", description: "Write B", acceptanceCriteria: ["ok"], files: ["src/b.tsx"], runsInParallel: false },
+        ],
+      };
+      const llm: LlmClient = {
+        generateJson: async (prompt: string) => {
+          if (prompt.includes("Review this subtask")) {
+            return { ok: true, json: { passed: true, failures: [] } };
+          }
+          if (prompt.includes("Implement this subtask")) {
+            const path = prompt.match(/You may write only these files: ([^\n]+)/)?.[1] ?? "";
+            return { ok: true, json: { files: [{ path, content: "export {};" }] } };
+          }
+          return { ok: true, json: twoFilePlan };
+        },
+      };
+      const deps = createInMemoryDependencies({ ...developSeed, tasks: [readyTask] });
+      await deps.settings.save({ ...(await deps.settings.get()), maxQaTasks: 1 });
+      const claimAndOrchestrate = claimAndOrchestrateRequest({
+        ...deps,
+        ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+        llm,
+      });
+
+      await claimAndOrchestrate();
+
+      const statuses = (await deps.tasks.list()).filter((task) => task.parentTaskId === "task-1").map((task) => task.status);
+      expect(statuses).toEqual(["deploy", "deploy"]);
     });
   });
 });

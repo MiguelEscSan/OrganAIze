@@ -1,0 +1,1 @@
+ALTER TABLE "tasks" ADD COLUMN "runs_in_parallel" boolean DEFAULT false NOT NULL;

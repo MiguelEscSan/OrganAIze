@@ -21,6 +21,7 @@ const toTask = (row: TaskRow): Task => ({
   lastFeedback: row.lastFeedback,
   reviewReason: row.reviewReason as Task["reviewReason"],
   parentTaskId: row.parentTaskId,
+  runsInParallel: row.runsInParallel,
 });
 
 export const createDrizzleTaskRepository = (db: Database): TaskRepository => ({

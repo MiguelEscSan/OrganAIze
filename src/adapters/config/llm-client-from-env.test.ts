@@ -18,7 +18,7 @@ describe("createLlmClientFromEnv", () => {
     const urls: string[] = [];
     const fetcher: FetchLike = async (url) => {
       urls.push(url);
-      return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: "{}" }] } }] }) };
+      return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: "{}" }] } }] }), text: async () => "" };
     };
 
     const outcome = createLlmClientFromEnv({ LLM_API_KEY: "key", LLM_MODEL: "model-x" }, fetcher);
@@ -35,7 +35,7 @@ describe("createLlmClientFromEnv", () => {
     const urls: string[] = [];
     const fetcher: FetchLike = async (url) => {
       urls.push(url);
-      return { ok: true, status: 200, json: async () => ({ message: { content: "{}" } }) };
+      return { ok: true, status: 200, json: async () => ({}), text: async () => JSON.stringify({ message: { content: "{}" }, done: true }) };
     };
 
     const outcome = createLlmClientFromEnv({ LLM_PROVIDER: "ollama", LLM_MODEL: "qwen3:4b-instruct" }, fetcher);

@@ -18,6 +18,7 @@ type KanbanColumnProps = {
   onDelete?: (taskId: string) => void;
   onContinue?: (taskId: string) => void;
   onSendToReady?: (taskId: string) => void;
+  onResume?: (taskId: string) => void;
   onBrowserCheck?: (taskId: string) => void;
 };
 
@@ -32,6 +33,7 @@ export const KanbanColumn = ({
   onDelete,
   onContinue,
   onSendToReady,
+  onResume,
   onBrowserCheck,
 }: KanbanColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: status });
@@ -72,6 +74,7 @@ export const KanbanColumn = ({
                 onDelete={onDelete}
                 onContinue={onContinue}
                 onSendToReady={onSendToReady}
+                onResume={onResume}
                 onBrowserCheck={onBrowserCheck}
               />
             </li>

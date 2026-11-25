@@ -9,6 +9,7 @@ import { listRequests } from "./requests/list-requests";
 import { claimAndOrchestrateRequest } from "./tasks/claim-and-orchestrate-request";
 import { claimNextReadyTask } from "./tasks/claim-next-ready-task";
 import { decideReview } from "./tasks/review-decision";
+import { resumeSubtask } from "./tasks/resume-subtask";
 import { listBoard } from "./tasks/list-board";
 import { listBoards } from "./tasks/list-boards";
 import { createBoard } from "./boards/create-board";
@@ -48,6 +49,7 @@ export const createMediator = (
   mediator.registerCommand("RunBrowserCheck", runBrowserCheck(deps));
   mediator.registerCommand("StopTaskForBudget", stopTaskForBudget(deps));
   mediator.registerCommand("DecideReview", decideReview(deps));
+  mediator.registerCommand("ResumeSubtask", resumeSubtask(deps));
   mediator.registerCommand("UpdateSettings", updateSettings(deps));
   mediator.registerCommand("CreateBoard", createBoard(deps));
   mediator.registerCommand("UpdateBoard", updateBoard(deps));
