@@ -38,7 +38,10 @@ Installing dependencies, running `npm run build`, linting, type-checking non-TS 
 ## Progress
 - [x] T1 Port, twin and runTesting wiring. RED: 2 of 5 new run-testing tests failed before wiring; GREEN after. Type failures become numbered `Type check (file:line): message` feedback; listing or checker errors fall through to the LLM review. Dependencies are optional in `TestingDependencies` (required in `createMediator`) because `claim-and-orchestrate-request.ts` types its deps as `DevelopDependencies`.
 - [x] T2 TypeScript adapter. RED: suite failed on the missing module; GREEN with 10 real-compiler tests (weather fixtures, React component with uninstalled packages produces no failures, own-files-only). In-memory CompilerHost, real default libs read from the typescript package, allowlist of codes 2307 (relative code imports only), 2304, 2305, 2614, 2552, 2551, 2554, 2555, 2322, 2345, 2339.
-- [ ] T3 Verification
+- [x] T3 Verification: vitest 69 files / 373 tests, tsc exit 0, lint exit 0 and build pass. The checker run on the real weather project files reports exactly the 3 errors `tsc` found in App.tsx (unresolved `./weatherService` at line 16, unknown `Position` at line 50, unknown `PositionError` at line 70) and nothing for `src/WeatherDisplay.tsx` and `src/weatherService.ts`. Not verified: a full live run where Testing rejects the subtask and Develop fixes it after the feedback.
+
+## Findings
+- `projectFiles` and `typeChecker` are optional in `TestingDependencies` because `claim-and-orchestrate-request.ts` types its dependencies as `DevelopDependencies`. The mediator always supplies both, so the real flow type-checks, but a direct caller can skip the check silently. Making them required means threading them through `src/application/tasks/**`.
 
 ## Next step
-T3 verification on the real weather project files.
+None for this feature. Optional follow-up: make the type-check dependencies required everywhere.
