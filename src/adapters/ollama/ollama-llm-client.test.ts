@@ -7,7 +7,7 @@ const streamingReply = (chunks: unknown[]): { fetcher: OllamaFetch; calls: { url
   const calls: { url: string; body: string }[] = [];
   const fetcher: OllamaFetch = async (url, init) => {
     calls.push({ url, body: init.body });
-    return { ok: true, status: 200, text: async () => chunks.map((chunk) => JSON.stringify(chunk)).join("\n") };
+    return new Response(chunks.map((chunk) => JSON.stringify(chunk)).join("\n"));
   };
 
   return { fetcher, calls };
@@ -41,6 +41,41 @@ describe("ollama llm client", () => {
     expect(reply).toEqual({ ok: true, json: { subtasks: [] }, totalTokens: 42 });
   });
 
+  it("reports the characters received each time the reply grows", async () => {
+    const { fetcher } = streamingReply([
+      { message: { content: "{\"a\":" }, done: false },
+      { message: { content: "1}" }, done: false },
+      { message: { content: "" }, done: true, prompt_eval_count: 1, eval_count: 1 },
+    ]);
+    const reported: number[] = [];
+
+    await createOllamaLlmClient(config, fetcher).generateJson("split this", async (progress) => {
+      reported.push(progress.characters);
+    });
+
+    expect(reported).toEqual([5, 7]);
+  });
+
+  it("reads a reply whose lines arrive split across network chunks", async () => {
+    const line = JSON.stringify({ message: { content: "{\"ok\":true}" }, done: true });
+    const middle = Math.floor(line.length / 2);
+    const encoder = new TextEncoder();
+    const fetcher: OllamaFetch = async () => {
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(encoder.encode(line.slice(0, middle)));
+          controller.enqueue(encoder.encode(`${line.slice(middle)}\n`));
+          controller.close();
+        },
+      });
+      return new Response(stream);
+    };
+
+    const reply = await createOllamaLlmClient(config, fetcher).generateJson("split this");
+
+    expect(reply).toEqual({ ok: true, json: { ok: true }, totalTokens: 0 });
+  });
+
   it("fails when the streamed reply is not valid JSON", async () => {
     const { fetcher } = streamingReply([{ message: { content: "not json" }, done: true }]);
 
@@ -68,7 +103,7 @@ describe("ollama llm client", () => {
   });
 
   it("fails with the status when the server refuses the request", async () => {
-    const fetcher: OllamaFetch = async () => ({ ok: false, status: 404, text: async () => "" });
+    const fetcher: OllamaFetch = async () => new Response("", { status: 404 });
 
     const reply = await createOllamaLlmClient(config, fetcher).generateJson("split this");
 

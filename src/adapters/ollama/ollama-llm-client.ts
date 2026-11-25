@@ -1,4 +1,4 @@
-import type { LlmClient, LlmReply } from "@/ports/llm-client";
+import type { LlmClient, LlmProgressListener, LlmReply } from "@/ports/llm-client";
 
 export type OllamaConfig = {
   baseUrl: string;
@@ -8,7 +8,7 @@ export type OllamaConfig = {
 export type OllamaFetch = (
   url: string,
   init: { method: "POST"; headers: Record<string, string>; body: string },
-) => Promise<{ ok: boolean; status: number; text: () => Promise<string> }>;
+) => Promise<Response>;
 
 type OllamaChunk = {
   message?: { content?: unknown };
@@ -19,34 +19,63 @@ type OllamaChunk = {
 
 type StreamedReply = { content: string; tokens: number };
 
+const emptyReply: StreamedReply = { content: "", tokens: 0 };
+
 const numberOf = (value: unknown): number => (typeof value === "number" ? value : 0);
 
-const readStream = (text: string): StreamedReply => {
-  const lines = text.split("\n").filter((line) => line.trim().length > 0);
+const applyLine = (reply: StreamedReply, line: string): StreamedReply => {
+  const chunk = JSON.parse(line) as OllamaChunk;
+  const piece = typeof chunk.message?.content === "string" ? chunk.message.content : "";
 
-  return lines.reduce<StreamedReply>(
-    (reply, line) => {
-      const chunk = JSON.parse(line) as OllamaChunk;
-      const piece = typeof chunk.message?.content === "string" ? chunk.message.content : "";
-
-      return {
-        content: reply.content + piece,
-        tokens: chunk.done === true ? numberOf(chunk.prompt_eval_count) + numberOf(chunk.eval_count) : reply.tokens,
-      };
-    },
-    { content: "", tokens: 0 },
-  );
+  return {
+    content: reply.content + piece,
+    tokens:
+      chunk.done === true ? numberOf(chunk.prompt_eval_count) + numberOf(chunk.eval_count) : reply.tokens,
+  };
 };
 
-const parseStreamedReply = (text: string): LlmReply => {
-  let streamed: StreamedReply;
+const readStream = async (body: ReadableStream<Uint8Array>, onProgress?: LlmProgressListener): Promise<StreamedReply> => {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffered = "";
+  let reply = emptyReply;
 
-  try {
-    streamed = readStream(text);
-  } catch {
-    return { ok: false, reason: "Ollama reply is not valid JSON" };
+  const consume = async (line: string): Promise<void> => {
+    if (line.trim().length === 0) {
+      return;
+    }
+
+    const previousLength = reply.content.length;
+    reply = applyLine(reply, line);
+
+    if (onProgress && reply.content.length !== previousLength) {
+      await onProgress({ characters: reply.content.length });
+    }
+  };
+
+  for (;;) {
+    const { done, value } = await reader.read();
+
+    if (done) {
+      buffered += decoder.decode();
+      break;
+    }
+
+    buffered += decoder.decode(value, { stream: true });
+    const lines = buffered.split("\n");
+    buffered = lines.pop() ?? "";
+
+    for (const line of lines) {
+      await consume(line);
+    }
   }
 
+  await consume(buffered);
+
+  return reply;
+};
+
+const toLlmReply = (streamed: StreamedReply): LlmReply => {
   if (streamed.content.length === 0) {
     return { ok: false, reason: "Ollama reply has no text" };
   }
@@ -61,12 +90,11 @@ const parseStreamedReply = (text: string): LlmReply => {
 };
 
 export const createOllamaLlmClient = (config: OllamaConfig, fetcher: OllamaFetch): LlmClient => ({
-  generateJson: async (prompt: string): Promise<LlmReply> => {
-    let response: Awaited<ReturnType<OllamaFetch>>;
-    let text: string;
+  generateJson: async (prompt: string, onProgress?: LlmProgressListener): Promise<LlmReply> => {
+    let streamed: StreamedReply;
 
     try {
-      response = await fetcher(`${config.baseUrl}/api/chat`, {
+      const response = await fetcher(`${config.baseUrl}/api/chat`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -82,11 +110,15 @@ export const createOllamaLlmClient = (config: OllamaConfig, fetcher: OllamaFetch
         return { ok: false, reason: `Ollama request failed with status ${response.status}` };
       }
 
-      text = await response.text();
+      if (!response.body) {
+        return { ok: false, reason: "Ollama reply has no text" };
+      }
+
+      streamed = await readStream(response.body, onProgress);
     } catch (error) {
       return { ok: false, reason: `Ollama request failed: ${error instanceof Error ? error.message : String(error)}` };
     }
 
-    return parseStreamedReply(text);
+    return toLlmReply(streamed);
   },
 });

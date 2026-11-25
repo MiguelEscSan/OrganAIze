@@ -13,6 +13,8 @@ import { workspaceOfTask } from "../shared/task-workspace";
 import { qaFullReason } from "./qa-capacity";
 import { conflictReason } from "./record-transition";
 import { stopTaskForBudget } from "./stop-task-for-budget";
+import type { AgentActivityRecord } from "@/domain/agents/agent-activity";
+import { streamedActivityLlm } from "../agents/streamed-activity-llm";
 import { withAgentActivity } from "../agents/with-agent-activity";
 import { taskTitleOf } from "../agents/task-title";
 import { submitDevelopResult } from "./submit-develop-result";
@@ -43,6 +45,7 @@ const developPrompt = (task: Task, currentFiles: readonly CurrentFile[]): string
     `You may write only these files: ${task.files.join(", ")}`,
     "Current content of those files:",
     ...currentFiles.map(describeCurrentFile),
+    "Any file that contains JSX must end in .tsx, never .ts.",
     'Reply with JSON only, in the form {"files":[{"path":"...","content":"full file content"}]}.',
     "Include the full content of every file you change. Do not write any other path.",
   ].join("\n\n");
@@ -169,10 +172,12 @@ export const runDevelop =
   async (command: RunDevelop): Promise<Outcome<Task>> => {
     const title = await taskTitleOf(deps.tasks, command.taskId, "a subtask");
 
+    const working: AgentActivityRecord = { agent: "develop", state: "working", message: `Writing "${title}"` };
+
     return withAgentActivity(
       deps.activity,
-      { agent: "develop", state: "working", message: `Writing "${title}"` },
+      working,
       { agent: "develop", state: "idle", message: "Waiting for a subtask in progress" },
-      () => writeSubtask(deps)(command),
+      () => writeSubtask({ ...deps, llm: streamedActivityLlm(deps.llm, deps.activity, working) })(command),
     );
   };

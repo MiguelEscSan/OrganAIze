@@ -9,9 +9,17 @@ const isEscapingPath = (path: string): boolean => {
   return isAbsolute || segments.includes("..");
 };
 
+const isMisnamedAppEntry = (path: string): boolean => /(^|[\\/])App\.ts$/.test(path);
+
 export const checkFileScope = (writes: readonly PlannedWrite[], allowedFiles: readonly string[]): FileScopeResult => {
   if (writes.length === 0) {
     return { ok: false, reason: "Develop produced no file changes" };
+  }
+
+  const misnamed = writes.find((write) => isMisnamedAppEntry(write.path));
+
+  if (misnamed) {
+    return { ok: false, reason: `The app entry must be App.tsx, not App.ts: ${misnamed.path}` };
   }
 
   const outside = writes.find((write) => isEscapingPath(write.path) || !allowedFiles.includes(write.path));
