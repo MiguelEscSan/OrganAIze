@@ -8,7 +8,7 @@ export type GeminiConfig = {
 export type FetchLike = (
   url: string,
   init: { method: "POST"; headers: Record<string, string>; body: string },
-) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>;
+) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown>; text: () => Promise<string> }>;
 
 const endpointFor = (model: string): string =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
