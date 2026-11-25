@@ -61,6 +61,23 @@ describe("orchestrateRequest", () => {
     ]);
   });
 
+  it("asks the planner to start from App.tsx and to import every new file from it", async () => {
+    const prompts: string[] = [];
+    const llm = {
+      generateJson: async (prompt: string) => {
+        prompts.push(prompt);
+        return { ok: true as const, json: validPlan };
+      },
+    };
+    const deps = createInMemoryDependencies({ requests: [request], tasks: [parentTask] });
+    const orchestrate = orchestrateRequest({ ...deps, llm });
+
+    await orchestrate({ kind: "OrchestrateRequest", taskId: "task-1" });
+
+    expect(prompts[0]).toContain("App.tsx at the project root is the entry of the app");
+    expect(prompts[0]).toContain("adds the import to App.tsx or to a file that App.tsx imports");
+  });
+
   it("stores each subtask's acceptance criteria and files", async () => {
     const { deps, orchestrate } = run([parentTask], { ok: true, json: validPlan });
 
