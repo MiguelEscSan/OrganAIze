@@ -28,7 +28,7 @@ Forecast about 700 authored changed lines. Strategy: `ask-on-risk`. Each task cl
 ## Tasks
 
 - [x] T1 Navigation: active link state (client `NavLinks` with icons) and a breadcrumb in the project layout header. Route: delegated writer. Commit d7da930.
-- [ ] T2 Request families: pure `groupColumnIntoFamilies` in domain with tests (RED first), then column rendering where subtasks hang from the parent card with connector lines, and a ghost parent head in columns where only children live. Route: delegated writer.
+- [x] T2 Request families: pure `groupColumnIntoFamilies` in domain with tests (RED first), then column rendering where subtasks hang from the parent card with connector lines, and a ghost parent head in columns where only children live. Route: delegated writer. Commit dba97e0.
 - [ ] T3 Card redesign: agent activity block colored per agent (Develop, Testing), waiting state, unreachable-model state, attempt dots, one primary action plus overflow menu, parent card with progress segments. Route: delegated writer.
 - [ ] T4 Dialogs: restyle task details (parent block with sibling list, agent status panel from existing fields) and the edit dialog (Save and move to Ready). Route: delegated writer.
 
