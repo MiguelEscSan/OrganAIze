@@ -19,8 +19,8 @@ In the project Files tab, show files as a collapsible folder tree instead of a f
 
 ## Tasks
 
-- [ ] T1 Pure `buildFileTree(paths)` with tests written first: nested folders, folders before files, case-insensitive alphabetical order, root-level files, empty input. Route: delegated writer.
-- [ ] T2 `FileTree` component and wiring in `FilesBrowser`: folders collapsible and expanded by default, ancestors of the selected file always visible, indentation by depth, folder and file icons, selected file highlighted. Route: delegated writer.
+- [x] T1 Pure `buildFileTree(paths)` with tests written first: nested folders, folders before files, case-insensitive alphabetical order, root-level files, empty input. Route: delegated writer. Commit 9d677fe.
+- [x] T2 `FileTree` component and wiring in `FilesBrowser`: folders collapsible and expanded by default, ancestors of the selected file always visible, indentation by depth, folder and file icons, selected file highlighted. Route: delegated writer. Commit e9276a0.
 
 ## Acceptance criteria
 
@@ -35,4 +35,4 @@ Current component: `files-browser.tsx` renders a flat `<ul>` with `file.path` as
 
 ## Next step
 
-T1.
+Visual check and PR (user decision).
