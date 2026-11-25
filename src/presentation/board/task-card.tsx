@@ -8,8 +8,12 @@ import { RichTextView } from "../rich-text/rich-text-view";
 import { LiveTaskDetails } from "./live-task-details";
 import { TaskDialog, type TaskDialogValues } from "./task-dialog";
 
+export type TaskCardVariant = "request" | "subtask" | "standalone";
+
 type TaskCardProps = {
   task: Task;
+  variant?: TaskCardVariant;
+  subtaskCount?: number;
   isDraggable: boolean;
   isEditable: boolean;
   isDeletable: boolean;
@@ -21,8 +25,25 @@ type TaskCardProps = {
   onBrowserCheck?: (taskId: string) => void;
 };
 
+const variantBorderClass = (variant: TaskCardVariant): string =>
+  variant === "request" ? "border-2 border-family-line" : "";
+
+const variantLabel = (variant: TaskCardVariant, subtaskCount: number | undefined): string | null => {
+  if (variant === "subtask") {
+    return "Subtask";
+  }
+
+  if (variant === "request") {
+    return subtaskCount === undefined ? "Request" : `Request · ${subtaskCount} subtasks`;
+  }
+
+  return null;
+};
+
 export const TaskCard = ({
   task,
+  variant = "standalone",
+  subtaskCount,
   isDraggable,
   isEditable,
   isDeletable,
@@ -41,15 +62,17 @@ export const TaskCard = ({
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const style = { transform: CSS.Translate.toString(transform) };
+  const label = variantLabel(variant, subtaskCount);
 
   return (
     <article
       ref={setNodeRef}
       style={style}
-      className={`flex flex-col gap-2.5 rounded-xl bg-paper p-3.5 shadow-[0_1px_0_var(--color-line)] ring-1 ring-line ${
-        isDragging ? "opacity-60 shadow-lg" : ""
-      }`}
+      className={`flex flex-col gap-2.5 rounded-xl bg-paper p-3.5 shadow-[0_1px_0_var(--color-line)] ring-1 ring-line ${variantBorderClass(
+        variant,
+      )} ${isDragging ? "opacity-60 shadow-lg" : ""}`}
     >
+      {label && <p className="text-[11px] font-extrabold uppercase tracking-wide text-family-ink">{label}</p>}
       <div className="flex items-start gap-2">
         {isDraggable && (
           <button

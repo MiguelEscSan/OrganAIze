@@ -2,16 +2,20 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import type { ReactNode } from "react";
+import { groupColumnIntoFamilies } from "@/domain/tasks/group-column-into-families";
+import type { TasksByStatus } from "@/domain/tasks/group-tasks-by-status";
 import type { Task } from "@/domain/tasks/task";
 import type { TaskStatus } from "@/domain/tasks/task-status";
+import { RequestFamily } from "./request-family";
 import type { TaskDialogValues } from "./task-dialog";
-import { TaskCard } from "./task-card";
+import { TaskCard, type TaskCardVariant } from "./task-card";
 
 type KanbanColumnProps = {
   status: TaskStatus;
   title: string;
   accentClass: string;
   tasks: readonly Task[];
+  tasksByStatus: TasksByStatus;
   isUserEditable: boolean;
   headerAction?: ReactNode;
   onEdit?: (taskId: string, values: TaskDialogValues) => void;
@@ -27,6 +31,7 @@ export const KanbanColumn = ({
   title,
   accentClass,
   tasks,
+  tasksByStatus,
   isUserEditable,
   headerAction,
   onEdit,
@@ -37,6 +42,25 @@ export const KanbanColumn = ({
   onBrowserCheck,
 }: KanbanColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: status });
+  const entries = groupColumnIntoFamilies(status, tasksByStatus);
+
+  const renderCard = (task: Task, variant: TaskCardVariant, subtaskCount?: number) => (
+    <TaskCard
+      key={task.id}
+      task={task}
+      variant={variant}
+      subtaskCount={subtaskCount}
+      isDraggable={isUserEditable && task.parentTaskId === null}
+      isEditable={isUserEditable && status === "definition"}
+      isDeletable={isUserEditable && (status === "definition" || status === "review")}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      onContinue={onContinue}
+      onSendToReady={onSendToReady}
+      onResume={onResume}
+      onBrowserCheck={onBrowserCheck}
+    />
+  );
 
   return (
     <section
@@ -63,22 +87,22 @@ export const KanbanColumn = ({
         </p>
       ) : (
         <ul className="flex flex-col gap-2.5">
-          {tasks.map((task) => (
-            <li key={task.id}>
-              <TaskCard
-                task={task}
-                isDraggable={isUserEditable}
-                isEditable={isUserEditable && status === "definition"}
-                isDeletable={isUserEditable && (status === "definition" || status === "review")}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onContinue={onContinue}
-                onSendToReady={onSendToReady}
-                onResume={onResume}
-                onBrowserCheck={onBrowserCheck}
-              />
-            </li>
-          ))}
+          {entries.map((entry) =>
+            entry.kind === "task" ? (
+              <li key={entry.task.id}>{renderCard(entry.task, "standalone")}</li>
+            ) : (
+              <li key={entry.parentId}>
+                <RequestFamily
+                  parent={entry.parent ? renderCard(entry.parent, "request", entry.summary.total) : null}
+                  title={entry.summary.title}
+                  deployed={entry.summary.deployed}
+                  total={entry.summary.total}
+                >
+                  {entry.children.map((child) => renderCard(child, "subtask"))}
+                </RequestFamily>
+              </li>
+            ),
+          )}
         </ul>
       )}
     </section>

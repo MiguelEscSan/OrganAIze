@@ -11,6 +11,9 @@
   --color-sage: #5f8f6a;
   --color-sky: #4a86b8;
   --color-plum: #7d5ba6;
+  --color-family: #ebdfcf;
+  --color-family-line: #8a6b4a;
+  --color-family-ink: #6b4f33;
   --font-sans: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
 }
 

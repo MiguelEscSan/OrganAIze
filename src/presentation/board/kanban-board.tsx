@@ -62,6 +62,7 @@ export const KanbanBoard = ({
           title={column.title}
           accentClass={column.accentClass}
           tasks={tasksByStatus[column.status]}
+          tasksByStatus={tasksByStatus}
           isUserEditable={isMounted && userEditableStatuses.includes(column.status)}
           onEdit={onEditTask}
           onDelete={onDeleteTask}
