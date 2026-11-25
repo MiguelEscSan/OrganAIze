@@ -30,7 +30,7 @@ Forecast about 700 authored changed lines. Strategy: `ask-on-risk`. Each task cl
 - [x] T1 Navigation: active link state (client `NavLinks` with icons) and a breadcrumb in the project layout header. Route: delegated writer. Commit d7da930.
 - [x] T2 Request families: pure `groupColumnIntoFamilies` in domain with tests (RED first), then column rendering where subtasks hang from the parent card with connector lines, and a ghost parent head in columns where only children live. Route: delegated writer. Commit dba97e0.
 - [x] T3 Card redesign: agent activity block colored per agent (Develop, Testing), attempt dots, one primary action plus overflow menu, parent card with progress segments, column headers with hints, promoted New request button. Route: delegated writer. Commits 79f3c5d (cards), 6e950b0 (columns and toolbar).
-- [ ] T4 Dialogs: restyle task details (parent block with sibling list, agent status panel from existing fields) and the edit dialog (Save and move to Ready). Route: delegated writer.
+- [x] T4 Dialogs: restyle task details (parent block with sibling list, agent status panel from existing fields) and the edit dialog (Save and move to Ready). Route: delegated writer. Commits 9326a67 (details dialog and `listFamilySiblings`), 6422b22 (request dialog).
 
 ## Acceptance criteria
 
@@ -45,6 +45,8 @@ Exploration done (nav, project routes, board data flow mapped). Parent request t
 
 T3 deliberately skipped: waiting state and unreachable-model state (no Task field carries either, only `liveStatus` text), elapsed time on the activity block (no timestamp field), QA slot count, page-level attention banner and agent strip (outside the T3 spec and needing new data). Subtask drag restored to `isUserEditable` after the T2 regression.
 
+T4 deliberately skipped: time and token budgets and elapsed time in the agent panel (no data), a separate `aria-labelledby` wiring for the Description editor (the rich text editor already labels itself, and its file is outside the T4 surface). Combined "Save and move to Ready" awaits the edit before moving, via `onEdit` typed as `void | Promise<void>`. `npm run build` fails at prerender of `/projects/[id]`: `usePathname()` in `src/presentation/shell/nav-links.tsx` (T1) is outside a Suspense boundary; needs a fix in a follow-up.
+
 ## Next step
 
-T4.
+Visual check in the browser and PR slicing (user decision).
