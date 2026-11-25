@@ -45,7 +45,7 @@ Exploration done (nav, project routes, board data flow mapped). Parent request t
 
 T3 deliberately skipped: waiting state and unreachable-model state (no Task field carries either, only `liveStatus` text), elapsed time on the activity block (no timestamp field), QA slot count, page-level attention banner and agent strip (outside the T3 spec and needing new data). Subtask drag restored to `isUserEditable` after the T2 regression.
 
-T4 deliberately skipped: time and token budgets and elapsed time in the agent panel (no data), a separate `aria-labelledby` wiring for the Description editor (the rich text editor already labels itself, and its file is outside the T4 surface). Combined "Save and move to Ready" awaits the edit before moving, via `onEdit` typed as `void | Promise<void>`. `npm run build` fails at prerender of `/projects/[id]`: `usePathname()` in `src/presentation/shell/nav-links.tsx` (T1) is outside a Suspense boundary; needs a fix in a follow-up.
+T4 deliberately skipped: time and token budgets and elapsed time in the agent panel (no data), a separate `aria-labelledby` wiring for the Description editor (the rich text editor already labels itself, and its file is outside the T4 surface). Combined "Save and move to Ready" awaits the edit before moving, via `onEdit` typed as `void | Promise<void>`. `npm run build` failed at prerender of `/projects/[id]` because `usePathname()` in `nav-links.tsx` (T1) sat outside a Suspense boundary. Fixed afterwards: `AppShell` wraps `NavLinks` in `Suspense` with a static `NavLinksView` fallback; `tsc`, lint and build pass.
 
 ## Next step
 

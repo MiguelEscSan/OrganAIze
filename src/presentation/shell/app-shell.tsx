@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { NavLinks } from "./nav-links";
+import { Suspense, type ReactNode } from "react";
+import { NavLinks, NavLinksView } from "./nav-links";
 
 type AppShellProps = {
   children: ReactNode;
@@ -15,7 +15,9 @@ export const AppShell = ({ children }: AppShellProps) => (
         <span className="text-base font-extrabold">Agent Team</span>
       </div>
       <nav aria-label="Main" className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:pb-0">
-        <NavLinks />
+        <Suspense fallback={<NavLinksView pathname={null} />}>
+          <NavLinks />
+        </Suspense>
       </nav>
     </aside>
     <main className="min-w-0 flex-1">{children}</main>

@@ -44,26 +44,24 @@ const linkClassName = (isActive: boolean): string =>
     isActive ? "bg-ink font-extrabold text-paper" : "font-bold text-muted hover:bg-cream hover:text-ink"
   }`;
 
-export const NavLinks = () => {
-  const pathname = usePathname();
+export const NavLinksView = ({ pathname }: { pathname: string | null }) => (
+  <>
+    {navItems.map((item) => {
+      const isActive = pathname !== null && isNavItemActive(pathname, item.href);
 
-  return (
-    <>
-      {navItems.map((item) => {
-        const isActive = isNavItemActive(pathname, item.href);
+      return (
+        <Link
+          key={item.href}
+          href={item.href}
+          aria-current={isActive ? "page" : undefined}
+          className={linkClassName(isActive)}
+        >
+          <NavIconView icon={item.icon} />
+          {item.label}
+        </Link>
+      );
+    })}
+  </>
+);
 
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={isActive ? "page" : undefined}
-            className={linkClassName(isActive)}
-          >
-            <NavIconView icon={item.icon} />
-            {item.label}
-          </Link>
-        );
-      })}
-    </>
-  );
-};
+export const NavLinks = () => <NavLinksView pathname={usePathname()} />;
