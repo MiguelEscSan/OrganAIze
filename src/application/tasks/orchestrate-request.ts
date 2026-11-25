@@ -7,7 +7,8 @@ import type { LlmClient } from "@/ports/llm-client";
 import { countFailedAttempt } from "@/domain/tasks/count-failed-attempt";
 import { conflictReason } from "./record-transition";
 import type { AgentActivityRecord } from "@/domain/agents/agent-activity";
-import { streamedActivityLlm } from "../agents/streamed-activity-llm";
+import { streamedLlm } from "../agents/streamed-llm";
+import { liveProgressOf, withLiveStatus } from "../agents/live-progress";
 import { withAgentActivity } from "../agents/with-agent-activity";
 import { taskTitleOf } from "../agents/task-title";
 
@@ -130,10 +131,15 @@ export const orchestrateRequest =
 
     const working: AgentActivityRecord = { agent: "orchestrator", state: "working", message: `Splitting "${title}" into subtasks` };
 
+    const report = liveProgressOf(deps, command.taskId, working, "Splitting");
+
     return withAgentActivity(
       deps.activity,
       working,
       { agent: "orchestrator", state: "idle", message: "Waiting for a request in Ready" },
-      () => splitRequest({ ...deps, llm: streamedActivityLlm(deps.llm, deps.activity, working) })(command),
+      () =>
+        withLiveStatus(deps.tasks, command.taskId, () =>
+          splitRequest({ ...deps, llm: streamedLlm(deps.llm, report) })(command),
+        ),
     );
   };

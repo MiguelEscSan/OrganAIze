@@ -14,4 +14,5 @@ export type TaskRepository = {
   list(): Promise<Task[]>;
   applyTransition(write: TransitionWrite): Promise<WriteOutcome>;
   removeIfStatus(taskId: string, allowedStatuses: readonly TaskStatus[]): Promise<WriteOutcome>;
+  setLiveStatus(taskId: string, liveStatus: string | null): Promise<void>;
 };

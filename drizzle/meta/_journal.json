@@ -64,6 +64,13 @@
       "when": 1795537796449,
       "tag": "0008_chunky_bug",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795622065502,
+      "tag": "0009_live_status",
+      "breakpoints": true
     }
   ]
 }
