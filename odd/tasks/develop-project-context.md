@@ -38,7 +38,12 @@ Task dependencies and ordering, Testing feedback that lists satisfied criteria, 
 ## Progress
 - [x] T1 Domain context selection (RED: module missing; GREEN: 7 tests in select-context-files.test.ts)
 - [x] T2 Develop prompt with project context (RED: 5 of 10 new tests failed; GREEN: full suite 375 passed, tsc/lint/build ok)
-- [ ] T3 Verification
+- [~] T3 Verification: suite, tsc, lint and build pass (375 tests). Real rerun: the parked integration subtask of the weather app was sent back to Ready and reached Deploy (4 of 4), and its App.tsx now imports `WeatherService` (before it wrote a standalone mock). It is not correct: App.tsx still keeps a mock `fetchWeatherData`, imports `./weatherService` while the file is `src/weatherService.ts`, and uses the non-existent `Position` and `PositionError` types, so `tsc` reports 3 errors and `npm run build` fails. Testing approved it because its deterministic checks only parse each file for syntax; they do not resolve imports or type-check. Not verified: the exact prompt Develop received in the live run.
+
+## Findings
+- The "one request in progress" rule is global across projects (`transition-task.ts:45`, no board id), so a request with a subtask parked in Review blocks every other project's queue.
+- Testing lists satisfied criteria as failures in its feedback.
+- Deploy does not guarantee the project builds.
 
 ## Next step
-T1 and T2 with one bounded writer, then T3.
+Make Testing type-check the project (resolve imports and run the TypeScript compiler over the files) as a deterministic check before the LLM review, so a result like this is rejected with concrete feedback.
