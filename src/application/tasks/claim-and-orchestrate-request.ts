@@ -68,6 +68,11 @@ const developAndTestUntilSettled = async (deps: OrchestrationDependencies & Deve
   }
 };
 
+export const resumeSubtasks =
+  (deps: OrchestrationDependencies & DevelopDependencies) =>
+  (parentTaskId: string): Promise<void> =>
+    developAndTestUntilSettled(deps, parentTaskId);
+
 const splitUntilSettled = async (
   deps: OrchestrationDependencies,
   taskId: string,
