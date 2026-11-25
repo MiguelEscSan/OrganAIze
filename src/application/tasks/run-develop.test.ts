@@ -205,7 +205,7 @@ describe("runDevelop", () => {
 });
 
 describe("runDevelop prompt", () => {
-  it("tells the developer that a React entry lives in App.tsx at the project root", async () => {
+  it("does not steer the developer toward App.tsx beyond the files of its subtask", async () => {
     const prompts: string[] = [];
     const llm = {
       generateJson: async (prompt: string) => {
@@ -219,6 +219,6 @@ describe("runDevelop prompt", () => {
 
     await runWith({ kind: "RunDevelop", taskId: "subtask-1" });
 
-    expect(prompts[0]).toContain("App.tsx at the project root");
+    expect(prompts[0]).not.toContain("App.tsx");
   });
 });
