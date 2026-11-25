@@ -45,6 +45,7 @@ const developPrompt = (task: Task, currentFiles: readonly CurrentFile[]): string
     `You may write only these files: ${task.files.join(", ")}`,
     "Current content of those files:",
     ...currentFiles.map(describeCurrentFile),
+    "Any file that contains JSX must end in .tsx, never .ts.",
     'Reply with JSON only, in the form {"files":[{"path":"...","content":"full file content"}]}.',
     "Include the full content of every file you change. Do not write any other path.",
   ].join("\n\n");
