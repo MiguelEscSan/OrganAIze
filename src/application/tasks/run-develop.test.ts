@@ -6,6 +6,7 @@ import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-wo
 import { createInMemoryBoardRepository } from "@/adapters/in-memory/in-memory-board-repository";
 import { developSeed, inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
 import type { Task } from "@/domain/tasks/task";
+import type { LlmClient } from "@/ports/llm-client";
 import { runDevelop } from "./run-develop";
 
 const subtask = (overrides: Partial<Task> = {}): Task =>
@@ -85,6 +86,39 @@ describe("runDevelop", () => {
       1,
       "Gemini is unavailable",
     ]);
+  });
+
+  it("shows the live status of the subtask while it is written and clears it afterwards", async () => {
+    const deps = createInMemoryDependencies({ ...developSeed, tasks: [subtask()] });
+    const workspace = createInMemoryWorkspaceWriter({ "src/app/page.tsx": "export default 'old';" });
+    const seen: (string | null)[] = [];
+    const llm: LlmClient = {
+      generateJson: async (_prompt, onProgress) => {
+        await onProgress?.({ characters: 600 });
+        seen.push((await taskById(deps, "subtask-1"))?.liveStatus ?? null);
+        return { ok: true, json: validOutput };
+      },
+    };
+    const run = runDevelop({ ...deps, ...inMemoryWorkspaceDependencies(workspace), llm });
+
+    await run({ kind: "RunDevelop", taskId: "subtask-1" });
+
+    expect(seen).toEqual(["Writing · 600 characters"]);
+    expect((await taskById(deps, "subtask-1"))?.liveStatus ?? null).toBeNull();
+  });
+
+  it("does not count a model that cannot be reached as a failed attempt", async () => {
+    const { deps, run } = setup(subtask(), {
+      ok: false,
+      reason: "Ollama request failed: fetch failed",
+      unavailable: true,
+    });
+
+    const outcome = await run({ kind: "RunDevelop", taskId: "subtask-1" });
+
+    expect(outcome.ok).toBe(false);
+    const task = await taskById(deps, "subtask-1");
+    expect([task?.status, task?.attempts]).toEqual(["in_progress", 0]);
   });
 
   it("sends the subtask to review after its third failed attempt", async () => {

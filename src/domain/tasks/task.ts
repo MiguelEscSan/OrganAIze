@@ -15,6 +15,7 @@ export type Task = {
   lastFeedback: string | null;
   reviewReason: ReviewReason | null;
   runsInParallel?: boolean;
+  liveStatus?: string | null;
 };
 
 export type ReviewReason = "attempts" | "budget" | "orchestration";

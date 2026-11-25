@@ -1,6 +1,6 @@
 import type { LlmClient } from "@/ports/llm-client";
-import { createGeminiLlmClient, type FetchLike } from "../gemini/gemini-llm-client";
-import { createOllamaLlmClient } from "../ollama/ollama-llm-client";
+import { createGeminiLlmClient } from "../gemini/gemini-llm-client";
+import { createOllamaLlmClient, type OllamaFetch } from "../ollama/ollama-llm-client";
 import { readLlmConfig } from "./llm-config";
 
 export type LlmClientOutcome = { ok: true; llm: LlmClient } | { ok: false; reason: string };
@@ -9,7 +9,7 @@ const defaultOllamaBaseUrl = "http://127.0.0.1:11434";
 
 const ollamaClientFromEnv = (
   env: Record<string, string | undefined>,
-  fetcher: FetchLike,
+  fetcher: OllamaFetch,
 ): LlmClientOutcome => {
   const model = env.LLM_MODEL?.trim() ?? "";
 
@@ -24,7 +24,7 @@ const ollamaClientFromEnv = (
 
 export const createLlmClientFromEnv = (
   env: Record<string, string | undefined>,
-  fetcher: FetchLike,
+  fetcher: OllamaFetch,
 ): LlmClientOutcome => {
   if (env.LLM_PROVIDER?.trim() === "ollama") {
     return ollamaClientFromEnv(env, fetcher);

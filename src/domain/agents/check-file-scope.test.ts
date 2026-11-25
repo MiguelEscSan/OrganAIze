@@ -27,6 +27,17 @@ describe("checkFileScope", () => {
     expect(checkFileScope([{ path: "C:\\Users\\app.ts" }], allowed).ok).toBe(false);
   });
 
+  it("refuses the app entry written as App.ts even when the subtask allows it", () => {
+    expect(checkFileScope([{ path: "src/App.ts" }], ["src/App.ts"])).toEqual({
+      ok: false,
+      reason: "The app entry must be App.tsx, not App.ts: src/App.ts",
+    });
+  });
+
+  it("accepts the app entry written as App.tsx", () => {
+    expect(checkFileScope([{ path: "src/App.tsx" }], ["src/App.tsx"])).toEqual({ ok: true });
+  });
+
   it("refuses an empty set of writes", () => {
     expect(checkFileScope([], allowed)).toEqual({ ok: false, reason: "Develop produced no file changes" });
   });

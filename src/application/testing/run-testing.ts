@@ -8,6 +8,9 @@ import type { ApplicationDependencies } from "../shared/dependencies";
 import { fail, succeed, type Outcome } from "../shared/outcome";
 import { workspaceOfTask } from "../shared/task-workspace";
 import { submitTestResult, type TestVerdict } from "../tasks/submit-test-result";
+import type { AgentActivityRecord } from "@/domain/agents/agent-activity";
+import { streamedLlm } from "../agents/streamed-llm";
+import { liveProgressOf, withLiveStatus } from "../agents/live-progress";
 import { withAgentActivity } from "../agents/with-agent-activity";
 
 export type TestingDependencies = ApplicationDependencies & {
@@ -127,13 +130,18 @@ const judgeTask = async (deps: TestingDependencies, task: Task): Promise<void> =
   await submitVerdict(deps, task, verdict.ok ? verdict.value : unreviewedVerdict(verdict.reason));
 };
 
-const reviewTask = (deps: TestingDependencies, task: Task): Promise<void> =>
-  withAgentActivity(
+const reviewTask = (deps: TestingDependencies, task: Task): Promise<void> => {
+  const working: AgentActivityRecord = { agent: "testing", state: "reviewing", message: `Reviewing "${task.title}"` };
+
+  const report = liveProgressOf(deps, task.id, working, "Reviewing");
+
+  return withAgentActivity(
     deps.activity,
-    { agent: "testing", state: "reviewing", message: `Reviewing "${task.title}"` },
+    working,
     { agent: "testing", state: "idle", message: "Waiting for a subtask in QA" },
-    () => judgeTask(deps, task),
+    () => withLiveStatus(deps.tasks, task.id, () => judgeTask({ ...deps, llm: streamedLlm(deps.llm, report) }, task)),
   );
+};
 
 export const runTesting =
   (deps: TestingDependencies) =>
