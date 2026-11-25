@@ -1,7 +1,6 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
-import type { ReactNode } from "react";
 import { groupColumnIntoFamilies, type FamilySummary } from "@/domain/tasks/group-column-into-families";
 import type { TasksByStatus } from "@/domain/tasks/group-tasks-by-status";
 import type { Task } from "@/domain/tasks/task";
@@ -14,10 +13,11 @@ type KanbanColumnProps = {
   status: TaskStatus;
   title: string;
   accentClass: string;
+  hint: string;
+  isAutomatic: boolean;
   tasks: readonly Task[];
   tasksByStatus: TasksByStatus;
   isUserEditable: boolean;
-  headerAction?: ReactNode;
   onMoveToReady?: (taskId: string) => void;
   onEdit?: (taskId: string, values: TaskDialogValues) => void;
   onDelete?: (taskId: string) => void;
@@ -27,14 +27,31 @@ type KanbanColumnProps = {
   onBrowserCheck?: (taskId: string) => void;
 };
 
+const LockIcon = () => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    className="size-3.5 shrink-0"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="5" y="11" width="14" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </svg>
+);
+
 export const KanbanColumn = ({
   status,
   title,
   accentClass,
+  hint,
+  isAutomatic,
   tasks,
   tasksByStatus,
   isUserEditable,
-  headerAction,
   onMoveToReady,
   onEdit,
   onDelete,
@@ -69,21 +86,30 @@ export const KanbanColumn = ({
   return (
     <section
       ref={setNodeRef}
-      className={`flex w-72 shrink-0 flex-col gap-3 rounded-2xl p-3 ring-1 transition-colors ${
+      className={`flex w-80 shrink-0 flex-col gap-3 rounded-2xl p-3 ring-1 transition-colors ${
         isOver ? "bg-amber/15 ring-amber" : "bg-cream/70 ring-line"
       }`}
     >
-      <header className="flex flex-col gap-2 px-1 pt-1">
-        <span className={`h-1.5 w-10 rounded-full ${accentClass}`} aria-hidden="true" />
+      <header className="flex flex-col gap-1 px-1 pt-1">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-extrabold">{title}</h2>
-          <div className="flex items-center gap-2">
-            {headerAction}
-            <span className="rounded-full bg-paper px-2.5 py-0.5 text-xs font-bold text-muted ring-1 ring-line">
-              {tasks.length}
-            </span>
-          </div>
+          <h2 className="flex items-center gap-2 text-sm font-extrabold">
+            <span className={`size-2.5 rounded-[3px] ${accentClass}`} aria-hidden="true" />
+            {title}
+          </h2>
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+              status === "review" && tasks.length > 0
+                ? "bg-terracotta-deep text-paper"
+                : "bg-paper text-muted ring-1 ring-line"
+            }`}
+          >
+            {tasks.length}
+          </span>
         </div>
+        <p className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+          {isAutomatic && <LockIcon />}
+          {hint}
+        </p>
       </header>
       {tasks.length === 0 ? (
         <p className="rounded-xl border border-dashed border-line px-3 py-6 text-center text-xs text-muted">
