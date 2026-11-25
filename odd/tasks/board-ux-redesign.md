@@ -29,7 +29,7 @@ Forecast about 700 authored changed lines. Strategy: `ask-on-risk`. Each task cl
 
 - [x] T1 Navigation: active link state (client `NavLinks` with icons) and a breadcrumb in the project layout header. Route: delegated writer. Commit d7da930.
 - [x] T2 Request families: pure `groupColumnIntoFamilies` in domain with tests (RED first), then column rendering where subtasks hang from the parent card with connector lines, and a ghost parent head in columns where only children live. Route: delegated writer. Commit dba97e0.
-- [ ] T3 Card redesign: agent activity block colored per agent (Develop, Testing), waiting state, unreachable-model state, attempt dots, one primary action plus overflow menu, parent card with progress segments. Route: delegated writer.
+- [x] T3 Card redesign: agent activity block colored per agent (Develop, Testing), attempt dots, one primary action plus overflow menu, parent card with progress segments, column headers with hints, promoted New request button. Route: delegated writer. Commits 79f3c5d (cards), 6e950b0 (columns and toolbar).
 - [ ] T4 Dialogs: restyle task details (parent block with sibling list, agent status panel from existing fields) and the edit dialog (Save and move to Ready). Route: delegated writer.
 
 ## Acceptance criteria
@@ -43,6 +43,8 @@ Forecast about 700 authored changed lines. Strategy: `ask-on-risk`. Each task cl
 
 Exploration done (nav, project routes, board data flow mapped). Parent request task lives in `in_progress` with `parentTaskId === null`; subtasks carry `parentTaskId`.
 
+T3 deliberately skipped: waiting state and unreachable-model state (no Task field carries either, only `liveStatus` text), elapsed time on the activity block (no timestamp field), QA slot count, page-level attention banner and agent strip (outside the T3 spec and needing new data). Subtask drag restored to `isUserEditable` after the T2 regression.
+
 ## Next step
 
-T3.
+T4.
