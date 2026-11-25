@@ -37,7 +37,7 @@ Task dependencies and ordering, Testing feedback that lists satisfied criteria, 
 
 ## Progress
 - [x] T1 Domain context selection (RED: module missing; GREEN: 7 tests in select-context-files.test.ts)
-- [ ] T2 Develop prompt with project context
+- [x] T2 Develop prompt with project context (RED: 5 of 10 new tests failed; GREEN: full suite 375 passed, tsc/lint/build ok)
 - [ ] T3 Verification
 
 ## Next step
