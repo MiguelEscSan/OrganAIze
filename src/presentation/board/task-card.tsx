@@ -25,7 +25,7 @@ type TaskCardProps = {
   isDraggable: boolean;
   isEditable: boolean;
   isDeletable: boolean;
-  onEdit?: (taskId: string, values: TaskDialogValues) => void;
+  onEdit?: (taskId: string, values: TaskDialogValues) => void | Promise<void>;
   onDelete?: (taskId: string) => void;
   onMoveToReady?: (taskId: string) => void;
   onContinue?: (taskId: string) => void;
@@ -115,13 +115,22 @@ export const TaskCard = ({
     ...(isDeletable && onDelete ? [{ label: "Delete", onSelect: () => onDelete(task.id), isDestructive: true }] : []),
   ];
 
+  const saveAndMoveToReady = async (editTask: NonNullable<typeof onEdit>, values: TaskDialogValues) => {
+    await editTask(task.id, values);
+    onMoveToReady?.(task.id);
+  };
+
   const renderMenu = () =>
     isEditable && onEdit ? (
       <TaskDialog
         heading="Edit request"
-        submitLabel="Save"
+        submitLabel="Save changes"
         initialValues={{ title: task.title, description: task.description }}
         onSubmit={(values) => onEdit(task.id, values)}
+        onDelete={isDeletable && onDelete ? () => onDelete(task.id) : undefined}
+        onSubmitAndMoveToReady={
+          showMoveToReady ? (values) => void saveAndMoveToReady(onEdit, values) : undefined
+        }
         renderTrigger={(open) => <CardMenu title={task.title} items={menuItems(open)} />}
       />
     ) : (

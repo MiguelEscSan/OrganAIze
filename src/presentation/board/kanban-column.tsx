@@ -20,7 +20,7 @@ type KanbanColumnProps = {
   tasksByStatus: TasksByStatus;
   isUserEditable: boolean;
   onMoveToReady?: (taskId: string) => void;
-  onEdit?: (taskId: string, values: TaskDialogValues) => void;
+  onEdit?: (taskId: string, values: TaskDialogValues) => void | Promise<void>;
   onDelete?: (taskId: string) => void;
   onContinue?: (taskId: string) => void;
   onSendToReady?: (taskId: string) => void;
