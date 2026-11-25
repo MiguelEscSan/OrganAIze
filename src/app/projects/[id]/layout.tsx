@@ -30,9 +30,15 @@ const ProjectHeader = async ({ params, children }: ProjectLayoutProps) => {
   return (
     <section className="flex flex-col gap-4">
       <header className="flex flex-col gap-1 px-6 pt-6 md:px-10 md:pt-10">
-        <Link href="/projects" className="w-fit text-sm text-muted underline-offset-4 hover:underline">
-          Back to projects
-        </Link>
+        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm">
+          <Link href="/projects" className="text-muted underline underline-offset-4 hover:text-ink">
+            Projects
+          </Link>
+          <span aria-hidden="true" className="text-muted">
+            /
+          </span>
+          <span className="font-bold text-ink">{board.name}</span>
+        </nav>
         <h1 className="text-3xl font-extrabold tracking-tight">{board.name}</h1>
       </header>
       <ProjectTabs boardId={board.id} />
