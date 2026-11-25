@@ -2,7 +2,7 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import type { ReactNode } from "react";
-import { groupColumnIntoFamilies } from "@/domain/tasks/group-column-into-families";
+import { groupColumnIntoFamilies, type FamilySummary } from "@/domain/tasks/group-column-into-families";
 import type { TasksByStatus } from "@/domain/tasks/group-tasks-by-status";
 import type { Task } from "@/domain/tasks/task";
 import type { TaskStatus } from "@/domain/tasks/task-status";
@@ -18,6 +18,7 @@ type KanbanColumnProps = {
   tasksByStatus: TasksByStatus;
   isUserEditable: boolean;
   headerAction?: ReactNode;
+  onMoveToReady?: (taskId: string) => void;
   onEdit?: (taskId: string, values: TaskDialogValues) => void;
   onDelete?: (taskId: string) => void;
   onContinue?: (taskId: string) => void;
@@ -34,6 +35,7 @@ export const KanbanColumn = ({
   tasksByStatus,
   isUserEditable,
   headerAction,
+  onMoveToReady,
   onEdit,
   onDelete,
   onContinue,
@@ -44,15 +46,17 @@ export const KanbanColumn = ({
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const entries = groupColumnIntoFamilies(status, tasksByStatus);
 
-  const renderCard = (task: Task, variant: TaskCardVariant, subtaskCount?: number) => (
+  const renderCard = (task: Task, variant: TaskCardVariant, summary?: FamilySummary) => (
     <TaskCard
       key={task.id}
       task={task}
       variant={variant}
-      subtaskCount={subtaskCount}
-      isDraggable={isUserEditable && task.parentTaskId === null}
+      subtaskCount={summary?.total}
+      summary={summary}
+      isDraggable={isUserEditable}
       isEditable={isUserEditable && status === "definition"}
       isDeletable={isUserEditable && (status === "definition" || status === "review")}
+      onMoveToReady={onMoveToReady}
       onEdit={onEdit}
       onDelete={onDelete}
       onContinue={onContinue}
@@ -93,7 +97,7 @@ export const KanbanColumn = ({
             ) : (
               <li key={entry.parentId}>
                 <RequestFamily
-                  parent={entry.parent ? renderCard(entry.parent, "request", entry.summary.total) : null}
+                  parent={entry.parent ? renderCard(entry.parent, "request", entry.summary) : null}
                   title={entry.summary.title}
                   deployed={entry.summary.deployed}
                   total={entry.summary.total}

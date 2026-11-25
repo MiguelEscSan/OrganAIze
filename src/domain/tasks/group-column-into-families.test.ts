@@ -18,6 +18,14 @@ const createTask = (overrides: Partial<Task> & Pick<Task, "id">): Task => ({
   ...overrides,
 });
 
+const emptySummary = {
+  title: "",
+  total: 0,
+  deployed: 0,
+  byStatus: { definition: 0, ready: 0, in_progress: 0, qa: 0, deploy: 0, review: 0 },
+  workingByAgent: {},
+};
+
 const board = (tasks: Task[]): TasksByStatus => {
   const grouped: TasksByStatus = { definition: [], ready: [], in_progress: [], qa: [], deploy: [], review: [] };
   for (const task of tasks) {
@@ -50,7 +58,7 @@ describe("groupColumnIntoFamilies", () => {
         kind: "family",
         parentId: "parent",
         parent,
-        summary: { title: "parent", total: 1, deployed: 0 },
+        summary: { ...emptySummary, title: "parent", total: 1, byStatus: { ...emptySummary.byStatus, in_progress: 1 } },
         children: [child],
       },
     ]);
@@ -67,7 +75,7 @@ describe("groupColumnIntoFamilies", () => {
         kind: "family",
         parentId: "parent",
         parent: null,
-        summary: { title: "Build the site", total: 1, deployed: 0 },
+        summary: { ...emptySummary, title: "Build the site", total: 1, byStatus: { ...emptySummary.byStatus, qa: 1 } },
         children: [child],
       },
     ]);
@@ -136,5 +144,50 @@ describe("groupColumnIntoFamilies", () => {
     const rendered = entries.flatMap((entry) => (entry.kind === "task" ? [entry.task] : entry.children));
 
     expect(rendered.filter((task) => task.id === "child")).toHaveLength(1);
+  });
+
+  it("counts subtasks per status across every column", () => {
+    const parent = createTask({ id: "parent" });
+    const working = createTask({ id: "working", parentTaskId: "parent" });
+    const inQa = createTask({ id: "in-qa", parentTaskId: "parent", status: "qa" });
+    const stuck = createTask({ id: "stuck", parentTaskId: "parent", status: "review" });
+
+    const [entry] = groupColumnIntoFamilies("in_progress", board([parent, working, inQa, stuck]));
+
+    expect(entry).toMatchObject({
+      summary: { byStatus: { in_progress: 1, qa: 1, review: 1, deploy: 0, ready: 0, definition: 0 } },
+    });
+  });
+
+  it("counts subtasks with a live status per assigned agent", () => {
+    const parent = createTask({ id: "parent" });
+    const developing = createTask({
+      id: "developing",
+      parentTaskId: "parent",
+      assignedAgent: "develop",
+      liveStatus: "Writing files",
+    });
+    const alsoDeveloping = createTask({
+      id: "also-developing",
+      parentTaskId: "parent",
+      assignedAgent: "develop",
+      liveStatus: "Reading context",
+    });
+    const reviewing = createTask({
+      id: "reviewing",
+      parentTaskId: "parent",
+      status: "qa",
+      assignedAgent: "testing",
+      liveStatus: "Checking criteria",
+    });
+    const idle = createTask({ id: "idle", parentTaskId: "parent", assignedAgent: "develop", liveStatus: "" });
+    const unassigned = createTask({ id: "unassigned", parentTaskId: "parent", liveStatus: "Working" });
+
+    const [entry] = groupColumnIntoFamilies(
+      "in_progress",
+      board([parent, developing, alsoDeveloping, reviewing, idle, unassigned]),
+    );
+
+    expect(entry).toMatchObject({ summary: { workingByAgent: { develop: 2, testing: 1 } } });
   });
 });

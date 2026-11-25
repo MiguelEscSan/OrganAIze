@@ -1,11 +1,14 @@
+import type { AgentName } from "../agents/agent-name";
 import type { TasksByStatus } from "./group-tasks-by-status";
 import type { Task } from "./task";
-import type { TaskStatus } from "./task-status";
+import { taskStatuses, type TaskStatus } from "./task-status";
 
 export type FamilySummary = {
   title: string;
   total: number;
   deployed: number;
+  byStatus: Record<TaskStatus, number>;
+  workingByAgent: Partial<Record<AgentName, number>>;
 };
 
 export type ColumnEntry =
@@ -28,10 +31,34 @@ const indexChildrenByParent = (tasks: readonly Task[]): Map<string, Task[]> => {
   return index;
 };
 
+const countByStatus = (children: readonly Task[]): Record<TaskStatus, number> => {
+  const counts = Object.fromEntries(taskStatuses.map((status) => [status, 0])) as Record<TaskStatus, number>;
+
+  for (const child of children) {
+    counts[child.status] += 1;
+  }
+
+  return counts;
+};
+
+const countWorkingByAgent = (children: readonly Task[]): Partial<Record<AgentName, number>> => {
+  const counts: Partial<Record<AgentName, number>> = {};
+
+  for (const child of children) {
+    if (child.assignedAgent !== null && child.liveStatus) {
+      counts[child.assignedAgent] = (counts[child.assignedAgent] ?? 0) + 1;
+    }
+  }
+
+  return counts;
+};
+
 const summarize = (title: string, allChildren: readonly Task[]): FamilySummary => ({
   title,
   total: allChildren.length,
   deployed: allChildren.filter((child) => child.status === "deploy").length,
+  byStatus: countByStatus(allChildren),
+  workingByAgent: countWorkingByAgent(allChildren),
 });
 
 export const groupColumnIntoFamilies = (status: TaskStatus, tasksByStatus: TasksByStatus): ColumnEntry[] => {

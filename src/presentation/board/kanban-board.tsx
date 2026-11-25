@@ -64,6 +64,7 @@ export const KanbanBoard = ({
           tasks={tasksByStatus[column.status]}
           tasksByStatus={tasksByStatus}
           isUserEditable={isMounted && userEditableStatuses.includes(column.status)}
+          onMoveToReady={(taskId) => onMoveTask(taskId, "ready")}
           onEdit={onEditTask}
           onDelete={onDeleteTask}
           onContinue={onContinueTask}
