@@ -6,6 +6,8 @@ import { fail, succeed, type Outcome } from "../shared/outcome";
 import type { LlmClient } from "@/ports/llm-client";
 import { countFailedAttempt } from "@/domain/tasks/count-failed-attempt";
 import { conflictReason } from "./record-transition";
+import type { AgentActivityRecord } from "@/domain/agents/agent-activity";
+import { streamedActivityLlm } from "../agents/streamed-activity-llm";
 import { withAgentActivity } from "../agents/with-agent-activity";
 import { taskTitleOf } from "../agents/task-title";
 
@@ -126,10 +128,12 @@ export const orchestrateRequest =
   async (command: OrchestrateRequest): Promise<Outcome<Task[]>> => {
     const title = await taskTitleOf(deps.tasks, command.taskId, "a request");
 
+    const working: AgentActivityRecord = { agent: "orchestrator", state: "working", message: `Splitting "${title}" into subtasks` };
+
     return withAgentActivity(
       deps.activity,
-      { agent: "orchestrator", state: "working", message: `Splitting "${title}" into subtasks` },
+      working,
       { agent: "orchestrator", state: "idle", message: "Waiting for a request in Ready" },
-      () => splitRequest(deps)(command),
+      () => splitRequest({ ...deps, llm: streamedActivityLlm(deps.llm, deps.activity, working) })(command),
     );
   };

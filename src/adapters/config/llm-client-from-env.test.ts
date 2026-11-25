@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { FetchLike } from "../gemini/gemini-llm-client";
+import type { OllamaFetch } from "../ollama/ollama-llm-client";
 import { createLlmClientFromEnv } from "./llm-client-from-env";
 
-const unusedFetcher: FetchLike = async () => {
+const unusedFetcher: OllamaFetch = async () => {
   throw new Error("fetch should not be called");
 };
 
@@ -16,9 +16,9 @@ describe("createLlmClientFromEnv", () => {
 
   it("builds a client that calls the configured model", async () => {
     const urls: string[] = [];
-    const fetcher: FetchLike = async (url) => {
+    const fetcher: OllamaFetch = async (url) => {
       urls.push(url);
-      return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: "{}" }] } }] }), text: async () => "" };
+      return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "{}" }] } }] }));
     };
 
     const outcome = createLlmClientFromEnv({ LLM_API_KEY: "key", LLM_MODEL: "model-x" }, fetcher);
@@ -33,9 +33,9 @@ describe("createLlmClientFromEnv", () => {
 
   it("builds a local Ollama client without a key when the provider is ollama", async () => {
     const urls: string[] = [];
-    const fetcher: FetchLike = async (url) => {
+    const fetcher: OllamaFetch = async (url) => {
       urls.push(url);
-      return { ok: true, status: 200, json: async () => ({}), text: async () => JSON.stringify({ message: { content: "{}" }, done: true }) };
+      return new Response(JSON.stringify({ message: { content: "{}" }, done: true }));
     };
 
     const outcome = createLlmClientFromEnv({ LLM_PROVIDER: "ollama", LLM_MODEL: "qwen3:4b-instruct" }, fetcher);
