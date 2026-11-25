@@ -23,6 +23,7 @@ import { submitDevelopResult } from "./tasks/submit-develop-result";
 import { submitTestResult } from "./tasks/submit-test-result";
 import { runTesting } from "./testing/run-testing";
 import { runBrowserCheck, type BrowserCheckDependencies } from "./testing/run-browser-check";
+import { scaffoldProject } from "./projects/scaffold-project";
 import { listProjectFiles, type ProjectFilesDependencies } from "./projects/list-project-files";
 import { listAgentActivity } from "./agents/list-agent-activity";
 import { listTaskEvents } from "./tasks/list-task-events";
@@ -54,6 +55,7 @@ export const createMediator = (
   mediator.registerCommand("CreateBoard", createBoard(deps));
   mediator.registerCommand("UpdateBoard", updateBoard(deps));
   mediator.registerCommand("DeleteBoard", deleteBoard(deps));
+  mediator.registerCommand("ScaffoldProject", scaffoldProject(deps));
 
   mediator.registerQuery("ListRequests", listRequests(deps));
   mediator.registerQuery("GetRequest", getRequest(deps));

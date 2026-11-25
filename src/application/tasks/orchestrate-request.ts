@@ -11,13 +11,17 @@ import { streamedLlm } from "../agents/streamed-llm";
 import { liveProgressOf, withLiveStatus } from "../agents/live-progress";
 import { withAgentActivity } from "../agents/with-agent-activity";
 import { taskTitleOf } from "../agents/task-title";
+import { scaffoldProject, type ScaffoldDependencies } from "../projects/scaffold-project";
+import { missingBoardReason } from "../boards/board-messages";
+import type { BoardRepository } from "@/ports/board-repository";
 
 export type OrchestrateRequest = {
   kind: "OrchestrateRequest";
   taskId: string;
 };
 
-export type OrchestrationDependencies = ApplicationDependencies & { llm: LlmClient };
+export type OrchestrationDependencies = ApplicationDependencies &
+  ScaffoldDependencies & { llm: LlmClient; boards: BoardRepository };
 
 const planPrompt = (request: Request, plan: { title: string; description: string }): string =>
   [
@@ -28,7 +32,8 @@ const planPrompt = (request: Request, plan: { title: string; description: string
     `Task description: ${plan.description}`,
     "Reply with JSON only, shaped as { subtasks: [{ title, description, acceptanceCriteria: string[], files: string[], runsInParallel: boolean }] }.",
     "Set runsInParallel to true only when the subtask's files do not overlap with any other subtask.",
-    "The project is a React app. App.tsx at the project root is the entry of the app: the first subtask creates it when it does not exist yet.",
+    "The project is a React app and its scaffold already exists: package.json, tsconfig.json, vite.config.ts, index.html, main entry and App.tsx at the project root. Never plan a subtask that only creates these files.",
+    "App.tsx at the project root is the entry of the app.",
     "Every later file grows from App.tsx as in a normal app: a subtask creates a component or module in its own file, and the subtask that uses it adds the import to App.tsx or to a file that App.tsx imports.",
     "Keep subtasks in parallel only when their files do not overlap; the subtask that wires new files into App.tsx must run in sequence.",
   ].join("\n");
@@ -71,6 +76,12 @@ const countInvalidPlan = async (
   return outcome === "applied" ? fail(reason) : fail(conflictReason);
 };
 
+const scaffoldProjectOf = async (deps: OrchestrationDependencies, request: Request): Promise<Outcome<string[]>> => {
+  const board = (await deps.boards.list()).find((candidate) => candidate.id === request.boardId);
+
+  return board ? scaffoldProject(deps)({ kind: "ScaffoldProject", rootPath: board.rootPath }) : fail(missingBoardReason);
+};
+
 const splitRequest =
   (deps: OrchestrationDependencies) =>
   async (command: OrchestrateRequest): Promise<Outcome<Task[]>> => {
@@ -93,6 +104,12 @@ const splitRequest =
 
     if (!request) {
       return fail("Request not found");
+    }
+
+    const scaffolded = await scaffoldProjectOf(deps, request);
+
+    if (!scaffolded.ok) {
+      return fail(scaffolded.reason);
     }
 
     const reply = await deps.llm.generateJson(planPrompt(request, parent));

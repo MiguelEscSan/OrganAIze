@@ -43,11 +43,11 @@ Binary or large files in the zip, other frameworks or templates, installing depe
 
 ## Progress
 - [x] T1 Domain scaffold (scaffold template and missing-files rule, 6 tests in src/domain/projects)
-- [ ] T2 ScaffoldProject use case and wiring
-- [ ] T3 Orchestrator prompt
+- [x] T2 ScaffoldProject use case and wiring (scaffold-project, create-board and orchestrate-request tests; disk project files lists a missing folder as empty)
+- [x] T3 Orchestrator prompt (prompt test asserts the scaffold exists and no App.tsx creation rule)
 - [ ] T4 Archive port, adapter and use case
 - [ ] T5 Route, button and Preview filter
 - [ ] T6 Verification
 
 ## Next step
-T1 and T2 with one bounded writer, then T3, T4 and T5.
+T4 and T5, then T6.
