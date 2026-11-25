@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createInMemoryDependencies } from "@/adapters/in-memory/in-memory-dependencies";
 import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-client";
 import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
-import { developSeed, inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
+import { developSeed, inMemoryScaffoldDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
 import type { Request } from "@/domain/requests/request";
 import type { Task } from "@/domain/tasks/task";
 import type { LlmClient, LlmReply } from "@/ports/llm-client";
@@ -41,7 +41,7 @@ describe("claimAndOrchestrateRequest", () => {
     const deps = createInMemoryDependencies({ requests: [request], tasks: [readyTask] });
     const claimAndOrchestrate = claimAndOrchestrateRequest({
       ...deps,
-      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+      ...inMemoryScaffoldDependencies(createInMemoryWorkspaceWriter({})),
       llm: createScriptedLlmClient({ ok: true, json: validPlan }),
     });
 
@@ -59,7 +59,7 @@ describe("claimAndOrchestrateRequest", () => {
     const deps = createInMemoryDependencies({ requests: [request], tasks: [readyTask] });
     const claimAndOrchestrate = claimAndOrchestrateRequest({
       ...deps,
-      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+      ...inMemoryScaffoldDependencies(createInMemoryWorkspaceWriter({})),
       llm: createScriptedLlmClient({ ok: false, reason: "Gemini is unavailable" }),
     });
 
@@ -78,7 +78,7 @@ describe("claimAndOrchestrateRequest", () => {
     const deps = createInMemoryDependencies({ requests: [request], tasks: [readyTask] });
     const claimAndOrchestrate = claimAndOrchestrateRequest({
       ...deps,
-      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+      ...inMemoryScaffoldDependencies(createInMemoryWorkspaceWriter({})),
       llm: createScriptedLlmClient({ ok: false, reason: "   " }),
     });
 
@@ -97,7 +97,7 @@ describe("claimAndOrchestrateRequest", () => {
     const deps = createInMemoryDependencies({ requests: [request], tasks: [readyTask] });
     const claimAndOrchestrate = claimAndOrchestrateRequest({
       ...deps,
-      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+      ...inMemoryScaffoldDependencies(createInMemoryWorkspaceWriter({})),
       llm: createScriptedLlmClient({ ok: true, json: { subtasks: [] } }),
     });
 
@@ -112,7 +112,7 @@ describe("claimAndOrchestrateRequest", () => {
     const deps = createInMemoryDependencies({ requests: [request], tasks: [] });
     const claimAndOrchestrate = claimAndOrchestrateRequest({
       ...deps,
-      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+      ...inMemoryScaffoldDependencies(createInMemoryWorkspaceWriter({})),
       llm: createScriptedLlmClient({ ok: true, json: validPlan }),
     });
 
@@ -144,7 +144,7 @@ describe("claimAndOrchestrateRequest", () => {
       const deps = createInMemoryDependencies({ ...developSeed, tasks: [readyTask] });
       const claimAndOrchestrate = claimAndOrchestrateRequest({
         ...deps,
-        ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+        ...inMemoryScaffoldDependencies(createInMemoryWorkspaceWriter({})),
         llm: answeringLlm(review),
       });
 
@@ -190,7 +190,7 @@ describe("claimAndOrchestrateRequest", () => {
       const deps = createInMemoryDependencies({ ...developSeed, tasks: [readyTask] });
       const claimAndOrchestrate = claimAndOrchestrateRequest({
         ...deps,
-        ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+        ...inMemoryScaffoldDependencies(createInMemoryWorkspaceWriter({})),
         llm: throwingLlm,
       });
 
@@ -224,7 +224,7 @@ describe("claimAndOrchestrateRequest", () => {
       await deps.settings.save({ ...(await deps.settings.get()), maxQaTasks: 1 });
       const claimAndOrchestrate = claimAndOrchestrateRequest({
         ...deps,
-        ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+        ...inMemoryScaffoldDependencies(createInMemoryWorkspaceWriter({})),
         llm,
       });
 

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { createInMemoryDependencies } from "@/adapters/in-memory/in-memory-dependencies";
 import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-client";
+import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
+import { inMemoryScaffoldDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
+import type { WorkspaceWriter } from "@/ports/workspace-writer";
 import type { Request } from "@/domain/requests/request";
 import type { Task } from "@/domain/tasks/task";
 import { orchestrateRequest } from "./orchestrate-request";
@@ -41,10 +44,15 @@ const validPlan = {
 };
 
 const run = (tasks: readonly Task[], llmReply: Parameters<typeof createScriptedLlmClient>[0]) => {
+  const workspace = createInMemoryWorkspaceWriter();
   const deps = createInMemoryDependencies({ requests: [request], tasks });
-  const orchestrate = orchestrateRequest({ ...deps, llm: createScriptedLlmClient(llmReply) });
+  const orchestrate = orchestrateRequest({
+    ...deps,
+    ...inMemoryScaffoldDependencies(workspace),
+    llm: createScriptedLlmClient(llmReply),
+  });
 
-  return { deps, orchestrate };
+  return { deps, workspace, orchestrate };
 };
 
 describe("orchestrateRequest", () => {
@@ -61,7 +69,7 @@ describe("orchestrateRequest", () => {
     ]);
   });
 
-  it("asks the planner to start from App.tsx and to import every new file from it", async () => {
+  it("tells the planner the project scaffold already exists and new files must be wired into App.tsx", async () => {
     const prompts: string[] = [];
     const llm = {
       generateJson: async (prompt: string) => {
@@ -69,13 +77,66 @@ describe("orchestrateRequest", () => {
         return { ok: true as const, json: validPlan };
       },
     };
+    const workspace = createInMemoryWorkspaceWriter();
     const deps = createInMemoryDependencies({ requests: [request], tasks: [parentTask] });
-    const orchestrate = orchestrateRequest({ ...deps, llm });
+    const orchestrate = orchestrateRequest({
+      ...deps,
+      ...inMemoryScaffoldDependencies(workspace),
+      llm,
+    });
 
     await orchestrate({ kind: "OrchestrateRequest", taskId: "task-1" });
 
-    expect(prompts[0]).toContain("App.tsx at the project root is the entry of the app");
+    expect(prompts[0]).toContain("already exists");
+    expect(prompts[0]).toContain("package.json, tsconfig.json, vite.config.ts, index.html, main entry");
     expect(prompts[0]).toContain("adds the import to App.tsx or to a file that App.tsx imports");
+    expect(prompts[0]).not.toContain("the first subtask creates it");
+    expect(prompts[0]).not.toContain("when it does not exist yet");
+  });
+
+  it("writes the project scaffold before splitting the request", async () => {
+    const { workspace, orchestrate } = run([parentTask], { ok: true, json: validPlan });
+
+    await orchestrate({ kind: "OrchestrateRequest", taskId: "task-1" });
+
+    expect(Object.keys(workspace.files())).toContain("package.json");
+    expect(Object.keys(workspace.files())).toContain("App.tsx");
+  });
+
+  it("does not touch a project that already has a package.json", async () => {
+    const workspace = createInMemoryWorkspaceWriter({ "package.json": "{}" });
+    const deps = createInMemoryDependencies({ requests: [request], tasks: [parentTask] });
+    const orchestrate = orchestrateRequest({
+      ...deps,
+      ...inMemoryScaffoldDependencies(workspace),
+      llm: createScriptedLlmClient({ ok: true, json: validPlan }),
+    });
+
+    await orchestrate({ kind: "OrchestrateRequest", taskId: "task-1" });
+
+    expect(workspace.files()).toEqual({ "package.json": "{}" });
+  });
+
+  it("fails with the scaffold reason and creates no subtasks when the scaffold cannot be written", async () => {
+    const workspace = createInMemoryWorkspaceWriter();
+    const brokenWriter: WorkspaceWriter = {
+      read: workspace.read,
+      write: async () => {
+        throw new Error("disk is read-only");
+      },
+    };
+    const deps = createInMemoryDependencies({ requests: [request], tasks: [parentTask] });
+    const orchestrate = orchestrateRequest({
+      ...deps,
+      ...inMemoryScaffoldDependencies(workspace),
+      workspaceFor: () => brokenWriter,
+      llm: createScriptedLlmClient({ ok: true, json: validPlan }),
+    });
+
+    const outcome = await orchestrate({ kind: "OrchestrateRequest", taskId: "task-1" });
+
+    expect(outcome).toEqual({ ok: false, reason: "The project scaffold could not be written: disk is read-only" });
+    expect((await deps.tasks.list()).map((task) => task.id)).toEqual(["task-1"]);
   });
 
   it("stores each subtask's acceptance criteria and files", async () => {

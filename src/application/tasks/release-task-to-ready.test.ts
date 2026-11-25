@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createInMemoryDependencies } from "@/adapters/in-memory/in-memory-dependencies";
 import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-client";
 import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
-import { inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
+import { inMemoryScaffoldDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
 import { buildTask } from "@/adapters/in-memory/task-fixtures";
 import type { Request } from "@/domain/requests/request";
 import { releaseTaskToReady } from "./release-task-to-ready";
@@ -29,7 +29,7 @@ describe("releaseTaskToReady", () => {
     });
     const release = releaseTaskToReady({
       ...deps,
-      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+      ...inMemoryScaffoldDependencies(createInMemoryWorkspaceWriter({})),
       llm: createScriptedLlmClient({ ok: true, json: validPlan }),
     });
 
@@ -53,7 +53,7 @@ describe("releaseTaskToReady", () => {
     });
     const release = releaseTaskToReady({
       ...deps,
-      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+      ...inMemoryScaffoldDependencies(createInMemoryWorkspaceWriter({})),
       llm: createScriptedLlmClient({ ok: true, json: validPlan }),
     });
 
@@ -72,7 +72,7 @@ describe("releaseTaskToReady", () => {
     });
     const release = releaseTaskToReady({
       ...deps,
-      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceWriter({})),
+      ...inMemoryScaffoldDependencies(createInMemoryWorkspaceWriter({})),
       llm: createScriptedLlmClient({ ok: true, json: validPlan }),
     });
 

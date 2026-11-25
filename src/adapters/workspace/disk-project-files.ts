@@ -1,4 +1,4 @@
-import { readdir, readFile } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import type { ProjectFile, ProjectFiles } from "@/ports/project-files";
 
@@ -30,6 +30,19 @@ const collect = async (root: string, relative: string): Promise<ProjectFile[]> =
   return nested.flat();
 };
 
+const folderExists = async (rootPath: string): Promise<boolean> => {
+  try {
+    await access(rootPath);
+
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const listOrNothing = async (rootPath: string): Promise<ProjectFile[]> =>
+  (await folderExists(rootPath)) ? collect(rootPath, "") : [];
+
 export const createDiskProjectFiles = (): ProjectFiles => ({
-  list: (rootPath) => collect(rootPath, ""),
+  list: listOrNothing,
 });

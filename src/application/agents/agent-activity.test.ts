@@ -6,7 +6,7 @@ import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-clie
 import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
 import { buildTask } from "@/adapters/in-memory/task-fixtures";
 import { createInMemoryWorkspaceReader } from "@/adapters/in-memory/in-memory-workspace-reader";
-import { developSeed, inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
+import { developSeed, inMemoryScaffoldDependencies, inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
 import { orchestrateRequest } from "@/application/tasks/orchestrate-request";
 import { runDevelop } from "@/application/tasks/run-develop";
 import { runTesting } from "@/application/testing/run-testing";
@@ -28,7 +28,11 @@ describe("agent activity", () => {
         },
       ],
     };
-    const orchestrate = orchestrateRequest({ ...deps, llm: createScriptedLlmClient({ ok: true, json: split }) });
+    const orchestrate = orchestrateRequest({
+      ...deps,
+      ...inMemoryScaffoldDependencies(createInMemoryWorkspaceWriter()),
+      llm: createScriptedLlmClient({ ok: true, json: split }),
+    });
 
     await orchestrate({ kind: "OrchestrateRequest", taskId: "parent" });
 

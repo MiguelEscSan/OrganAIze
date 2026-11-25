@@ -2,6 +2,7 @@ import type { Mediator } from "@/application/cqrs/mediator";
 import { createMediator } from "@/application/register-handlers";
 import type { BoardRepository } from "@/ports/board-repository";
 import type { LlmClient } from "@/ports/llm-client";
+import { createFflateArchiveWriter } from "../archive/fflate-archive-writer";
 import { createLlmClientFromEnv } from "../config/llm-client-from-env";
 import { createDrizzleBoardRepository } from "../drizzle/drizzle-board-repository";
 import { createDrizzleDependencies } from "../drizzle/create-drizzle-dependencies";
@@ -49,6 +50,7 @@ const buildServices = (): AppServices => {
       workspaceFor: (rootPath) => createDiskWorkspaceWriter(rootPath),
       interfaceProbe: createPlaywrightInterfaceProbe(),
       projectFiles: createDiskProjectFiles(),
+      archiveWriter: createFflateArchiveWriter(),
     }),
     boards: createDrizzleBoardRepository(db),
   };
