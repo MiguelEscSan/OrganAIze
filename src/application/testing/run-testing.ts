@@ -3,21 +3,29 @@ import type { Task } from "@/domain/tasks/task";
 import { runDeterministicChecks, type CheckFailure, type CheckedFile } from "@/domain/testing/deterministic-checks";
 import type { BoardRepository } from "@/ports/board-repository";
 import type { LlmClient } from "@/ports/llm-client";
+import type { ProjectFiles } from "@/ports/project-files";
+import type { ProjectTypeChecker, TypeFailure } from "@/ports/project-type-checker";
 import type { WorkspaceReader } from "@/ports/workspace-reader";
 import type { ApplicationDependencies } from "../shared/dependencies";
 import { fail, succeed, type Outcome } from "../shared/outcome";
-import { workspaceOfTask } from "../shared/task-workspace";
+import { rootPathOfTask } from "../shared/task-workspace";
 import { submitTestResult, type TestVerdict } from "../tasks/submit-test-result";
 import type { AgentActivityRecord } from "@/domain/agents/agent-activity";
 import { streamedLlm } from "../agents/streamed-llm";
 import { liveProgressOf, withLiveStatus } from "../agents/live-progress";
 import { withAgentActivity } from "../agents/with-agent-activity";
 
-export type TestingDependencies = ApplicationDependencies & {
-  llm: LlmClient;
-  boards: BoardRepository;
-  workspaceFor: (rootPath: string) => WorkspaceReader;
+export type TypeCheckDependencies = {
+  projectFiles: ProjectFiles;
+  typeChecker: ProjectTypeChecker;
 };
+
+export type TestingDependencies = ApplicationDependencies &
+  Partial<TypeCheckDependencies> & {
+    llm: LlmClient;
+    boards: BoardRepository;
+    workspaceFor: (rootPath: string) => WorkspaceReader;
+  };
 
 const reviewFailureSchema = z.object({
   criterion: z.string(),
@@ -38,6 +46,9 @@ const numbered = (items: readonly string[]): string => items.map((item, index) =
 const locationOf = (file: string, line: number | null): string => (line === null ? file : `${file}:${line}`);
 
 const checkFailureText = (failure: CheckFailure): string => `${locationOf(failure.file, failure.line)}: ${failure.message}`;
+
+const typeFailureText = (failure: TypeFailure): string =>
+  `Type check (${locationOf(failure.file, failure.line)}): ${failure.message}`;
 
 const reviewFailureText = (failure: ReviewFailure): string =>
   `${failure.criterion} (${locationOf(failure.file, failure.line)}): ${failure.message}`;
@@ -94,18 +105,32 @@ const readTaskFiles = async (reader: WorkspaceReader, task: Task): Promise<Outco
   }
 };
 
+const typeFailuresOfTask = async (deps: TestingDependencies, rootPath: string, task: Task): Promise<TypeFailure[]> => {
+  if (!deps.projectFiles || !deps.typeChecker) {
+    return [];
+  }
+
+  try {
+    const projectFiles = await deps.projectFiles.list(rootPath);
+
+    return await deps.typeChecker.check(projectFiles, task.files);
+  } catch {
+    return [];
+  }
+};
+
 export const verdictForTask = async (
   deps: TestingDependencies,
   task: Task,
   renderedPage?: string,
 ): Promise<Outcome<TestVerdict>> => {
-  const workspace = await workspaceOfTask(deps, task);
+  const rootPath = await rootPathOfTask(deps, task);
 
-  if (!workspace.ok) {
-    return fail(workspace.reason);
+  if (!rootPath.ok) {
+    return fail(rootPath.reason);
   }
 
-  const files = await readTaskFiles(workspace.value, task);
+  const files = await readTaskFiles(deps.workspaceFor(rootPath.value), task);
 
   if (!files.ok) {
     return succeed(unreviewedVerdict(files.reason));
@@ -115,6 +140,12 @@ export const verdictForTask = async (
 
   if (checkFailures.length > 0) {
     return succeed(failedVerdict(numbered(checkFailures.map(checkFailureText))));
+  }
+
+  const typeFailures = await typeFailuresOfTask(deps, rootPath.value, task);
+
+  if (typeFailures.length > 0) {
+    return succeed(failedVerdict(numbered(typeFailures.map(typeFailureText))));
   }
 
   return succeed(await reviewWithLlm(deps, task, files.value, renderedPage));
