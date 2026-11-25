@@ -41,6 +41,7 @@ export const createOllamaLlmClient = (config: OllamaConfig, fetcher: OllamaFetch
         model: config.model,
         stream: false,
         format: "json",
+        options: { num_ctx: 8192 },
         messages: [{ role: "user", content: prompt }],
       }),
     });

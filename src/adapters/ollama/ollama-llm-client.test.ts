@@ -24,6 +24,7 @@ describe("ollama llm client", () => {
       model: "qwen3:4b-instruct",
       stream: false,
       format: "json",
+      options: { num_ctx: 8192 },
       messages: [{ role: "user", content: "split this" }],
     });
   });
