@@ -124,11 +124,7 @@ export const submitVerdict = async (deps: TestingDependencies, task: Task, verdi
 const judgeTask = async (deps: TestingDependencies, task: Task): Promise<void> => {
   const verdict = await verdictForTask(deps, task);
 
-  if (!verdict.ok) {
-    return;
-  }
-
-  await submitVerdict(deps, task, verdict.value);
+  await submitVerdict(deps, task, verdict.ok ? verdict.value : unreviewedVerdict(verdict.reason));
 };
 
 const reviewTask = (deps: TestingDependencies, task: Task): Promise<void> =>
