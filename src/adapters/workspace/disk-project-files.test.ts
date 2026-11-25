@@ -43,4 +43,12 @@ describe("createDiskProjectFiles", () => {
 
     expect(listed.map((file) => file.path)).toEqual(["src/app.tsx"]);
   });
+
+  it("lists nothing for a folder that does not exist yet", async () => {
+    const root = await project({});
+
+    const listed = await createDiskProjectFiles().list(path.join(root, "not-created-yet"));
+
+    expect(listed).toEqual([]);
+  });
 });

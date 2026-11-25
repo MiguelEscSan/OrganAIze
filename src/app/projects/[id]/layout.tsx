@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { getAppServices } from "@/adapters/server/app-services";
 import type { Board } from "@/domain/boards/board";
+import { DownloadProjectLink } from "@/presentation/projects/download-project-link";
 import { ProjectTabs } from "@/presentation/projects/project-tabs";
 
 type ProjectLayoutProps = {
@@ -39,7 +40,10 @@ const ProjectHeader = async ({ params, children }: ProjectLayoutProps) => {
           </span>
           <span className="font-bold text-ink">{board.name}</span>
         </nav>
-        <h1 className="text-3xl font-extrabold tracking-tight">{board.name}</h1>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <h1 className="text-3xl font-extrabold tracking-tight">{board.name}</h1>
+          <DownloadProjectLink href={`/api/boards/${board.id}/download`} />
+        </div>
       </header>
       <ProjectTabs boardId={board.id} />
       {children}

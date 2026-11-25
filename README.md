@@ -1,36 +1,118 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Agent Team
 
-## Getting Started
+A small Next.js app where a team of three AI agents works together on a user request, and every step is visible on a kanban board.
 
-First, run the development server:
+| Agent | Responsibility |
+| --- | --- |
+| **Orchestrator** | Splits a request into subtasks with explicit acceptance criteria and decides which run in parallel and which in sequence. |
+| **Develop** | Implements one subtask against the target web project, only inside its declared file scope. |
+| **Testing** | Judges Develop's output against the acceptance criteria and returns a numbered list of concrete failures. |
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+When two subtasks declare the same file, Develop writes its change as a diff against the file's base content and a Merge step combines the diffs before Testing judges the result.
+
+## How a request flows
+
+1. The user writes a request card in **Definition** and moves it to **Ready to develop**. This is the only transition the user performs on the happy path.
+2. The system claims the next ready request into **In progress**. The Orchestrator splits it into subtasks.
+3. Develop implements each subtask and moves it to **QA**.
+4. Testing checks the subtask. A pass moves it to **Deploy**. A failure sends it back to **In progress** with feedback attached and adds one attempt.
+5. After 3 failed attempts, or when a time or token budget is exceeded, the task moves to **Review**, where the user decides: continue (budget stops only), send back to Ready, or delete.
+6. A request is complete when all its subtasks are in **Deploy**. Here "Deploy" means Testing approved the subtask; nothing is published to a host.
+
+Only one request is in progress at a time, enforced in the database. Other requests wait in FIFO order. QA holds at most N tasks (configurable in Settings, default 2).
+
+Testing can also drive the running target app with Playwright, but only after the user confirms each run, because it installs and starts code the model wrote.
+
+## Views
+
+- **Board**: Definition, Ready to develop, In progress, QA, Review and Deploy columns. Cards show title, description, assigned agent, attempt count and last feedback. Requests show subtask progress.
+- **Projects**: the target web projects the agents work against, with their files and a preview.
+- **Team**: one card per agent with its status (idle, working, reviewing) and last message.
+- **Settings**: attempt limit, QA capacity, time and token budgets, and whether the API key is configured (never its value).
+
+The live log refreshes every 2 seconds by polling.
+
+## Stack
+
+- Next.js (App Router), TypeScript in strict mode, Tailwind CSS
+- Postgres on Supabase through Drizzle ORM
+- Gemini as the LLM provider, behind an `LlmClient` port so it can be swapped without touching `domain` or `application`
+- Zod for validating every agent output
+- Vitest for tests, Playwright for browser checks
+- Husky pre-push hook that runs the full test suite
+
+## Architecture
+
+Clean and hexagonal, with folders that describe the domain.
+
+```
+src/
+  app/            Next.js routes only; thin handlers that call use cases
+  domain/         pure TypeScript: entities, state machine, rules, no I/O
+  application/    use cases and the command/query mediator
+  ports/          interfaces: repositories, LlmClient, event log, workspace
+  adapters/       Drizzle repositories, Gemini client, in-memory and disk adapters
+  presentation/   board components, container / presentational split
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Dependency rules:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `domain` imports nothing from the other layers or from React.
+- `application` depends only on `domain` and `ports`.
+- `adapters` implement `ports`, so swapping the database or the LLM never touches `domain` or `application`.
+- Every state change goes through one pure function, `transitionTask`, which takes the actor (`user` or `system`) and writes an event with who, from, to, when and why.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+More detail lives in [docs](docs/README.md): product, domain rules, architecture, delivery plan and environment.
 
-## Learn More
+## Getting started
 
-To learn more about Next.js, take a look at the following resources:
+Requirements: Node.js, npm and Docker.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```powershell
+npm install
+docker compose up -d
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Copy `.env.example` to `.env.local` and fill in:
 
-## Deploy on Vercel
+| Variable | Meaning |
+| --- | --- |
+| `DATABASE_URL` | Postgres connection string. Locally it points at the Docker Postgres; in production it is the Supabase pooler string. |
+| `LLM_API_KEY` | Gemini API key. |
+| `LLM_PROVIDER` | Provider name, currently `gemini`. |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`docker compose up -d` starts Postgres 16 with two databases: `agent_team_test` for adapter tests and `agent_team_dev` for local app data. Its credentials are local-only test values.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Start the app:
+
+```powershell
+npm run dev
+```
+
+## Scripts
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Starts the development server. |
+| `npm run build` | Builds for production. |
+| `npm start` | Serves the production build. |
+| `npm run lint` | Runs ESLint. |
+| `npm test` | Runs the Vitest suite. |
+
+## Testing
+
+- `domain` and `application` are tested with Vitest. Use case tests run against in-memory adapters, never the database.
+- Adapters that touch infrastructure (Drizzle repositories, the LLM client, the Playwright runner) are tested against real instances started with Docker Compose, never against Supabase.
+- Tests describe behavior, not implementation details.
+- The pre-push hook runs the whole suite and blocks the push on any failure. It also blocks pushing directly to `main`.
+
+## Deployment
+
+The target setup is Vercel for the app and Supabase (free tier) for Postgres. Set `DATABASE_URL`, `LLM_API_KEY` and `LLM_PROVIDER` as environment variables on Vercel. API keys are read from the environment only and never appear in prompts, logs or the repository.
+
+## Conventions
+
+- All code, identifiers, file names, log messages and UI copy are in English, and the code carries no comments.
+- Conventional Commits, one feature per branch (`feat/`, `fix/`, `chore/`), never directly on `main`.
+- Each task gets at least one work-unit commit that includes its tests and docs.
+- Work is tracked task by task in `odd/tasks/<feature>.md`.

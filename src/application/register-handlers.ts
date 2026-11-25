@@ -21,16 +21,18 @@ import { releaseTaskToReady } from "./tasks/release-task-to-ready";
 import { stopTaskForBudget } from "./tasks/stop-task-for-budget";
 import { submitDevelopResult } from "./tasks/submit-develop-result";
 import { submitTestResult } from "./tasks/submit-test-result";
-import { runTesting } from "./testing/run-testing";
+import { runTesting, type TypeCheckDependencies } from "./testing/run-testing";
 import { runBrowserCheck, type BrowserCheckDependencies } from "./testing/run-browser-check";
+import { scaffoldProject } from "./projects/scaffold-project";
 import { listProjectFiles, type ProjectFilesDependencies } from "./projects/list-project-files";
+import { archiveProject, type ArchiveProjectDependencies } from "./projects/archive-project";
 import { listAgentActivity } from "./agents/list-agent-activity";
 import { listTaskEvents } from "./tasks/list-task-events";
 import { Mediator } from "./cqrs/mediator";
 import type { BoardDependencies } from "./shared/dependencies";
 
 export const createMediator = (
-  deps: OrchestrationDependencies & DevelopDependencies & BoardDependencies & BrowserCheckDependencies & ProjectFilesDependencies,
+  deps: OrchestrationDependencies & DevelopDependencies & BoardDependencies & BrowserCheckDependencies & ProjectFilesDependencies & ArchiveProjectDependencies & TypeCheckDependencies,
 ): Mediator => {
   const mediator = new Mediator();
 
@@ -54,6 +56,7 @@ export const createMediator = (
   mediator.registerCommand("CreateBoard", createBoard(deps));
   mediator.registerCommand("UpdateBoard", updateBoard(deps));
   mediator.registerCommand("DeleteBoard", deleteBoard(deps));
+  mediator.registerCommand("ScaffoldProject", scaffoldProject(deps));
 
   mediator.registerQuery("ListRequests", listRequests(deps));
   mediator.registerQuery("GetRequest", getRequest(deps));
@@ -61,6 +64,7 @@ export const createMediator = (
   mediator.registerQuery("ListBoards", listBoards(deps));
   mediator.registerQuery("GetSettings", getSettings(deps));
   mediator.registerQuery("ListProjectFiles", listProjectFiles(deps));
+  mediator.registerQuery("ArchiveProject", archiveProject(deps));
   mediator.registerQuery("ListAgentActivity", listAgentActivity(deps));
   mediator.registerQuery("ListTaskEvents", listTaskEvents(deps));
 

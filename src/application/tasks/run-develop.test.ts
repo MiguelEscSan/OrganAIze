@@ -4,7 +4,8 @@ import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-clie
 import { buildTask } from "@/adapters/in-memory/task-fixtures";
 import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
 import { createInMemoryBoardRepository } from "@/adapters/in-memory/in-memory-board-repository";
-import { developSeed, inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
+import { createInMemoryProjectFiles } from "@/adapters/in-memory/in-memory-project-files";
+import { developSeed, inMemoryDevelopDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
 import type { Task } from "@/domain/tasks/task";
 import type { LlmClient } from "@/ports/llm-client";
 import { runDevelop } from "./run-develop";
@@ -26,7 +27,7 @@ const validOutput = { files: [{ path: "src/app/page.tsx", content: "export defau
 const setup = (task: Task, llm: Parameters<typeof createScriptedLlmClient>[0]) => {
   const deps = createInMemoryDependencies({ ...developSeed, tasks: [task] });
   const workspace = createInMemoryWorkspaceWriter({ "src/app/page.tsx": "export default 'old';" });
-  const run = runDevelop({ ...deps, ...inMemoryWorkspaceDependencies(workspace), llm: createScriptedLlmClient(llm) });
+  const run = runDevelop({ ...deps, ...inMemoryDevelopDependencies(workspace), llm: createScriptedLlmClient(llm) });
 
   return { deps, workspace, run };
 };
@@ -99,7 +100,7 @@ describe("runDevelop", () => {
         return { ok: true, json: validOutput };
       },
     };
-    const run = runDevelop({ ...deps, ...inMemoryWorkspaceDependencies(workspace), llm });
+    const run = runDevelop({ ...deps, ...inMemoryDevelopDependencies(workspace), llm });
 
     await run({ kind: "RunDevelop", taskId: "subtask-1" });
 
@@ -145,7 +146,7 @@ describe("runDevelop", () => {
         },
       };
       const clock = { now: () => now };
-      const run = runDevelop({ ...deps, ...inMemoryWorkspaceDependencies(workspace), clock, llm });
+      const run = runDevelop({ ...deps, ...inMemoryDevelopDependencies(workspace), clock, llm });
 
       return { deps, workspace, run };
     };
@@ -191,7 +192,7 @@ describe("runDevelop", () => {
     const workspace = createInMemoryWorkspaceWriter({ "src/app/page.tsx": "export default 'old';" });
     const run = runDevelop({
       ...deps,
-      ...inMemoryWorkspaceDependencies(workspace),
+      ...inMemoryDevelopDependencies(workspace),
       llm: createScriptedLlmClient({ ok: true, json: validOutput }),
     });
 
@@ -212,6 +213,7 @@ describe("runDevelop", () => {
     const workspace = createInMemoryWorkspaceWriter({ "src/app/page.tsx": "export default 'old';" });
     const run = runDevelop({
       ...deps,
+      projectFiles: createInMemoryProjectFiles(workspace),
       boards: createInMemoryBoardRepository([
         { id: "board-a", name: "A", rootPath: "C:/projects/a" },
         { id: "board-b", name: "B", rootPath: "C:/projects/b" },
@@ -249,7 +251,7 @@ describe("runDevelop prompt", () => {
     };
     const deps = createInMemoryDependencies({ ...developSeed, tasks: [subtask()] });
     const workspace = createInMemoryWorkspaceWriter({});
-    const runWith = runDevelop({ ...deps, ...inMemoryWorkspaceDependencies(workspace), llm });
+    const runWith = runDevelop({ ...deps, ...inMemoryDevelopDependencies(workspace), llm });
 
     await runWith({ kind: "RunDevelop", taskId: "subtask-1" });
 
@@ -267,10 +269,141 @@ describe("runDevelop prompt", () => {
     const feedback = "1. src/app/card.tsx:2: Headline missing";
     const deps = createInMemoryDependencies({ ...developSeed, tasks: [subtask({ lastFeedback: feedback })] });
     const workspace = createInMemoryWorkspaceWriter({});
-    const runWith = runDevelop({ ...deps, ...inMemoryWorkspaceDependencies(workspace), llm });
+    const runWith = runDevelop({ ...deps, ...inMemoryDevelopDependencies(workspace), llm });
 
     await runWith({ kind: "RunDevelop", taskId: "subtask-1" });
 
     expect(prompts[0]).toContain(feedback);
+  });
+});
+
+describe("runDevelop project context", () => {
+  const contextHeading = "Other files in the project (read-only, do not modify them; import and use their real exports):";
+  const siblingsHeading = "Other subtasks of this request";
+
+  const promptFor = async (
+    tasks: Task[],
+    files: Record<string, string>,
+    projectFilesOverride?: { list: () => Promise<never> },
+  ): Promise<{ prompt: string; outcomeOk: boolean }> => {
+    const prompts: string[] = [];
+    const llm = {
+      generateJson: async (prompt: string) => {
+        prompts.push(prompt);
+        return { ok: true as const, json: validOutput };
+      },
+    };
+    const deps = createInMemoryDependencies({ ...developSeed, tasks });
+    const workspace = createInMemoryWorkspaceWriter({ "src/app/page.tsx": "export default 'old';", ...files });
+    const run = runDevelop({
+      ...deps,
+      ...inMemoryDevelopDependencies(workspace),
+      ...(projectFilesOverride ? { projectFiles: projectFilesOverride } : {}),
+      llm,
+    });
+
+    const outcome = await run({ kind: "RunDevelop", taskId: "subtask-1" });
+
+    return { prompt: prompts[0], outcomeOk: outcome.ok };
+  };
+
+  it("shows the content of an existing project file outside the subtask as read-only context", async () => {
+    const { prompt } = await promptFor([subtask()], { "src/weather.ts": "export const getWeather = () => 1;" });
+
+    expect(prompt).toContain(contextHeading);
+    expect(prompt).toContain("### src/weather.ts\nexport const getWeather = () => 1;");
+  });
+
+  it("does not repeat the files of the subtask in the context section", async () => {
+    const { prompt } = await promptFor([subtask()], { "src/weather.ts": "export const w = 1;" });
+
+    const context = prompt.slice(prompt.indexOf(contextHeading));
+
+    expect(context).not.toContain("src/app/page.tsx");
+  });
+
+  it("never includes scaffold-only files in the context", async () => {
+    const { prompt } = await promptFor([subtask()], {
+      "package.json": "{\"name\":\"project\"}",
+      "tsconfig.json": "{}",
+      "vite.config.ts": "export default {};",
+      "index.html": "<html></html>",
+      "main.tsx": "render();",
+      "src/weather.ts": "export const w = 1;",
+    });
+
+    expect(prompt).not.toContain("### package.json");
+    expect(prompt).not.toContain("### tsconfig.json");
+    expect(prompt).not.toContain("### vite.config.ts");
+    expect(prompt).not.toContain("### index.html");
+    expect(prompt).not.toContain("### main.tsx");
+    expect(prompt).toContain("### src/weather.ts");
+  });
+
+  it("keeps App.tsx in the context", async () => {
+    const { prompt } = await promptFor([subtask()], { "App.tsx": "export const App = () => null;" });
+
+    expect(prompt).toContain("### App.tsx\nexport const App = () => null;");
+  });
+
+  it("skips whole files that do not fit the context budget", async () => {
+    const { prompt } = await promptFor([subtask()], {
+      "src/a.ts": "a".repeat(20000),
+      "src/b.ts": "b".repeat(20000),
+      "src/c.ts": "c".repeat(5000),
+    });
+
+    expect(prompt).toContain("### src/a.ts");
+    expect(prompt).not.toContain("### src/b.ts");
+    expect(prompt).toContain("### src/c.ts");
+    expect(prompt).not.toContain("b".repeat(100));
+  });
+
+  it("lists the sibling subtasks of the same request with their declared files", async () => {
+    const sibling = subtask({ id: "subtask-2", title: "Weather service", files: ["src/weatherService.ts"] });
+    const { prompt } = await promptFor([subtask(), sibling], {});
+
+    expect(prompt).toContain(siblingsHeading);
+    expect(prompt).toContain("- Weather service (files: src/weatherService.ts)");
+  });
+
+  it("does not list the current subtask or subtasks of another parent as siblings", async () => {
+    const other = subtask({ id: "subtask-3", title: "Elsewhere", parentTaskId: "parent-2" });
+    const { prompt } = await promptFor([subtask(), other], {});
+
+    expect(prompt).not.toContain(siblingsHeading);
+    expect(prompt).not.toContain("Elsewhere");
+  });
+
+  it("produces no context or sibling sections for a project with no other files and no siblings", async () => {
+    const { prompt } = await promptFor([subtask()], {});
+
+    expect(prompt).not.toContain(contextHeading);
+    expect(prompt).not.toContain(siblingsHeading);
+  });
+
+  it("still runs Develop when listing the project files fails", async () => {
+    const failing = {
+      list: async (): Promise<never> => {
+        throw new Error("disk unavailable");
+      },
+    };
+
+    const { prompt, outcomeOk } = await promptFor([subtask()], {}, failing);
+
+    expect(outcomeOk).toBe(true);
+    expect(prompt).not.toContain(contextHeading);
+  });
+
+  it("still rejects writes outside the files of the subtask", async () => {
+    const llm = createScriptedLlmClient({ ok: true, json: { files: [{ path: "src/weather.ts", content: "x" }] } });
+    const deps = createInMemoryDependencies({ ...developSeed, tasks: [subtask()] });
+    const workspace = createInMemoryWorkspaceWriter({ "src/weather.ts": "export const w = 1;" });
+    const run = runDevelop({ ...deps, ...inMemoryDevelopDependencies(workspace), llm });
+
+    const outcome = await run({ kind: "RunDevelop", taskId: "subtask-1" });
+
+    expect(outcome.ok).toBe(false);
+    expect(workspace.files()["src/weather.ts"]).toBe("export const w = 1;");
   });
 });

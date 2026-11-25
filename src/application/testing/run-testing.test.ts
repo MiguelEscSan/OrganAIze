@@ -6,6 +6,11 @@ import { buildTask } from "@/adapters/in-memory/task-fixtures";
 import { createInMemoryWorkspaceReader } from "@/adapters/in-memory/in-memory-workspace-reader";
 import { createInMemoryBoardRepository } from "@/adapters/in-memory/in-memory-board-repository";
 import { developSeed, inMemoryWorkspaceDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
+import { createInMemoryProjectFiles } from "@/adapters/in-memory/in-memory-project-files";
+import { createInMemoryProjectTypeChecker } from "@/adapters/in-memory/in-memory-project-type-checker";
+import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
+import type { ProjectFiles } from "@/ports/project-files";
+import type { ProjectTypeChecker, TypeFailure } from "@/ports/project-type-checker";
 import type { Task } from "@/domain/tasks/task";
 import { runTesting } from "./run-testing";
 
@@ -26,10 +31,16 @@ const qaTask = (overrides: Partial<Task> = {}): Task =>
     ...overrides,
   });
 
-const setup = (tasks: Task[], files: Record<string, string>, llm: LlmClient) => {
+const setup = (
+  tasks: Task[],
+  files: Record<string, string>,
+  llm: LlmClient,
+  typeChecker: ProjectTypeChecker = createInMemoryProjectTypeChecker(),
+  projectFiles: ProjectFiles = createInMemoryProjectFiles(createInMemoryWorkspaceWriter(files)),
+) => {
   const deps = createInMemoryDependencies({ ...developSeed, tasks });
   const reader = createInMemoryWorkspaceReader(files);
-  const testing = runTesting({ ...deps, ...inMemoryWorkspaceDependencies(reader), llm });
+  const testing = runTesting({ ...deps, ...inMemoryWorkspaceDependencies(reader), llm, typeChecker, projectFiles });
 
   return { deps, testing };
 };
@@ -58,6 +69,8 @@ describe("runTesting", () => {
     const deps = createInMemoryDependencies({ ...developSeed, tasks: [qaTask()] });
     const testing = runTesting({
       ...deps,
+      typeChecker: createInMemoryProjectTypeChecker(),
+      projectFiles: { list: async () => [] },
       ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceReader({ [cardPath]: validCard })),
       boards: createInMemoryBoardRepository([]),
       llm: reviewingLlm(passingReview),
@@ -150,5 +163,89 @@ describe("runTesting", () => {
 
     expect((await taskById(deps, "subtask-1"))?.status).toBe("deploy");
     expect((await taskById(deps, "subtask-2"))?.status).toBe("deploy");
+  });
+
+  describe("type check", () => {
+    const typeFailures: TypeFailure[] = [
+      { file: cardPath, line: 1, message: "Cannot find module './weatherService'" },
+      { file: cardPath, line: 3, message: "Cannot find name 'PositionError'" },
+    ];
+
+    it("sends a task with type failures back to in progress with numbered feedback and skips the review", async () => {
+      const llm = reviewingLlm(passingReview);
+      const { deps, testing } = setup(
+        [qaTask()],
+        { [cardPath]: validCard },
+        llm,
+        createInMemoryProjectTypeChecker(typeFailures),
+      );
+
+      await testing();
+
+      const task = await taskById(deps, "subtask-1");
+      expect([task?.status, task?.attempts]).toEqual(["in_progress", 1]);
+      expect(task?.lastFeedback).toBe(
+        [
+          `1. Type check (${cardPath}:1): Cannot find module './weatherService'`,
+          `2. Type check (${cardPath}:3): Cannot find name 'PositionError'`,
+        ].join("\n"),
+      );
+      expect(llm.generateJson).not.toHaveBeenCalled();
+    });
+
+    it("continues to the review and reaches deploy when the project type-checks cleanly", async () => {
+      const llm = reviewingLlm(passingReview);
+      const { deps, testing } = setup([qaTask()], { [cardPath]: validCard }, llm);
+
+      await testing();
+
+      expect((await taskById(deps, "subtask-1"))?.status).toBe("deploy");
+      expect(llm.generateJson).toHaveBeenCalledTimes(1);
+    });
+
+    it("gives the checker the project files and the task files", async () => {
+      const check = vi.fn<ProjectTypeChecker["check"]>(async () => []);
+      const { testing } = setup([qaTask()], { [cardPath]: validCard }, reviewingLlm(passingReview), { check });
+
+      await testing();
+
+      expect(check).toHaveBeenCalledWith([{ path: cardPath, content: validCard }], [cardPath]);
+    });
+
+    it("still reaches the review when the checker throws", async () => {
+      const llm = reviewingLlm(passingReview);
+      const throwingChecker: ProjectTypeChecker = {
+        check: async () => {
+          throw new Error("compiler crashed");
+        },
+      };
+      const { deps, testing } = setup([qaTask()], { [cardPath]: validCard }, llm, throwingChecker);
+
+      await testing();
+
+      expect((await taskById(deps, "subtask-1"))?.status).toBe("deploy");
+      expect(llm.generateJson).toHaveBeenCalledTimes(1);
+    });
+
+    it("still reaches the review when the project files cannot be listed", async () => {
+      const llm = reviewingLlm(passingReview);
+      const brokenListing: ProjectFiles = {
+        list: async () => {
+          throw new Error("disk unavailable");
+        },
+      };
+      const { deps, testing } = setup(
+        [qaTask()],
+        { [cardPath]: validCard },
+        llm,
+        createInMemoryProjectTypeChecker(typeFailures),
+        brokenListing,
+      );
+
+      await testing();
+
+      expect((await taskById(deps, "subtask-1"))?.status).toBe("deploy");
+      expect(llm.generateJson).toHaveBeenCalledTimes(1);
+    });
   });
 });

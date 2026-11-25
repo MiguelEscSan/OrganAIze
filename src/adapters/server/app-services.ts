@@ -2,6 +2,7 @@ import type { Mediator } from "@/application/cqrs/mediator";
 import { createMediator } from "@/application/register-handlers";
 import type { BoardRepository } from "@/ports/board-repository";
 import type { LlmClient } from "@/ports/llm-client";
+import { createFflateArchiveWriter } from "../archive/fflate-archive-writer";
 import { createLlmClientFromEnv } from "../config/llm-client-from-env";
 import { createDrizzleBoardRepository } from "../drizzle/drizzle-board-repository";
 import { createDrizzleDependencies } from "../drizzle/create-drizzle-dependencies";
@@ -9,6 +10,7 @@ import { createDatabase } from "../drizzle/client";
 import { createDiskWorkspaceWriter } from "../workspace/disk-workspace-writer";
 import { createDiskProjectFiles } from "../workspace/disk-project-files";
 import { createPlaywrightInterfaceProbe } from "../playwright/playwright-interface-probe";
+import { createTypeScriptProjectTypeChecker } from "../typescript/typescript-project-type-checker";
 
 export type AppServices = {
   mediator: Mediator;
@@ -49,6 +51,8 @@ const buildServices = (): AppServices => {
       workspaceFor: (rootPath) => createDiskWorkspaceWriter(rootPath),
       interfaceProbe: createPlaywrightInterfaceProbe(),
       projectFiles: createDiskProjectFiles(),
+      typeChecker: createTypeScriptProjectTypeChecker(),
+      archiveWriter: createFflateArchiveWriter(),
     }),
     boards: createDrizzleBoardRepository(db),
   };

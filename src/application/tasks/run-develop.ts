@@ -2,14 +2,16 @@ import { checkFileScope } from "@/domain/agents/check-file-scope";
 import { parseDevelopOutput, type DevelopFile } from "@/domain/agents/develop-output";
 import { budgetOverrunReason, minutesBetween } from "@/domain/tasks/budget";
 import { countFailedAttempt } from "@/domain/tasks/count-failed-attempt";
+import { defaultContextBudget, selectContextFiles } from "@/domain/projects/select-context-files";
 import type { Task } from "@/domain/tasks/task";
 import type { BoardRepository } from "@/ports/board-repository";
 import type { LlmClient, LlmReply } from "@/ports/llm-client";
+import type { ProjectFile, ProjectFiles } from "@/ports/project-files";
 import type { WorkspaceWriter } from "@/ports/workspace-writer";
 import type { ApplicationDependencies } from "../shared/dependencies";
 import { fail, succeed, type Outcome } from "../shared/outcome";
 import { mergeSharedFile } from "./merge-shared-file";
-import { workspaceOfTask } from "../shared/task-workspace";
+import { rootPathOfTask, workspaceOfTask } from "../shared/task-workspace";
 import { qaFullReason } from "./qa-capacity";
 import { conflictReason } from "./record-transition";
 import { stopTaskForBudget } from "./stop-task-for-budget";
@@ -26,6 +28,7 @@ export type DevelopDependencies = ApplicationDependencies & {
   llm: LlmClient;
   boards: BoardRepository;
   workspaceFor: (rootPath: string) => WorkspaceWriter;
+  projectFiles: ProjectFiles;
 };
 
 type CurrentFile = { path: string; content: string | null };
@@ -36,7 +39,32 @@ const describeCurrentFile = (file: CurrentFile): string =>
 const feedbackSection = (feedback: string | null): string[] =>
   feedback ? ["Feedback from the last review, fix every point:", feedback] : [];
 
-const developPrompt = (task: Task, currentFiles: readonly CurrentFile[]): string =>
+const describeContextFile = (file: ProjectFile): string => `### ${file.path}\n${file.content}`;
+
+const contextSection = (contextFiles: readonly ProjectFile[]): string[] =>
+  contextFiles.length === 0
+    ? []
+    : [
+        "Other files in the project (read-only, do not modify them; import and use their real exports):",
+        ...contextFiles.map(describeContextFile),
+      ];
+
+const siblingsOf = (tasks: readonly Task[], task: Task): Task[] =>
+  tasks.filter((candidate) => candidate.id !== task.id && candidate.parentTaskId === task.parentTaskId && task.parentTaskId !== null);
+
+const describeSibling = (sibling: Task): string => `- ${sibling.title} (files: ${sibling.files.join(", ")})`;
+
+const siblingsSection = (siblings: readonly Task[]): string[] =>
+  siblings.length === 0
+    ? []
+    : ["Other subtasks of this request (they may write their files at the same time; refer to their files by path):", ...siblings.map(describeSibling)];
+
+const developPrompt = (
+  task: Task,
+  currentFiles: readonly CurrentFile[],
+  contextFiles: readonly ProjectFile[],
+  siblings: readonly Task[],
+): string =>
   [
     `Implement this subtask: ${task.title}`,
     task.description,
@@ -46,6 +74,8 @@ const developPrompt = (task: Task, currentFiles: readonly CurrentFile[]): string
     `You may write only these files: ${task.files.join(", ")}`,
     "Current content of those files:",
     ...currentFiles.map(describeCurrentFile),
+    ...contextSection(contextFiles),
+    ...siblingsSection(siblings),
     "Any file that contains JSX must end in .tsx, never .ts.",
     'Reply with JSON only, in the form {"files":[{"path":"...","content":"full file content"}]}.',
     "Include the full content of every file you change. Do not write any other path.",
@@ -104,7 +134,21 @@ const reconcileFiles = async (
 const readCurrentFiles = async (workspace: WorkspaceWriter, task: Task): Promise<CurrentFile[]> =>
   Promise.all(task.files.map(async (path) => ({ path, content: await workspace.read(path) })));
 
-const tokensUsed = (reply: LlmReply): number => (reply.ok ? (reply.totalTokens ?? 0) : 0);
+const readContextFiles = async (deps: DevelopDependencies, task: Task): Promise<ProjectFile[]> => {
+  const rootPath = await rootPathOfTask(deps, task);
+
+  if (!rootPath.ok) {
+    return [];
+  }
+
+  try {
+    return selectContextFiles(await deps.projectFiles.list(rootPath.value), task.files, defaultContextBudget);
+  } catch {
+    return [];
+  }
+};
+
+const tokensUsed =(reply: LlmReply): number => (reply.ok ? (reply.totalTokens ?? 0) : 0);
 
 const writeSubtask =
   (deps: DevelopDependencies) =>
@@ -124,7 +168,8 @@ const writeSubtask =
 
     const startedAt = deps.clock.now();
     const currentFiles = await readCurrentFiles(workspace.value, task);
-    const reply = await deps.llm.generateJson(developPrompt(task, currentFiles));
+    const contextFiles = await readContextFiles(deps, task);
+    const reply = await deps.llm.generateJson(developPrompt(task, currentFiles, contextFiles, siblingsOf(tasks, task)));
     const settings = await deps.settings.get();
     const overrun = budgetOverrunReason(
       { minutes: minutesBetween(startedAt, deps.clock.now()), tokens: tokensUsed(reply) },
