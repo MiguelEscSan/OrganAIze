@@ -61,7 +61,7 @@ describe("runDevelop", () => {
     expect(workspace.files()).toEqual({ "src/app/page.tsx": "export default 'old';" });
     const task = await taskById(deps, "subtask-1");
     expect([task?.status, task?.attempts]).toEqual(["in_progress", 1]);
-    expect(task?.lastFeedback).toBe("Develop wrote outside its file scope: package.json");
+    expect(task?.lastFeedback).toBe("Develop wrote outside its file scope: package.json. Allowed files: src/app/page.tsx.");
   });
 
   it("counts invalid output as a failed attempt and keeps the subtask in progress", async () => {

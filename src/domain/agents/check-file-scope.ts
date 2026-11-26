@@ -11,7 +11,18 @@ const isEscapingPath = (path: string): boolean => {
 
 const isMisnamedAppEntry = (path: string): boolean => /(^|[\\/])App\.ts$/.test(path);
 
-export const checkFileScope = (writes: readonly PlannedWrite[], allowedFiles: readonly string[]): FileScopeResult => {
+const baseNameOf = (path: string): string => path.slice(path.search(/[^\\/]*$/));
+
+const suggestionFor = (path: string, allowedFiles: readonly string[]): string => {
+  const sameName = allowedFiles.filter((allowed) => baseNameOf(allowed) === baseNameOf(path));
+
+  return sameName.length === 1 ? ` Did you mean '${sameName[0]}'?` : "";
+};
+
+const outsideScopeReason = (path: string, allowedFiles: readonly string[]): string =>
+  `Develop wrote outside its file scope: ${path}. Allowed files: ${allowedFiles.join(", ")}.${suggestionFor(path, allowedFiles)}`;
+
+export const checkFileScope =(writes: readonly PlannedWrite[], allowedFiles: readonly string[]): FileScopeResult => {
   if (writes.length === 0) {
     return { ok: false, reason: "Develop produced no file changes" };
   }
@@ -25,7 +36,7 @@ export const checkFileScope = (writes: readonly PlannedWrite[], allowedFiles: re
   const outside = writes.find((write) => isEscapingPath(write.path) || !allowedFiles.includes(write.path));
 
   if (outside) {
-    return { ok: false, reason: `Develop wrote outside its file scope: ${outside.path}` };
+    return { ok: false, reason: outsideScopeReason(outside.path, allowedFiles) };
   }
 
   return { ok: true };

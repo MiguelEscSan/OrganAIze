@@ -11,8 +11,33 @@ describe("checkFileScope", () => {
   it("refuses a write to a file outside the allowed list", () => {
     expect(checkFileScope([{ path: "src/app/page.tsx" }, { path: "package.json" }], allowed)).toEqual({
       ok: false,
-      reason: "Develop wrote outside its file scope: package.json",
+      reason: "Develop wrote outside its file scope: package.json. Allowed files: src/app/page.tsx, src/components/hero.tsx.",
     });
+  });
+
+  it("lists the allowed files in the refusal", () => {
+    const result = checkFileScope([{ path: "package.json" }], ["App.tsx", "src/theme.ts"]);
+
+    expect(result).toEqual({
+      ok: false,
+      reason: "Develop wrote outside its file scope: package.json. Allowed files: App.tsx, src/theme.ts.",
+    });
+  });
+
+  it("suggests the allowed file that has the same base name as the refused path", () => {
+    const result = checkFileScope([{ path: "src/App.tsx" }], ["App.tsx"]);
+
+    expect(result).toEqual({
+      ok: false,
+      reason: "Develop wrote outside its file scope: src/App.tsx. Allowed files: App.tsx. Did you mean 'App.tsx'?",
+    });
+  });
+
+  it("does not suggest when several allowed files share the base name", () => {
+    const result = checkFileScope([{ path: "src/index.ts" }], ["a/index.ts", "b/index.ts"]);
+
+    expect(result.ok).toBe(false);
+    expect(result.ok === false && result.reason).not.toContain("Did you mean");
   });
 
   it("refuses a path that escapes the project with parent segments", () => {
