@@ -11,6 +11,10 @@ import { createDrizzleDependencies } from "../drizzle/create-drizzle-dependencie
 import { createDatabase } from "../drizzle/client";
 import { createDiskWorkspaceWriter } from "../workspace/disk-workspace-writer";
 import { createDiskProjectFiles } from "../workspace/disk-project-files";
+import { createSupabaseObjectStoreFromEnv } from "../supabase/create-supabase-workspace";
+import { createSupabaseProjectFiles } from "../supabase/supabase-project-files";
+import { createSupabaseWorkspaceWriter } from "../supabase/supabase-workspace-writer";
+import { lazily, routedProjectFiles, routedWorkspaceFor } from "./routed-workspace";
 import { browserCheckEnabled } from "./browser-check-enabled";
 import { createPlaywrightInterfaceProbe } from "../playwright/playwright-interface-probe";
 import { createTypeScriptProjectTypeChecker } from "../typescript/typescript-project-type-checker";
@@ -49,6 +53,7 @@ const llmFromEnvironment =(): LlmClient => {
 
 const buildServices = (): AppServices => {
   const db = createDatabase(requiredEnv("DATABASE_URL"));
+  const objectStore = lazily(createSupabaseObjectStoreFromEnv);
 
   return {
     mediator: createMediator({
@@ -56,10 +61,14 @@ const buildServices = (): AppServices => {
       llm: llmFromEnvironment(),
       boards: createDrizzleBoardRepository(db),
       appRoot: process.cwd(),
-      workspaceFor: (rootPath) => createDiskWorkspaceWriter(rootPath),
+      workspaceFor: routedWorkspaceFor(createDiskWorkspaceWriter, (location) =>
+        createSupabaseWorkspaceWriter(objectStore(), location),
+      ),
       interfaceProbe: createPlaywrightInterfaceProbe(),
       browserCheckEnabled,
-      projectFiles: createDiskProjectFiles(),
+      projectFiles: routedProjectFiles(createDiskProjectFiles(), {
+        list: (location) => createSupabaseProjectFiles(objectStore()).list(location),
+      }),
       typeChecker: createTypeScriptProjectTypeChecker(),
       archiveWriter: createFflateArchiveWriter(),
     }),
