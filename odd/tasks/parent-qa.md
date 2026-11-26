@@ -51,6 +51,8 @@ A separate Merge agent, task dependencies, project-level local or cloud type (th
 - [x] T1 Domain: status awaiting_release, system moves, releaseSubtask, requestReadyForQa, approveRequest, rejectRequest; completeRequestTask removed (RED observed first, tests green)
 - [x] T2 Persistence: migration 0010_awaiting_release_status (status check constraint widened); Drizzle test saves and reads awaiting_release against Docker Postgres (RED observed without the migration)
 - [ ] T3 Request QA use case and wiring
+  - [x] T3a Subtask pass goes qa -> awaiting_release via releaseSubtask (RED observed: 11 failing tests without the change; src/application 183 tests green)
+  - [ ] T3b runRequestQa and loop wiring
 - [ ] T4 Board column
 - [ ] T5 Docs
 - [ ] T6 Verification

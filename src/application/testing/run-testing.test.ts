@@ -93,13 +93,13 @@ describe("runTesting", () => {
     expect(task?.lastFeedback).toContain(`1. ${cardPath}:2: Syntax error`);
   });
 
-  it("moves a task that passes the checks and the review to deploy", async () => {
+  it("moves a task that passes the checks and the review to awaiting release", async () => {
     const { deps, testing } = setup([qaTask()], { [cardPath]: validCard }, reviewingLlm(passingReview));
 
     await testing();
 
     const task = await taskById(deps, "subtask-1");
-    expect([task?.status, task?.attempts]).toEqual(["deploy", 0]);
+    expect([task?.status, task?.attempts]).toEqual(["awaiting_release", 0]);
   });
 
   it("sends a task that fails the review back to in progress with the failures as numbered feedback", async () => {
@@ -161,8 +161,8 @@ describe("runTesting", () => {
 
     await testing();
 
-    expect((await taskById(deps, "subtask-1"))?.status).toBe("deploy");
-    expect((await taskById(deps, "subtask-2"))?.status).toBe("deploy");
+    expect((await taskById(deps, "subtask-1"))?.status).toBe("awaiting_release");
+    expect((await taskById(deps, "subtask-2"))?.status).toBe("awaiting_release");
   });
 
   describe("type check", () => {
@@ -193,13 +193,13 @@ describe("runTesting", () => {
       expect(llm.generateJson).not.toHaveBeenCalled();
     });
 
-    it("continues to the review and reaches deploy when the project type-checks cleanly", async () => {
+    it("continues to the review and reaches awaiting release when the project type-checks cleanly", async () => {
       const llm = reviewingLlm(passingReview);
       const { deps, testing } = setup([qaTask()], { [cardPath]: validCard }, llm);
 
       await testing();
 
-      expect((await taskById(deps, "subtask-1"))?.status).toBe("deploy");
+      expect((await taskById(deps, "subtask-1"))?.status).toBe("awaiting_release");
       expect(llm.generateJson).toHaveBeenCalledTimes(1);
     });
 
@@ -223,7 +223,7 @@ describe("runTesting", () => {
 
       await testing();
 
-      expect((await taskById(deps, "subtask-1"))?.status).toBe("deploy");
+      expect((await taskById(deps, "subtask-1"))?.status).toBe("awaiting_release");
       expect(llm.generateJson).toHaveBeenCalledTimes(1);
     });
 
@@ -244,7 +244,7 @@ describe("runTesting", () => {
 
       await testing();
 
-      expect((await taskById(deps, "subtask-1"))?.status).toBe("deploy");
+      expect((await taskById(deps, "subtask-1"))?.status).toBe("awaiting_release");
       expect(llm.generateJson).toHaveBeenCalledTimes(1);
     });
   });

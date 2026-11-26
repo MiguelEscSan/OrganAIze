@@ -71,7 +71,7 @@ describe("runBrowserCheck", () => {
     expect(probe.inspect).not.toHaveBeenCalled();
   });
 
-  it("sends the rendered page text to the review and moves a passing task to deploy", async () => {
+  it("sends the rendered page text to the review and moves a passing task to awaiting release", async () => {
     const probe = probeReturning({ ok: true, pageText: renderedText, consoleErrors: [] });
     const llm = reviewingLlm(passingReview);
     const { deps, check } = setup([qaTask()], probe, llm);
@@ -80,7 +80,7 @@ describe("runBrowserCheck", () => {
 
     expect(probe.inspect).toHaveBeenCalledTimes(1);
     expect(llm.generateJson.mock.calls[0]?.[0]).toContain(renderedText);
-    expect((await taskById(deps, "subtask-1"))?.status).toBe("deploy");
+    expect((await taskById(deps, "subtask-1"))?.status).toBe("awaiting_release");
   });
 
   it("sends a task whose page fails the review back to in progress with the failures", async () => {

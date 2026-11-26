@@ -1,6 +1,6 @@
 import type { Task } from "@/domain/tasks/task";
 import { rejectFromQa } from "@/domain/tasks/reject-task";
-import { transitionTask } from "@/domain/tasks/transition-task";
+import { releaseSubtask } from "@/domain/tasks/release-subtask";
 import type { ApplicationDependencies } from "../shared/dependencies";
 import { fail, type Outcome } from "../shared/outcome";
 import { recordTransition } from "./record-transition";
@@ -21,7 +21,7 @@ export const submitTestResult =
     const { verdict } = command;
 
     const result = verdict.passed
-      ? transitionTask(tasks, command.taskId, "deploy", "system")
+      ? releaseSubtask(tasks, command.taskId)
       : rejectFromQa(tasks, command.taskId, verdict.feedback);
 
     if (!result.ok || !before) {

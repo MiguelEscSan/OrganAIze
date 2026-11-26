@@ -154,11 +154,11 @@ describe("claimAndOrchestrateRequest", () => {
       return { outcome, subtask };
     };
 
-    it("moves the subtask to deploy when the testing review passes", async () => {
+    it("moves the subtask to awaiting release when the testing review passes", async () => {
       const { outcome, subtask } = await runClaim({ ok: true, json: { passed: true, failures: [] } });
 
       expect(outcome.ok).toBe(true);
-      expect([subtask?.status, subtask?.attempts]).toEqual(["deploy", 0]);
+      expect([subtask?.status, subtask?.attempts]).toEqual(["awaiting_release", 0]);
     });
 
     it("sends the subtask back to in progress with the feedback when the testing review fails", async () => {
@@ -231,7 +231,7 @@ describe("claimAndOrchestrateRequest", () => {
       await claimAndOrchestrate();
 
       const statuses = (await deps.tasks.list()).filter((task) => task.parentTaskId === "task-1").map((task) => task.status);
-      expect(statuses).toEqual(["deploy", "deploy"]);
+      expect(statuses).toEqual(["awaiting_release", "awaiting_release"]);
     });
   });
 });
