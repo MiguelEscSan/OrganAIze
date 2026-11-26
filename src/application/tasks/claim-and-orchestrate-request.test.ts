@@ -154,7 +154,7 @@ describe("claimAndOrchestrateRequest", () => {
       return { outcome, subtask };
     };
 
-    it("moves the subtask to deploy when the testing review passes", async () => {
+    it("releases the subtask to deploy with its request when the testing review passes", async () => {
       const { outcome, subtask } = await runClaim({ ok: true, json: { passed: true, failures: [] } });
 
       expect(outcome.ok).toBe(true);
@@ -232,6 +232,82 @@ describe("claimAndOrchestrateRequest", () => {
 
       const statuses = (await deps.tasks.list()).filter((task) => task.parentTaskId === "task-1").map((task) => task.status);
       expect(statuses).toEqual(["deploy", "deploy"]);
+    });
+
+    describe("with the browser check enabled", () => {
+      const twoFilePlan = {
+        subtasks: [
+          { title: "First", description: "Write A", acceptanceCriteria: ["ok"], files: ["src/a.tsx"], runsInParallel: false },
+          { title: "Second", description: "Write B", acceptanceCriteria: ["ok"], files: ["src/b.tsx"], runsInParallel: false },
+        ],
+      };
+
+      const runLocal = async (requestReviews: LlmReply[]) => {
+        const remaining = [...requestReviews];
+        const llm: LlmClient = {
+          generateJson: async (prompt: string) => {
+            if (prompt.includes("Review this subtask")) {
+              return { ok: true, json: { passed: true, failures: [] } };
+            }
+            if (prompt.includes("Review the running app as a whole")) {
+              return remaining.shift() ?? { ok: true, json: { passed: true, failures: [] } };
+            }
+            if (prompt.includes("Implement this subtask")) {
+              const path = prompt.match(/You may write only these files: ([^\n]+)/)?.[1] ?? "";
+              return { ok: true, json: { files: [{ path, content: "export {};" }] } };
+            }
+            return { ok: true, json: twoFilePlan };
+          },
+        };
+        const deps = createInMemoryDependencies({ ...developSeed, tasks: [readyTask] });
+        const claimAndOrchestrate = claimAndOrchestrateRequest({
+          ...deps,
+          ...inMemoryScaffoldDependencies(createInMemoryWorkspaceWriter({})),
+          llm,
+          interfaceProbe: { inspect: async () => ({ ok: true, pageText: "Rendered", consoleErrors: [] }) },
+          browserCheckEnabled: () => true,
+        });
+
+        const outcome = await claimAndOrchestrate();
+
+        return { outcome, tasks: await deps.tasks.list() };
+      };
+
+      it("takes a request of two subtasks from ready to deploy", async () => {
+        const { outcome, tasks } = await runLocal([]);
+
+        expect(outcome.ok).toBe(true);
+        expect(tasks.map((task) => task.status)).toEqual(["deploy", "deploy", "deploy"]);
+      });
+
+      it("develops and tests again only the subtask the request review blames, then reaches deploy", async () => {
+        const blame: LlmReply = {
+          ok: true,
+          json: { passed: false, failures: [{ criterion: "A renders", file: "src/a.tsx", message: "Blank" }] },
+        };
+
+        const { tasks } = await runLocal([blame]);
+
+        expect(tasks.map((task) => task.status)).toEqual(["deploy", "deploy", "deploy"]);
+        expect(tasks.filter((task) => task.parentTaskId === "task-1").map((task) => task.attempts)).toEqual([1, 0]);
+      });
+
+      it("stops in review when the request review keeps failing", async () => {
+        const blame: LlmReply = {
+          ok: true,
+          json: { passed: false, failures: [{ criterion: "A renders", file: "src/a.tsx", message: "Blank" }] },
+        };
+
+        const { tasks } = await runLocal([blame, blame, blame]);
+
+        const [request, first, second] = tasks;
+        expect([request.status, first.status, first.attempts, second.status]).toEqual([
+          "in_progress",
+          "review",
+          3,
+          "awaiting_release",
+        ]);
+      });
     });
   });
 });

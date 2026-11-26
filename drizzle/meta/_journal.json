@@ -71,6 +71,13 @@
       "when": 1795622065502,
       "tag": "0009_live_status",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795696725764,
+      "tag": "0010_awaiting_release_status",
+      "breakpoints": true
     }
   ]
 }

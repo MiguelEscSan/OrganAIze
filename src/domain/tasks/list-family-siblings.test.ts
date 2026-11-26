@@ -19,7 +19,7 @@ const createTask = (overrides: Partial<Task> & Pick<Task, "id">): Task => ({
 });
 
 const board = (tasks: Task[]): TasksByStatus => {
-  const grouped: TasksByStatus = { definition: [], ready: [], in_progress: [], qa: [], deploy: [], review: [] };
+  const grouped: TasksByStatus = { definition: [], ready: [], in_progress: [], qa: [], awaiting_release: [], deploy: [], review: [] };
   for (const task of tasks) {
     grouped[task.status].push(task);
   }

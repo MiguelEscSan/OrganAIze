@@ -16,6 +16,7 @@ const createDependenciesWithLlm = () => ({
   projectFiles: { list: async () => [] },
   typeChecker: createInMemoryProjectTypeChecker(),
   archiveWriter: createInMemoryArchiveWriter(),
+  browserCheckEnabled: () => false,
 });
 
 describe("createMediator", () => {
@@ -48,6 +49,7 @@ describe("createMediator", () => {
   projectFiles: { list: async () => [] },
       typeChecker: createInMemoryProjectTypeChecker(),
       archiveWriter: createInMemoryArchiveWriter(),
+      browserCheckEnabled: () => false,
     };
     const mediator = createMediator(deps);
 
@@ -58,6 +60,18 @@ describe("createMediator", () => {
 
     expect(outcome.ok).toBe(true);
     expect(workspace.files()).toEqual({ "src/app/page.tsx": "new" });
+  });
+
+  it("routes a request QA through the mediator and leaves a request without subtasks alone", async () => {
+    const deps = createDependenciesWithLlm();
+    const mediator = createMediator(deps);
+
+    const outcome = await mediator.send<{ kind: "RunRequestQa"; requestId: string }, { ok: boolean; value: string }>({
+      kind: "RunRequestQa",
+      requestId: "missing",
+    });
+
+    expect(outcome).toEqual({ ok: true, value: "skipped" });
   });
 
   it("routes a claim through the mediator and moves the next ready task", async () => {

@@ -22,7 +22,7 @@ const queuedTask = async (deps: BrowserCheckDependencies, taskId: string): Promi
   return task.status === "qa" ? succeed(task) : fail("Only tasks in QA can run a browser check");
 };
 
-const renderedEvidence = (pageText: string, consoleErrors: readonly string[]): string =>
+export const renderedEvidence = (pageText: string, consoleErrors: readonly string[]): string =>
   consoleErrors.length === 0
     ? pageText
     : [pageText, "Console errors:", ...consoleErrors.map((error) => `- ${error}`)].join("\n");

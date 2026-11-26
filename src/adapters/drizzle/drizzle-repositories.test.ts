@@ -147,6 +147,21 @@ describe("drizzle task repository", () => {
     expect((await tasks.list()).map((task) => task.status)).toEqual(["in_progress"]);
   });
 
+  it("stores and reads back a task awaiting release", async () => {
+    const requests = createDrizzleRequestRepository(db);
+    const tasks = createDrizzleTaskRepository(db);
+    await requests.saveWithTasks(request, [taskOf("t1", "qa")]);
+
+    const outcome = await tasks.applyTransition({
+      task: taskOf("t1", "awaiting_release"),
+      expectedStatus: "qa",
+      event: transitionEvent("t1", "qa", "awaiting_release"),
+    });
+
+    expect(outcome).toBe("applied");
+    expect((await tasks.list()).map((task) => task.status)).toEqual(["awaiting_release"]);
+  });
+
   it("reports a conflict when the stored status differs from the expected status", async () => {
     const requests = createDrizzleRequestRepository(db);
     const tasks = createDrizzleTaskRepository(db);

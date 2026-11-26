@@ -3,8 +3,7 @@ import type { ReactNode } from "react";
 type RequestFamilyProps = {
   parent: ReactNode | null;
   title: string;
-  deployed: number;
-  total: number;
+  progressLabel: string;
   children: ReactNode[];
 };
 
@@ -26,15 +25,13 @@ const HierarchyIcon = () => (
   </svg>
 );
 
-const GhostHead = ({ title, deployed, total }: Pick<RequestFamilyProps, "title" | "deployed" | "total">) => (
+const GhostHead = ({ title, progressLabel }: Pick<RequestFamilyProps, "title" | "progressLabel">) => (
   <div className="flex items-center justify-between gap-2 rounded-xl border-2 border-dashed border-family-line px-3 py-2.5">
     <span className="flex min-w-0 items-center gap-2">
       <HierarchyIcon />
       <span className="truncate text-[13px] font-extrabold text-family-ink">{title}</span>
     </span>
-    <span className="shrink-0 text-xs font-bold text-muted">
-      {deployed} of {total} deployed
-    </span>
+    <span className="shrink-0 text-xs font-bold text-muted">{progressLabel}</span>
   </div>
 );
 
@@ -47,9 +44,9 @@ const Connector = ({ isLast }: { isLast: boolean }) => (
   </span>
 );
 
-export const RequestFamily = ({ parent, title, deployed, total, children }: RequestFamilyProps) => (
+export const RequestFamily = ({ parent, title, progressLabel, children }: RequestFamilyProps) => (
   <div className="flex flex-col gap-2 rounded-2xl bg-family p-2">
-    {parent ?? <GhostHead title={title} deployed={deployed} total={total} />}
+    {parent ?? <GhostHead title={title} progressLabel={progressLabel} />}
     <ul className="flex flex-col">
       {children.map((child, index) => {
         const isLast = index === children.length - 1;

@@ -134,7 +134,7 @@ const reconcileFiles = async (
 const readCurrentFiles = async (workspace: WorkspaceWriter, task: Task): Promise<CurrentFile[]> =>
   Promise.all(task.files.map(async (path) => ({ path, content: await workspace.read(path) })));
 
-const contextBudgetOf = (llm: LlmClient): number =>
+export const contextBudgetOf = (llm: LlmClient): number =>
   llm.contextWindowTokens === undefined ? defaultContextBudget : Math.min(defaultContextBudget, llm.contextWindowTokens);
 
 const readContextFiles = async (deps: DevelopDependencies, task: Task): Promise<ProjectFile[]> => {

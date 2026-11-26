@@ -4,21 +4,20 @@ import { buildTask } from "@/adapters/in-memory/task-fixtures";
 import { submitTestResult } from "./submit-test-result";
 
 describe("submitTestResult", () => {
-  it("moves the request task to deploy when its last subtask passes", async () => {
+  it("keeps the request task in progress when its last subtask passes", async () => {
     const deps = createInMemoryDependencies({
       tasks: [
         buildTask({ id: "request", status: "in_progress" }),
-        buildTask({ id: "subtask-1", parentTaskId: "request", status: "deploy" }),
+        buildTask({ id: "subtask-1", parentTaskId: "request", status: "awaiting_release" }),
         buildTask({ id: "subtask-2", parentTaskId: "request", status: "qa" }),
       ],
     });
 
     await submitTestResult(deps)({ kind: "SubmitTestResult", taskId: "subtask-2", verdict: { passed: true } });
 
-    expect((await deps.tasks.list()).find((task) => task.id === "request")?.status).toBe("deploy");
+    expect((await deps.tasks.list()).find((task) => task.id === "request")?.status).toBe("in_progress");
     expect(await deps.events.list()).toEqual([
-      expect.objectContaining({ taskId: "subtask-2", from: "qa", to: "deploy" }),
-      expect.objectContaining({ taskId: "request", from: "in_progress", to: "deploy", actor: "system" }),
+      expect.objectContaining({ taskId: "subtask-2", from: "qa", to: "awaiting_release" }),
     ]);
   });
 
@@ -36,15 +35,15 @@ describe("submitTestResult", () => {
     expect((await deps.tasks.list()).find((task) => task.id === "request")?.status).toBe("in_progress");
   });
 
-  it("moves a passing task from qa to deploy", async () => {
-    const deps = createInMemoryDependencies({ tasks: [buildTask({ id: "t1", status: "qa" })] });
+  it("moves a passing subtask from qa to awaiting release, never to deploy", async () => {
+    const deps = createInMemoryDependencies({ tasks: [buildTask({ id: "t1", status: "qa", parentTaskId: "request" })] });
 
     const outcome = await submitTestResult(deps)({ kind: "SubmitTestResult", taskId: "t1", verdict: { passed: true } });
 
     expect(outcome.ok).toBe(true);
-    expect((await deps.tasks.list())[0].status).toBe("deploy");
+    expect((await deps.tasks.list())[0].status).toBe("awaiting_release");
     expect(await deps.events.list()).toEqual([
-      expect.objectContaining({ taskId: "t1", from: "qa", to: "deploy", actor: "system" }),
+      expect.objectContaining({ taskId: "t1", from: "qa", to: "awaiting_release", actor: "system" }),
     ]);
   });
 
@@ -95,10 +94,12 @@ describe("submitTestResult", () => {
   });
 
   it("refuses a result for a task that is not in qa", async () => {
-    const deps = createInMemoryDependencies({ tasks: [buildTask({ id: "t1", status: "in_progress" })] });
+    const deps = createInMemoryDependencies({
+      tasks: [buildTask({ id: "t1", status: "in_progress", parentTaskId: "request" })],
+    });
 
     const outcome = await submitTestResult(deps)({ kind: "SubmitTestResult", taskId: "t1", verdict: { passed: true } });
 
-    expect(outcome).toEqual({ ok: false, reason: "system cannot move a task from in_progress to deploy" });
+    expect(outcome).toEqual({ ok: false, reason: "system cannot move a task from in_progress to awaiting_release" });
   });
 });

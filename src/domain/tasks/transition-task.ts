@@ -18,12 +18,20 @@ const systemMoves: ReadonlyArray<readonly [TaskStatus, TaskStatus]> = [
   ["ready", "in_progress"],
   ["in_progress", "qa"],
   ["qa", "deploy"],
+  ["qa", "awaiting_release"],
+  ["awaiting_release", "deploy"],
+  ["awaiting_release", "in_progress"],
 ];
 
 const allowedMovesFor = (actor: Actor) => (actor === "user" ? userMoves : systemMoves);
 
 const isAllowed = (actor: Actor, from: TaskStatus, to: TaskStatus) =>
   allowedMovesFor(actor).some(([source, target]) => source === from && target === to);
+
+const statusesOfARequestInFlight: readonly TaskStatus[] = ["in_progress", "qa", "awaiting_release"];
+
+const occupiesProgress = (candidateStatus: TaskStatus, movingFrom: TaskStatus): boolean =>
+  movingFrom === "ready" ? statusesOfARequestInFlight.includes(candidateStatus) : candidateStatus === "in_progress";
 
 export const transitionTask = (
   tasks: readonly Task[],
@@ -42,7 +50,7 @@ export const transitionTask = (
   }
 
   const movesIntoProgress = to === "in_progress";
-  const progressTaken = tasks.some((candidate) => candidate.status === "in_progress");
+  const progressTaken = tasks.some((candidate) => occupiesProgress(candidate.status, task.status));
 
   if (movesIntoProgress && progressTaken) {
     return { ok: false, reason: "Another task is already in progress" };

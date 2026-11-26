@@ -22,12 +22,12 @@ const emptySummary = {
   title: "",
   total: 0,
   deployed: 0,
-  byStatus: { definition: 0, ready: 0, in_progress: 0, qa: 0, deploy: 0, review: 0 },
+  byStatus: { definition: 0, ready: 0, in_progress: 0, qa: 0, awaiting_release: 0, deploy: 0, review: 0 },
   workingByAgent: {},
 };
 
 const board = (tasks: Task[]): TasksByStatus => {
-  const grouped: TasksByStatus = { definition: [], ready: [], in_progress: [], qa: [], deploy: [], review: [] };
+  const grouped: TasksByStatus = { definition: [], ready: [], in_progress: [], qa: [], awaiting_release: [], deploy: [], review: [] };
   for (const task of tasks) {
     grouped[task.status].push(task);
   }
@@ -155,7 +155,7 @@ describe("groupColumnIntoFamilies", () => {
     const [entry] = groupColumnIntoFamilies("in_progress", board([parent, working, inQa, stuck]));
 
     expect(entry).toMatchObject({
-      summary: { byStatus: { in_progress: 1, qa: 1, review: 1, deploy: 0, ready: 0, definition: 0 } },
+      summary: { byStatus: { in_progress: 1, qa: 1, review: 1, deploy: 0, awaiting_release: 0, ready: 0, definition: 0 } },
     });
   });
 
