@@ -9,7 +9,9 @@ import type { BoardRepository } from "@/ports/board-repository";
 import type { LlmClient, LlmReply } from "@/ports/llm-client";
 import type { ProjectFile, ProjectFiles } from "@/ports/project-files";
 import type { WorkspaceWriter } from "@/ports/workspace-writer";
-import type { ApplicationDependencies } from "../shared/dependencies";
+import type { PromptLibrary } from "@/ports/prompt-library";
+import type { ApplicationDependencies, PromptDependencies } from "../shared/dependencies";
+import { blocksOf, bulletsOf } from "../agents/prompt-blocks";
 import { fail, succeed, type Outcome } from "../shared/outcome";
 import { mergeSharedFile } from "./merge-shared-file";
 import { rootPathOfTask, workspaceOfTask } from "../shared/task-workspace";
@@ -25,71 +27,47 @@ import { submitDevelopResult } from "./submit-develop-result";
 
 export type RunDevelop = { kind: "RunDevelop"; taskId: string };
 
-export type DevelopDependencies = ApplicationDependencies & {
-  llm: LlmClient;
-  boards: BoardRepository;
-  workspaceFor: (rootPath: string) => WorkspaceWriter;
-  projectFiles: ProjectFiles;
-};
+export type DevelopDependencies = ApplicationDependencies &
+  PromptDependencies & {
+    llm: LlmClient;
+    boards: BoardRepository;
+    workspaceFor: (rootPath: string) => WorkspaceWriter;
+    projectFiles: ProjectFiles;
+  };
 
 type CurrentFile = { path: string; content: string | null };
 
 const describeCurrentFile = (file: CurrentFile): string =>
   file.content === null ? `### ${file.path}\n(new file)` : `### ${file.path}\n${file.content}`;
 
-const feedbackSection = (feedback: string | null): string[] =>
-  feedback ? ["Feedback from the last review, fix every point:", feedback] : [];
-
 const describeFailure = (failure: PreviousFailure): string => `Attempt ${failure.attempt}: ${failure.reason}`;
 
-const historySection = (failures: readonly PreviousFailure[]): string[] =>
-  failures.length === 0
-    ? []
-    : ["Previous failures of this subtask, oldest first; do not repeat any of them:", ...failures.map(describeFailure)];
-
 const describeContextFile =(file: ProjectFile): string => `### ${file.path}\n${file.content}`;
-
-const contextSection = (contextFiles: readonly ProjectFile[]): string[] =>
-  contextFiles.length === 0
-    ? []
-    : [
-        "Other files in the project (read-only, do not modify them; import and use their real exports):",
-        ...contextFiles.map(describeContextFile),
-      ];
 
 const siblingsOf = (tasks: readonly Task[], task: Task): Task[] =>
   tasks.filter((candidate) => candidate.id !== task.id && candidate.parentTaskId === task.parentTaskId && task.parentTaskId !== null);
 
 const describeSibling = (sibling: Task): string => `- ${sibling.title} (files: ${sibling.files.join(", ")})`;
 
-const siblingsSection = (siblings: readonly Task[]): string[] =>
-  siblings.length === 0
-    ? []
-    : ["Other subtasks of this request (they may write their files at the same time; refer to their files by path):", ...siblings.map(describeSibling)];
-
 const developPrompt = (
+  prompts: PromptLibrary,
   task: Task,
   currentFiles: readonly CurrentFile[],
   contextFiles: readonly ProjectFile[],
   siblings: readonly Task[],
   failures: readonly PreviousFailure[],
 ): string =>
-  [
-    `Implement this subtask: ${task.title}`,
-    task.description,
-    "Acceptance criteria:",
-    ...task.acceptanceCriteria.map((criterion) => `- ${criterion}`),
-    ...historySection(failures),
-    ...feedbackSection(task.lastFeedback),
-    `You may write only these files: ${task.files.join(", ")}`,
-    "Current content of those files:",
-    ...currentFiles.map(describeCurrentFile),
-    ...contextSection(contextFiles),
-    ...siblingsSection(siblings),
-    "Any file that contains JSX must end in .tsx, never .ts.",
-    'Reply with JSON only, in the form {"files":[{"path":"...","content":"full file content"}]}.',
-    "Include the full content of every file you change. Do not write any other path.",
-  ].join("\n\n");
+  prompts.render("develop", {
+    title: task.title,
+    description: task.description,
+    acceptanceCriteria: bulletsOf(task.acceptanceCriteria),
+    previousFailures: blocksOf(failures.map(describeFailure)),
+    lastFeedback: task.lastFeedback || undefined,
+    files: task.files.join(", "),
+    currentFiles: blocksOf(currentFiles.map(describeCurrentFile)),
+    contextFiles: blocksOf(contextFiles.map(describeContextFile)),
+    siblings: blocksOf(siblings.map(describeSibling)),
+  });
 
 const countFailure = async (
   deps: DevelopDependencies,
@@ -129,7 +107,7 @@ const reconcileFiles = async (
       continue;
     }
 
-    const merged = await mergeSharedFile(deps.llm, { path: file.path, base, current: current ?? "", proposed: file.content });
+    const merged = await mergeSharedFile(deps, { path: file.path, base, current: current ?? "", proposed: file.content });
 
     if (!merged.ok) {
       return fail(merged.reason);
@@ -183,7 +161,7 @@ const writeSubtask =
     const currentFiles = await readCurrentFiles(workspace.value, task);
     const contextFiles = await readContextFiles(deps, task);
     const failures = previousFailuresOf(await deps.events.list(), task.id);
-    const reply = await deps.llm.generateJson(developPrompt(task, currentFiles, contextFiles, siblingsOf(tasks, task), failures));
+    const reply = await deps.llm.generateJson(developPrompt(deps.prompts, task, currentFiles, contextFiles, siblingsOf(tasks, task), failures));
     const settings = await deps.settings.get();
     const overrun = budgetOverrunReason(
       { minutes: minutesBetween(startedAt, deps.clock.now()), tokens: tokensUsed(reply) },

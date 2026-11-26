@@ -14,11 +14,15 @@ import type { InterfaceProbeResult } from "@/ports/interface-probe";
 import type { LlmClient, LlmReply } from "@/ports/llm-client";
 import type { Request } from "@/domain/requests/request";
 import type { Task } from "@/domain/tasks/task";
-import { mergeSharedFile } from "../tasks/merge-shared-file";
+import { createRepositoryPromptLibrary } from "@/adapters/in-memory/repository-prompt-library";
+import { mergeSharedFile as mergeWith } from "../tasks/merge-shared-file";
 import { orchestrateRequest } from "../tasks/orchestrate-request";
 import { runDevelop } from "../tasks/run-develop";
 import { runRequestQa } from "../testing/run-request-qa";
 import { verdictForTask } from "../testing/run-testing";
+
+const mergeSharedFile = (llm: LlmClient, merge: Parameters<typeof mergeWith>[1]) =>
+  mergeWith({ llm, prompts: createRepositoryPromptLibrary() }, merge);
 
 const stopped: LlmReply = { ok: false, reason: "stop" };
 

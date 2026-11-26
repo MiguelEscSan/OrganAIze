@@ -7,7 +7,9 @@ import type { LlmClient } from "@/ports/llm-client";
 import type { ProjectFiles } from "@/ports/project-files";
 import type { ProjectTypeChecker, TypeFailure } from "@/ports/project-type-checker";
 import type { WorkspaceReader } from "@/ports/workspace-reader";
-import type { ApplicationDependencies } from "../shared/dependencies";
+import type { PromptLibrary } from "@/ports/prompt-library";
+import type { ApplicationDependencies, PromptDependencies } from "../shared/dependencies";
+import { blocksOf, bulletsOf } from "../agents/prompt-blocks";
 import { fail, succeed, type Outcome } from "../shared/outcome";
 import { rootPathOfTask } from "../shared/task-workspace";
 import { submitTestResult, type TestVerdict } from "../tasks/submit-test-result";
@@ -22,6 +24,7 @@ export type TypeCheckDependencies = {
 };
 
 export type TestingDependencies = ApplicationDependencies &
+  PromptDependencies &
   Partial<TypeCheckDependencies> & {
     llm: LlmClient;
     boards: BoardRepository;
@@ -62,21 +65,18 @@ export const unreviewedVerdict = (reason: string): TestVerdict =>
 const describeFile = (file: CheckedFile): string =>
   file.content === null ? `### ${file.path}\n(missing)` : `### ${file.path}\n${file.content}`;
 
-const renderedPageSection = (renderedPage: string | undefined): string[] =>
-  renderedPage === undefined ? [] : ["Visible text of the running app:", renderedPage];
-
-const reviewPrompt = (task: Task, files: readonly CheckedFile[], renderedPage: string | undefined): string =>
-  [
-    `Review this subtask against its acceptance criteria and nothing else: ${task.title}`,
-    "Acceptance criteria:",
-    ...task.acceptanceCriteria.map((criterion) => `- ${criterion}`),
-    "Current content of the files:",
-    ...files.map(describeFile),
-    ...renderedPageSection(renderedPage),
-    'Reply with JSON only, in the form {"passed": boolean, "failures": [{"criterion": string, "file": string, "line": number | null, "message": string}]}.',
-    "Use passed true with an empty failures list when every criterion holds.",
-    "Use passed false with one failure per violated criterion, naming the file and line when possible.",
-  ].join("\n\n");
+const reviewPrompt = (
+  prompts: PromptLibrary,
+  task: Task,
+  files: readonly CheckedFile[],
+  renderedPage: string | undefined,
+): string =>
+  prompts.render("testing-subtask", {
+    title: task.title,
+    acceptanceCriteria: bulletsOf(task.acceptanceCriteria),
+    files: blocksOf(files.map(describeFile)),
+    renderedPage,
+  });
 
 const verdictOfReview = (review: Review): TestVerdict =>
   review.passed ? { passed: true } : failedVerdict(numbered(review.failures.map(reviewFailureText)), "substantive");
@@ -87,7 +87,7 @@ const reviewWithLlm = async (
   files: readonly CheckedFile[],
   renderedPage: string | undefined,
 ): Promise<TestVerdict> => {
-  const reply = await deps.llm.generateJson(reviewPrompt(task, files, renderedPage));
+  const reply = await deps.llm.generateJson(reviewPrompt(deps.prompts, task, files, renderedPage));
 
   if (!reply.ok) {
     return unreviewedVerdict(reply.reason);

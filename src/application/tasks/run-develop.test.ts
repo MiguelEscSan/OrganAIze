@@ -8,6 +8,7 @@ import { createInMemoryProjectFiles } from "@/adapters/in-memory/in-memory-proje
 import { developSeed, inMemoryDevelopDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
 import type { Task } from "@/domain/tasks/task";
 import type { LlmClient } from "@/ports/llm-client";
+import { createRepositoryPromptLibrary } from "@/adapters/in-memory/repository-prompt-library";
 import { runDevelop } from "./run-develop";
 
 const subtask = (overrides: Partial<Task> = {}): Task =>
@@ -231,6 +232,7 @@ describe("runDevelop", () => {
         roots.push(rootPath);
         return workspace;
       },
+      prompts: createRepositoryPromptLibrary(),
       llm: createScriptedLlmClient({ ok: true, json: validOutput }),
     });
 

@@ -1,9 +1,11 @@
+import { join } from "node:path";
 import type { Mediator } from "@/application/cqrs/mediator";
 import { createMediator } from "@/application/register-handlers";
 import type { BoardRepository } from "@/ports/board-repository";
 import type { LlmClient } from "@/ports/llm-client";
 import { createFflateArchiveWriter } from "../archive/fflate-archive-writer";
 import { createLlmClientFromEnv } from "../config/llm-client-from-env";
+import { createFilePromptLibrary } from "../prompts/file-prompt-library";
 import { createUndiciOllamaFetch } from "../ollama/ollama-fetch";
 import type { OllamaFetch } from "../ollama/ollama-llm-client";
 import { createDrizzleBoardRepository } from "../drizzle/drizzle-board-repository";
@@ -63,6 +65,7 @@ const buildServices = (): AppServices => {
     mediator: createMediator({
       ...createDrizzleDependencies(db),
       llm: llmFromEnvironment(),
+      prompts: createFilePromptLibrary(join(process.cwd(), "prompts")),
       boards: createDrizzleBoardRepository(db),
       appRoot: process.cwd(),
       workspaceFor: routedWorkspaceFor(createDiskWorkspaceWriter, (location) =>
