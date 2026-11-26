@@ -4,7 +4,7 @@ import type { BoardRepository } from "@/ports/board-repository";
 import type { LlmClient } from "@/ports/llm-client";
 import { createFflateArchiveWriter } from "../archive/fflate-archive-writer";
 import { createLlmClientFromEnv } from "../config/llm-client-from-env";
-import { createOllamaFetch } from "../ollama/ollama-fetch";
+import { createUndiciOllamaFetch } from "../ollama/ollama-fetch";
 import type { OllamaFetch } from "../ollama/ollama-llm-client";
 import { createDrizzleBoardRepository } from "../drizzle/drizzle-board-repository";
 import { createDrizzleDependencies } from "../drizzle/create-drizzle-dependencies";
@@ -37,7 +37,7 @@ const unavailableLlm = (reason: string): LlmClient => ({
 
 const fetcherForProvider = (provider: string | undefined): OllamaFetch =>
   provider?.trim() === "ollama"
-    ? createOllamaFetch((url, init) => fetch(url, init as RequestInit))
+    ? createUndiciOllamaFetch()
     : (url, init) => fetch(url, init);
 
 const llmFromEnvironment =(): LlmClient => {

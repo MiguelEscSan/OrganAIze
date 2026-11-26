@@ -1,4 +1,4 @@
-import { Agent, type Dispatcher } from "undici";
+import { Agent, fetch as undiciFetch, type Dispatcher } from "undici";
 import type { OllamaFetch } from "./ollama-llm-client";
 
 type DispatchingFetch = (
@@ -18,3 +18,6 @@ export const createOllamaFetch = (
 
   return (url, init) => dispatchingFetch(url, { ...init, dispatcher });
 };
+
+export const createUndiciOllamaFetch = (): OllamaFetch =>
+  createOllamaFetch((url, init) => undiciFetch(url, init) as unknown as Promise<Response>);
