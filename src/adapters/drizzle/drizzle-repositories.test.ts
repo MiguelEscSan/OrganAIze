@@ -292,6 +292,16 @@ describe("drizzle board repository", () => {
     expect(outcome).toBe("conflict");
     expect(await repository.list()).toEqual([board]);
   });
+
+  it("keeps several boards that have no project folder", async () => {
+    const repository = createDrizzleBoardRepository(db);
+
+    const first = await repository.save({ id: "board-2", name: "Cloud", rootPath: null });
+    const second = await repository.save({ id: "board-3", name: "Cloud 2", rootPath: null });
+
+    expect([first, second]).toEqual(["applied", "applied"]);
+    expect(await repository.list()).toContainEqual({ id: "board-2", name: "Cloud", rootPath: null });
+  });
 });
 
 describe("drizzle event log", () => {

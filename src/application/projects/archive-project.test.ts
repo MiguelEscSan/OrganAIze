@@ -55,6 +55,25 @@ describe("archiveProject", () => {
     expect(writer.archivedFiles()).toEqual(files);
   });
 
+  it("archives the storage location of a board without a folder", async () => {
+    const listed: string[] = [];
+    const query = archiveProject({
+      boards: createInMemoryBoardRepository([{ id: "board-2", name: "Cloud", rootPath: null }]),
+      projectFiles: {
+        list: async (location) => {
+          listed.push(location);
+          return files;
+        },
+      },
+      archiveWriter: createInMemoryArchiveWriter(),
+    });
+
+    const archive = await query({ kind: "ArchiveProject", boardId: "board-2" });
+
+    expect(archive?.filename).toBe("cloud.zip");
+    expect(listed).toEqual(["storage:board-2"]);
+  });
+
   it("returns null for a board that does not exist", async () => {
     const writer = createInMemoryArchiveWriter();
     const query = archiveProject({ boards: boardsNamed("Shop"), projectFiles: projectFilesReturning(files), archiveWriter: writer });

@@ -8,7 +8,7 @@ export const createInMemoryBoardRepository = (seed: readonly Board[] = []): Boar
     list: async () => [...boards],
 
     save: async (board) => {
-      if (boards.some((candidate) => candidate.id !== board.id && candidate.rootPath === board.rootPath)) {
+      if (board.rootPath !== null && boards.some((candidate) => candidate.id !== board.id && candidate.rootPath === board.rootPath)) {
         return "conflict";
       }
 

@@ -8,7 +8,7 @@ export type UpdateBoard = {
   kind: "UpdateBoard";
   id: string;
   name: string;
-  rootPath: string;
+  rootPath?: string | null;
 };
 
 export const updateBoard =

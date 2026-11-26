@@ -1,3 +1,4 @@
+import { workspaceLocationOf } from "@/domain/boards/board";
 import type { Request } from "@/domain/requests/request";
 import type { Task } from "@/domain/tasks/task";
 import { parseOrchestrationPlan, type OrchestrationPlan } from "@/domain/agents/orchestration-plan";
@@ -79,7 +80,7 @@ const countInvalidPlan = async (
 const scaffoldProjectOf = async (deps: OrchestrationDependencies, request: Request): Promise<Outcome<string[]>> => {
   const board = (await deps.boards.list()).find((candidate) => candidate.id === request.boardId);
 
-  return board ? scaffoldProject(deps)({ kind: "ScaffoldProject", rootPath: board.rootPath }) : fail(missingBoardReason);
+  return board ? scaffoldProject(deps)({ kind: "ScaffoldProject", rootPath: workspaceLocationOf(board) }) : fail(missingBoardReason);
 };
 
 const splitRequest =

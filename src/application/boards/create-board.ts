@@ -1,5 +1,5 @@
 import type { Board } from "@/domain/boards/board";
-import { normalizeBoardDetails } from "@/domain/boards/board";
+import { normalizeBoardDetails, workspaceLocationOf } from "@/domain/boards/board";
 import type { BoardDependencies } from "../shared/dependencies";
 import { fail, succeed, type Outcome } from "../shared/outcome";
 import { scaffoldProject, type ScaffoldDependencies } from "../projects/scaffold-project";
@@ -8,7 +8,7 @@ import { duplicateBoardReason } from "./board-messages";
 export type CreateBoard = {
   kind: "CreateBoard";
   name: string;
-  rootPath: string;
+  rootPath?: string | null;
 };
 
 export type CreateBoardDependencies = BoardDependencies & ScaffoldDependencies;
@@ -29,7 +29,7 @@ export const createBoard =
       return fail(duplicateBoardReason);
     }
 
-    await scaffoldProject(deps)({ kind: "ScaffoldProject", rootPath: board.rootPath });
+    await scaffoldProject(deps)({ kind: "ScaffoldProject", rootPath: workspaceLocationOf(board) });
 
     return succeed(board);
   };

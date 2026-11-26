@@ -1,3 +1,4 @@
+import { workspaceLocationOf } from "@/domain/boards/board";
 import type { ArchiveWriter } from "@/ports/archive-writer";
 import type { BoardRepository } from "@/ports/board-repository";
 import type { ProjectFiles } from "@/ports/project-files";
@@ -38,7 +39,7 @@ export const archiveProject =
       return null;
     }
 
-    const files = await deps.projectFiles.list(board.rootPath);
+    const files = await deps.projectFiles.list(workspaceLocationOf(board));
 
     return { filename: archiveFilenameOf(board.name), bytes: deps.archiveWriter.write(files) };
   };

@@ -93,4 +93,32 @@ describe("createBoard", () => {
     expect(outcome).toEqual({ ok: true, value: { id: "id-1", name: "Landing", rootPath: "C:/projects/landing" } });
     expect(await base.deps.boards.list()).toHaveLength(1);
   });
+
+  it("creates a board without a folder and scaffolds its storage location", async () => {
+    const workspaceLocations: string[] = [];
+    const base = withWorkspace();
+    const deps = {
+      ...base.deps,
+      workspaceFor: (location: string) => {
+        workspaceLocations.push(location);
+        return base.workspace;
+      },
+    };
+
+    const outcome = await createBoard(deps)({ kind: "CreateBoard", name: "Cloud", rootPath: "  " });
+
+    expect(outcome).toEqual({ ok: true, value: { id: "id-1", name: "Cloud", rootPath: null } });
+    expect(workspaceLocations).toEqual(["storage:id-1"]);
+    expect(Object.keys(base.workspace.files())).toContain("package.json");
+  });
+
+  it("allows several boards without a folder", async () => {
+    const { deps } = withWorkspace();
+
+    await createBoard(deps)({ kind: "CreateBoard", name: "One" });
+    const second = await createBoard(deps)({ kind: "CreateBoard", name: "Two" });
+
+    expect(second.ok).toBe(true);
+    expect(await deps.boards.list()).toHaveLength(2);
+  });
 });
