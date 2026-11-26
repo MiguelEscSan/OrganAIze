@@ -6,15 +6,26 @@ import { orchestrateRequest, type OrchestrationDependencies } from "./orchestrat
 import { conflictReason } from "./record-transition";
 import type { DevelopDependencies } from "./run-develop";
 import { runDevelopSubtasks } from "./run-develop-subtasks";
+import { runRequestQa, type RequestQaExtras } from "../testing/run-request-qa";
 import { runTesting } from "../testing/run-testing";
 
 export type ClaimAndOrchestrateRequest = { kind: "ClaimAndOrchestrateRequest" };
 
 const fallbackReviewReason = "Orchestration failed without a reason";
 
+type LoopDependencies = OrchestrationDependencies & DevelopDependencies & RequestQaExtras;
+
 const testSubtasksSafely = async (deps: DevelopDependencies): Promise<void> => {
   try {
     await runTesting(deps)();
+  } catch {
+    return;
+  }
+};
+
+const testRequestSafely = async (deps: LoopDependencies, parentTaskId: string): Promise<void> => {
+  try {
+    await runRequestQa(deps)({ kind: "RunRequestQa", requestId: parentTaskId });
   } catch {
     return;
   }
@@ -44,7 +55,7 @@ const sendClaimedRequestToReview = async (
 
 const subtaskSnapshot = async (deps: OrchestrationDependencies, parentTaskId: string): Promise<string> =>
   (await deps.tasks.list())
-    .filter((task) => task.parentTaskId === parentTaskId)
+    .filter((task) => task.id === parentTaskId || task.parentTaskId === parentTaskId)
     .map((task) => `${task.id}:${task.status}:${task.attempts}`)
     .join("|");
 
@@ -53,12 +64,13 @@ const hasDevelopWork = async (deps: OrchestrationDependencies, parentTaskId: str
     (task) => task.parentTaskId === parentTaskId && task.status === "in_progress" && task.assignedAgent === "develop",
   );
 
-const developAndTestUntilSettled = async (deps: OrchestrationDependencies & DevelopDependencies, parentTaskId: string) => {
+const developAndTestUntilSettled = async (deps: LoopDependencies, parentTaskId: string) => {
   for (;;) {
     const before = await subtaskSnapshot(deps, parentTaskId);
 
     await runDevelopSubtasks(deps)(parentTaskId);
     await testSubtasksSafely(deps);
+    await testRequestSafely(deps, parentTaskId);
 
     const after = await subtaskSnapshot(deps, parentTaskId);
 
@@ -69,7 +81,7 @@ const developAndTestUntilSettled = async (deps: OrchestrationDependencies & Deve
 };
 
 export const resumeSubtasks =
-  (deps: OrchestrationDependencies & DevelopDependencies) =>
+  (deps: LoopDependencies) =>
   (parentTaskId: string): Promise<void> =>
     developAndTestUntilSettled(deps, parentTaskId);
 
@@ -98,7 +110,7 @@ const splitUntilSettled = async (
 };
 
 export const claimAndOrchestrateRequest =
-  (deps: OrchestrationDependencies & DevelopDependencies) =>
+  (deps: LoopDependencies) =>
   async (): Promise<Outcome<Task[]>> => {
     const claimed = await claimNextReadyTask(deps)();
 

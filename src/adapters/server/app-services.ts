@@ -11,6 +11,7 @@ import { createDrizzleDependencies } from "../drizzle/create-drizzle-dependencie
 import { createDatabase } from "../drizzle/client";
 import { createDiskWorkspaceWriter } from "../workspace/disk-workspace-writer";
 import { createDiskProjectFiles } from "../workspace/disk-project-files";
+import { browserCheckEnabled } from "./browser-check-enabled";
 import { createPlaywrightInterfaceProbe } from "../playwright/playwright-interface-probe";
 import { createTypeScriptProjectTypeChecker } from "../typescript/typescript-project-type-checker";
 
@@ -57,6 +58,7 @@ const buildServices = (): AppServices => {
       appRoot: process.cwd(),
       workspaceFor: (rootPath) => createDiskWorkspaceWriter(rootPath),
       interfaceProbe: createPlaywrightInterfaceProbe(),
+      browserCheckEnabled,
       projectFiles: createDiskProjectFiles(),
       typeChecker: createTypeScriptProjectTypeChecker(),
       archiveWriter: createFflateArchiveWriter(),

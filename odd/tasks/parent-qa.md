@@ -50,12 +50,12 @@ A separate Merge agent, task dependencies, project-level local or cloud type (th
 ## Progress
 - [x] T1 Domain: status awaiting_release, system moves, releaseSubtask, requestReadyForQa, approveRequest, rejectRequest; completeRequestTask removed (RED observed first, tests green)
 - [x] T2 Persistence: migration 0010_awaiting_release_status (status check constraint widened); Drizzle test saves and reads awaiting_release against Docker Postgres (RED observed without the migration)
-- [ ] T3 Request QA use case and wiring
+- [x] T3 Request QA use case and wiring
   - [x] T3a Subtask pass goes qa -> awaiting_release via releaseSubtask (RED observed: 11 failing tests without the change; src/application 183 tests green)
-  - [ ] T3b runRequestQa and loop wiring
+  - [x] T3b runRequestQa (cloud passes without launching, local probe plus LLM review, approve or reject with attribution), loop wiring in claimAndOrchestrate and resumeSubtasks, probe installs dependencies when node_modules is missing (full suite 476 tests, tsc, eslint and build green; RED observed for the install decision, run-request-qa tests written before the module)
 - [ ] T4 Board column
 - [ ] T5 Docs
 - [ ] T6 Verification
 
 ## Next step
-T3 (subtask pass to awaiting_release, request QA use case and wiring), then T4 and T5.
+T4 (board column) and T5 (docs), then T6.

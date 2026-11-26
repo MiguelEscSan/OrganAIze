@@ -1,8 +1,12 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { access, readFile } from "node:fs/promises";
 import { createServer } from "node:net";
+import { join } from "node:path";
 import { chromium } from "playwright";
 import type { InterfaceProbe, InterfaceProbeResult } from "@/ports/interface-probe";
+import { needsDependencyInstall } from "./dependency-install-decision";
 
+const installTimeoutMs = 5 * 60_000;
 const startupTimeoutMs = 60_000;
 const pollIntervalMs = 500;
 const pageTextLimit = 4000;
@@ -73,6 +77,52 @@ const stopDevServer = (server: ChildProcess): Promise<void> =>
     resolve();
   });
 
+const readIfPresent = async (filePath: string): Promise<string | null> => {
+  try {
+    return await readFile(filePath, "utf8");
+  } catch {
+    return null;
+  }
+};
+
+const exists = async (path: string): Promise<boolean> => {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const installDependencies = (rootPath: string): Promise<string | null> =>
+  new Promise((resolve) => {
+    const installer = spawn("npm install --no-audit --no-fund --ignore-scripts", {
+      cwd: rootPath,
+      shell: true,
+      stdio: "ignore",
+    });
+    const timer = setTimeout(() => {
+      void stopDevServer(installer);
+      resolve(`npm install did not finish within ${installTimeoutMs / 60_000} minutes`);
+    }, installTimeoutMs);
+
+    installer.once("error", (error) => {
+      clearTimeout(timer);
+      resolve(`npm install could not start: ${error.message}`);
+    });
+    installer.once("exit", (code) => {
+      clearTimeout(timer);
+      resolve(code === 0 ? null : `npm install failed with exit code ${code}`);
+    });
+  });
+
+const installFailureOf = async (rootPath: string): Promise<string | null> => {
+  const packageJson = await readIfPresent(join(rootPath, "package.json"));
+  const installed = await exists(join(rootPath, "node_modules"));
+
+  return needsDependencyInstall(packageJson, installed) ? installDependencies(rootPath) : null;
+};
+
 const readPage = async (url: string): Promise<InterfaceProbeResult> => {
   const browser = await chromium.launch({ headless: true });
 
@@ -99,6 +149,12 @@ const readPage = async (url: string): Promise<InterfaceProbeResult> => {
 
 export const createPlaywrightInterfaceProbe = (): InterfaceProbe => ({
   inspect: async (rootPath: string): Promise<InterfaceProbeResult> => {
+    const installFailure = await installFailureOf(rootPath);
+
+    if (installFailure !== null) {
+      return { ok: false, reason: installFailure };
+    }
+
     const port = await freePort();
     const url = `http://127.0.0.1:${port}`;
     const server = startDevServer(rootPath, port);

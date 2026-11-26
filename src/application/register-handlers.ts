@@ -23,6 +23,7 @@ import { submitDevelopResult } from "./tasks/submit-develop-result";
 import { submitTestResult } from "./tasks/submit-test-result";
 import { runTesting, type TypeCheckDependencies } from "./testing/run-testing";
 import { runBrowserCheck, type BrowserCheckDependencies } from "./testing/run-browser-check";
+import { runRequestQa } from "./testing/run-request-qa";
 import { scaffoldProject } from "./projects/scaffold-project";
 import { listProjectFiles, type ProjectFilesDependencies } from "./projects/list-project-files";
 import { archiveProject, type ArchiveProjectDependencies } from "./projects/archive-project";
@@ -32,7 +33,13 @@ import { Mediator } from "./cqrs/mediator";
 import type { BoardDependencies } from "./shared/dependencies";
 
 export const createMediator = (
-  deps: OrchestrationDependencies & DevelopDependencies & BoardDependencies & BrowserCheckDependencies & ProjectFilesDependencies & ArchiveProjectDependencies & TypeCheckDependencies,
+  deps: OrchestrationDependencies &
+    DevelopDependencies &
+    BoardDependencies &
+    BrowserCheckDependencies &
+    ProjectFilesDependencies &
+    ArchiveProjectDependencies &
+    TypeCheckDependencies & { browserCheckEnabled: () => boolean },
 ): Mediator => {
   const mediator = new Mediator();
 
@@ -49,6 +56,7 @@ export const createMediator = (
   mediator.registerCommand("SubmitTestResult", submitTestResult(deps));
   mediator.registerCommand("RunTesting", runTesting(deps));
   mediator.registerCommand("RunBrowserCheck", runBrowserCheck(deps));
+  mediator.registerCommand("RunRequestQa", runRequestQa(deps));
   mediator.registerCommand("StopTaskForBudget", stopTaskForBudget(deps));
   mediator.registerCommand("DecideReview", decideReview(deps));
   mediator.registerCommand("ResumeSubtask", resumeSubtask(deps));
