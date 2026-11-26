@@ -38,6 +38,42 @@ Documented in `.env.example` with empty values:
   - It installs the target project's dependencies with `--ignore-scripts` and starts its dev server, so use it only on a local machine, not on Vercel.
   - When off (and in the cloud), the request QA passes automatically because the code was already audited per subtask.
 
+## LLM provider
+
+`LLM_PROVIDER` selects the provider. Any value other than `ollama` uses Gemini.
+
+- **Gemini** needs `LLM_API_KEY` and `LLM_MODEL`.
+- **Ollama** runs the model locally, needs no API key and is the default for development:
+  - `LLM_MODEL`: Ollama model name, for example `qwen3:4b-instruct`.
+  - `OLLAMA_BASE_URL`: server address. Defaults to `http://127.0.0.1:11434`.
+  - `OLLAMA_NUM_CTX`: context window in tokens, sent as `num_ctx`. Defaults to 8192; an invalid value falls back to 8192.
+- Develop limits the read-only project context in its prompt to the client's context window (one character per token), up to 30,000 characters.
+- Ollama requests have no client-side headers or body timeout, so a slow local model is not cut off. The time and token budgets in Settings are the only limits.
+
+## Scripts
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Starts the development server. |
+| `npm run build` | Builds for production. |
+| `npm start` | Serves the production build. |
+| `npm run lint` | Runs ESLint. |
+| `npm run db:migrate` | Applies the migrations in `drizzle/` to the database in `DATABASE_URL`, read from the environment or `.env.local`. |
+| `npm test` | Runs the Vitest suite. |
+
+## Deployment
+
+The target setup is Vercel for the app and Supabase (free tier) for Postgres and Storage. API keys are read from the environment only and never appear in prompts, logs or the repository.
+
+Set these variables on Vercel: `DATABASE_URL`, `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` and `BROWSER_CHECK_ENABLED=false`.
+
+- `DATABASE_URL` on Vercel is the Supabase Transaction pooler (port 6543). The direct connection is IPv6-only on the free plan and Vercel is IPv4-only.
+- `SUPABASE_URL` is the project base URL, for example `https://<ref>.supabase.co`, without `/rest/v1/`.
+- `SUPABASE_SERVICE_ROLE_KEY` is the legacy `service_role` key or the new `sb_secret_...` key. Never the anon or publishable key.
+- The bucket must exist and be private. Projects created without a folder keep their files there.
+
+To create the tables in a new Supabase project, run `npm run db:migrate` once from a machine with `DATABASE_URL` pointing at it. Use the Session pooler (port 5432), because migrations run DDL in a transaction and the direct connection does not resolve on networks without IPv6. Running it again is safe: applied migrations are skipped. It only works on an empty database or one it created, so a database whose tables were made by hand fails on the first `CREATE TABLE`.
+
 ## Git
 
 - Conventional Commits only: `feat:`, `fix:`, `chore:`, `test:`, `docs:`, `refactor:`.
