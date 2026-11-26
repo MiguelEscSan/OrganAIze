@@ -4,7 +4,8 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 import { describeRequestProgress } from "@/domain/tasks/describe-request-progress";
 import type { FamilySiblings } from "@/domain/tasks/list-family-siblings";
 import type { Task } from "@/domain/tasks/task";
-import { maxAttemptsPerTask, type TaskStatus } from "@/domain/tasks/task-status";
+import { shownAttemptLimit } from "@/domain/tasks/failure-kind";
+import type { TaskStatus } from "@/domain/tasks/task-status";
 import type { RecordedTaskEvent } from "@/ports/event-log";
 import { RichTextView } from "../rich-text/rich-text-view";
 import { agentChipClass, agentLabel } from "./agent-activity";
@@ -185,7 +186,7 @@ const AgentStatusCard = ({ task }: { task: Task }) => (
     )}
     <div className="flex items-center gap-2 text-xs font-bold text-muted">
       <AttemptDots attempts={task.attempts} />
-      {task.attempts} of {maxAttemptsPerTask} attempts used
+      {task.attempts} of {shownAttemptLimit(task.attempts)} attempts used
     </div>
   </section>
 );

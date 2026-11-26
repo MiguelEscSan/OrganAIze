@@ -38,4 +38,4 @@ Review was too heavy: the user had to press a button to send back tasks that fai
 - T3 (commit 05686b6): `previousFailuresOf` in the domain, used by `developPrompt`, capped to 5. RED observed for the prompt tests.
 - T4: docs and README updated.
 - Request QA is unchanged and keeps the limit of 3.
-- Follow-up not done: the attempt dots and the details text on the board still show 3 as the maximum.
+- Board display: `shownAttemptLimit` shows 3 while the attempts fit in the normal limit and 6 once they go past it, used by the attempt dots and the task details, so a task never reads "4 of 3". RED observed first.
