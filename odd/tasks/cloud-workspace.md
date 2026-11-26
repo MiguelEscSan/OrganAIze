@@ -24,7 +24,7 @@ Let a project keep its files in Supabase Storage instead of a physical folder, c
 - [x] T1 Board location model: optional `rootPath`, `workspaceLocationOf(board)`, migration, in-memory parity (RED first). Verified: 522 tests pass, tsc clean, drizzle tests ran on Docker Postgres. Route: delegated writer. Migration 0011 snapshot and journal were written by hand, not by drizzle-kit.
 - [x] T2 Supabase Storage adapter: workspace writer and project files with the disk ignore list and size filters, against a fake bucket. Verified: 531 tests pass, tsc clean. Not tested: the real bucket client (listing recursion, pagination) needs a manual check. Route: delegated writer.
 - [x] T3 Routing by location in the composition root, `rootPathOfTask` and consumers use the location. Verified: 539 tests pass, tsc clean, no remaining `board.rootPath` use reaches files. `app-services.ts` wiring itself is only covered by the factory unit tests. Route: delegated writer.
-- [ ] T4 Playwright probe for Storage locations (materialize, inspect, clean up)
+- [x] T4 Playwright probe for Storage locations (materialize, inspect, clean up). Verified: 545 tests pass, tsc clean. Route: delegated writer.
 - [ ] T5 Project form with optional folder, docs, `.env.example`
 
 ## Route per task
