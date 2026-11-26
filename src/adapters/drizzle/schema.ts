@@ -37,7 +37,7 @@ export const tasks = pgTable(
       .where(sql`${table.status} = 'in_progress' and ${table.parentTaskId} is null`),
     check(
       "tasks_status_valid",
-      sql`${table.status} in ('definition', 'ready', 'in_progress', 'qa', 'deploy', 'review')`,
+      sql`${table.status} in ('definition', 'ready', 'in_progress', 'qa', 'awaiting_release', 'deploy', 'review')`,
     ),
   ],
 );
