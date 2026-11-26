@@ -65,6 +65,8 @@ Documented in `.env.example` with empty values:
 
 The target setup is Vercel for the app and Supabase (free tier) for Postgres and Storage. API keys are read from the environment only and never appear in prompts, logs or the repository.
 
+The agent prompts in `prompts/*.md` are read from disk at run time. `next.config.ts` includes them in the serverless output (`outputFileTracingIncludes`), so no setting is needed on Vercel.
+
 Set these variables on Vercel: `DATABASE_URL`, `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` and `BROWSER_CHECK_ENABLED=false`.
 
 - `DATABASE_URL` on Vercel is the Supabase Transaction pooler (port 6543). The direct connection is IPv6-only on the free plan and Vercel is IPv4-only.

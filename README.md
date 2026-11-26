@@ -47,6 +47,10 @@ The loop, in order:
 
 Only one request is in progress at a time, enforced by a unique partial index in the database, so two requests never write the same project at once. Other requests wait in FIFO order.
 
+### Where the instructions live
+
+The instructions of each agent are markdown files in `prompts/` (`orchestrator.md`, `develop.md`, `merge.md`, `testing-subtask.md`, `testing-request.md`). The code fills in the data of each run (titles, criteria, file contents) through `{{variable}}` placeholders, and the whole file is what the model receives. Editing a file changes the agent's behavior without touching the code that runs it.
+
 ### Where the files live
 
 Each board points either to an absolute folder on disk or, when it has none, to a `storage:<board id>` location in Supabase Storage. The workspace reader and writer, the file lister and the browser probe are routed by that prefix, so the agents behave the same in both places. The disk writer refuses any path outside the project root. Before planning, the Orchestrator step creates the missing scaffold files (`package.json`, `tsconfig.json`, `vite.config.ts`, `index.html`, `main.tsx`, `App.tsx`).
