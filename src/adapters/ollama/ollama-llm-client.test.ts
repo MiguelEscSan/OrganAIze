@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createOllamaLlmClient, type OllamaFetch } from "./ollama-llm-client";
 
-const config = { baseUrl: "http://127.0.0.1:11434", model: "qwen3:4b-instruct" };
+const config = { baseUrl: "http://127.0.0.1:11434", model: "qwen3:4b-instruct", numCtx: 8192 };
 
 const streamingReply = (chunks: unknown[]): { fetcher: OllamaFetch; calls: { url: string; body: string }[] } => {
   const calls: { url: string; body: string }[] = [];
@@ -27,6 +27,20 @@ describe("ollama llm client", () => {
       options: { num_ctx: 8192 },
       messages: [{ role: "user", content: "split this" }],
     });
+  });
+
+  it("sends the configured context window as num_ctx", async () => {
+    const { fetcher, calls } = streamingReply([{ message: { content: "{}" }, done: true }]);
+
+    await createOllamaLlmClient({ ...config, numCtx: 4096 }, fetcher).generateJson("split this");
+
+    expect(JSON.parse(calls[0].body).options).toEqual({ num_ctx: 4096 });
+  });
+
+  it("declares its context window in tokens", () => {
+    const { fetcher } = streamingReply([]);
+
+    expect(createOllamaLlmClient({ ...config, numCtx: 4096 }, fetcher).contextWindowTokens).toBe(4096);
   });
 
   it("joins the streamed pieces into one JSON reply and counts the tokens", async () => {

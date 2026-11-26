@@ -35,6 +35,12 @@ describe("streamedLlm", () => {
     expect(reported).toEqual(["500 characters", "1,020 characters"]);
   });
 
+  it("keeps the context window of the wrapped client", () => {
+    const llm = streamedLlm({ ...streamingLlm([]), contextWindowTokens: 8192 }, async () => undefined);
+
+    expect(llm.contextWindowTokens).toBe(8192);
+  });
+
   it("returns the reply the wrapped client produced", async () => {
     const llm = streamedLlm(streamingLlm([]), async () => undefined);
 
