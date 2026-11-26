@@ -55,10 +55,17 @@ A separate Merge agent, task dependencies, project-level local or cloud type (th
   - [x] T3b runRequestQa (cloud passes without launching, local probe plus LLM review, approve or reject with attribution), loop wiring in claimAndOrchestrate and resumeSubtasks, probe installs dependencies when node_modules is missing (full suite 476 tests, tsc, eslint and build green; RED observed for the install decision, run-request-qa tests written before the module)
 - [x] T4 Board column: Awaiting release column between QA and Deploy, request progress label via describeRequestProgress, state notes via describeTaskState (RED observed: both test files failed on the missing modules; full suite 491 tests, tsc, eslint green)
 - [x] T5 Docs: docs/domain.md, docs/product.md, docs/environment.md updated (awaiting_release, request QA, attribution, QA capacity, BROWSER_CHECK_ENABLED, LLM provider); CLAUDE.md wording proposed below
-- [ ] T6 Verification
+- [x] T6 Verification: vitest 82 files / 502 tests, tsc, eslint and build exit 0 (raw codes). Live run with `BROWSER_CHECK_ENABLED=true` on a small request (counter with a button, `qwen3:4b-instruct`): the audited subtask waited in Awaiting release, the request moved to QA ("Every subtask is awaiting release"), passed ("Request QA passed") and the request and both subtasks went to Deploy together ("Released with its request"); the event log shows the path. The live run found three defects in the first version, fixed in `35f4805` and `9cbca30`: (1) the probe passed only `PORT` and Vite ignores it, so the dev server never answered; it now adds `--host 127.0.0.1 --port N --strictPort` when the dev script runs vite (`dev-command.ts`); (2) the probe inherited `NODE_ENV=production` from the Next server, so `npm install` skipped devDependencies and left `node_modules` incomplete; it now installs with `--include=dev` and runs with `NODE_ENV=development`, and the install decision checks each declared dependency instead of only `node_modules`; (3) a request in `qa` or `awaiting_release` no longer lets another request be claimed. Not exercised live: the attributed failure path (only the responsible subtask returns); it is covered by use case tests.
+
+## Findings
+- The dev database has no migration tracking (the `drizzle.__drizzle_migrations` table is empty, the schema is synced by other means), so migration 0010 was applied by hand there. Production (Supabase) needs migration 0010 before deploy.
+- A probe failure sends every subtask back and adds an attempt to each, so a harness problem consumes attempts that the subtasks did not cause. The live run showed it before the fixes.
+- A 4B Orchestrator wrote a criterion that contradicted the request ("increases the count by -1"); Testing judges only against criteria, so Develop failed three times. Criteria are not validated against the request.
+- The manual "Run browser check" per subtask still exists and now overlaps with the automatic request QA.
+- `CLAUDE.md` still describes Deploy per subtask; the proposed changes are in the section below.
 
 ## Next step
-T6 (verification and live run).
+Push the branch and open the pull request, apply the proposed `CLAUDE.md` changes, and run the production migration.
 
 ## Proposed CLAUDE.md changes
 Apply these replacements in `CLAUDE.md`.
