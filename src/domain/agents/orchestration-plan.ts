@@ -11,7 +11,18 @@ const subtaskPlanSchema = z.object({
   runsInParallel: z.boolean(),
 });
 
-const orchestrationPlanSchema = z.object({ subtasks: z.array(subtaskPlanSchema).min(1) });
+const isNestedAppEntry = (path: string): boolean => /[\\/]App\.tsx$/.test(path);
+
+const orchestrationPlanSchema = z.object({ subtasks: z.array(subtaskPlanSchema).min(1) }).superRefine((plan, context) => {
+  const nested = plan.subtasks.flatMap((subtask) => subtask.files).find(isNestedAppEntry);
+
+  if (nested) {
+    context.addIssue({
+      code: "custom",
+      message: `The app entry must be App.tsx at the project root, not ${nested}`,
+    });
+  }
+});
 
 export type SubtaskPlan = z.infer<typeof subtaskPlanSchema>;
 export type OrchestrationPlan = z.infer<typeof orchestrationPlanSchema>;
