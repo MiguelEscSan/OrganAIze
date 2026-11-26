@@ -4,6 +4,7 @@ import { selectContextFiles } from "@/domain/projects/select-context-files";
 import { approveRequest } from "@/domain/tasks/approve-request";
 import { rejectRequest, type RequestFailure } from "@/domain/tasks/reject-request";
 import { requestReadyForQa } from "@/domain/tasks/request-ready-for-qa";
+import { browserCheckDisabledEvidence, reviewedAppEvidence } from "@/domain/tasks/request-qa-evidence";
 import { subtasksOf } from "@/domain/tasks/request-subtasks";
 import type { Task } from "@/domain/tasks/task";
 import type { TaskEvent } from "@/domain/tasks/task-event";
@@ -31,7 +32,7 @@ export type RunRequestQa = { kind: "RunRequestQa"; requestId: string };
 
 export type RequestQaOutcome = "skipped" | "passed" | "failed";
 
-type RequestVerdict = { passed: true } | { passed: false; failures: RequestFailure[] };
+type RequestVerdict = { passed: true; evidence: string } | { passed: false; failures: RequestFailure[] };
 
 const reviewSchema = z
   .object({
@@ -100,6 +101,7 @@ const reviewRenderedApp = async (
   subtasks: readonly Task[],
   rootPath: string,
   renderedPage: string,
+  evidence: string,
 ): Promise<RequestVerdict> => {
   const contextFiles = await readContextFiles(deps, rootPath, llm);
   const reply = await llm.generateJson(reviewPrompt(request, subtasks, renderedPage, contextFiles));
@@ -114,7 +116,7 @@ const reviewRenderedApp = async (
     return unreviewedVerdict("the reply does not match the review format");
   }
 
-  return parsed.data.passed ? { passed: true } : { passed: false, failures: parsed.data.failures };
+  return parsed.data.passed ? { passed: true, evidence } : { passed: false, failures: parsed.data.failures };
 };
 
 const verdictOfRunningApp = async (
@@ -139,7 +141,22 @@ const verdictOfRunningApp = async (
     return failedVerdict(appStartCriterion, probe.reason);
   }
 
-  return reviewRenderedApp(deps, llm, request, subtasks, rootPath.value, renderedEvidence(probe.pageText, probe.consoleErrors));
+  const evidence = reviewedAppEvidence({
+    pageText: probe.pageText,
+    consoleErrorCount: probe.consoleErrors.length,
+    subtaskCount: subtasks.length,
+    criteriaCount: subtasks.reduce((total, subtask) => total + subtask.acceptanceCriteria.length, 0),
+  });
+
+  return reviewRenderedApp(
+    deps,
+    llm,
+    request,
+    subtasks,
+    rootPath.value,
+    renderedEvidence(probe.pageText, probe.consoleErrors),
+    evidence,
+  );
 };
 
 const verdictOf = async (
@@ -149,7 +166,7 @@ const verdictOf = async (
   subtasks: readonly Task[],
 ): Promise<RequestVerdict> => {
   if (!(deps.browserCheckEnabled?.() ?? false)) {
-    return { passed: true };
+    return { passed: true, evidence: browserCheckDisabledEvidence };
   }
 
   try {
@@ -192,7 +209,7 @@ const settle = async (deps: RequestQaDependencies, requestId: string, verdict: R
   const tasks = await deps.tasks.list();
   const settings = await deps.settings.get();
   const result = verdict.passed
-    ? approveRequest(tasks, requestId)
+    ? approveRequest(tasks, requestId, verdict.evidence)
     : rejectRequest(tasks, requestId, verdict.failures, settings.maxAttempts);
 
   if (!result.ok) {

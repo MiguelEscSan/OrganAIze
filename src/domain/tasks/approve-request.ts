@@ -11,7 +11,9 @@ const deployEvent = (task: Task, reason: string): TaskEvent => ({
   reason,
 });
 
-export const approveRequest = (tasks: readonly Task[], requestId: string): RequestTransitionResult => {
+export const approveRequest = (tasks: readonly Task[], requestId: string,
+  evidence: string,
+): RequestTransitionResult => {
   const request = tasks.find((task) => task.id === requestId);
 
   if (!request) {
@@ -34,7 +36,7 @@ export const approveRequest = (tasks: readonly Task[], requestId: string): Reque
     ok: true,
     tasks: tasks.map((task) => (approved.has(task.id) ? { ...task, status: "deploy" } : task)),
     events: [
-      deployEvent(request, "Request QA passed"),
+      deployEvent(request, `Request QA passed. ${evidence}`),
       ...subtasks.map((subtask) => deployEvent(subtask, "Released with its request")),
     ],
   };

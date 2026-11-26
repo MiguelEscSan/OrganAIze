@@ -16,6 +16,7 @@ These rules are non-negotiable and live in `src/domain`. They are pure TypeScrip
 
 - **Local** (`BROWSER_CHECK_ENABLED=true`): the system runs the Playwright probe automatically, then an LLM review of the rendered page against the request description and the acceptance criteria of its subtasks.
 - **Cloud or browser check disabled**: the request QA passes automatically, because the code was already audited per subtask.
+- **Evidence**: the request's deploy event records what the request QA saw. With the browser check disabled it says the running app was not reviewed. Otherwise it gives the characters of visible text, the console error count, the subtasks and acceptance criteria judged, and a 200-character excerpt of the visible text.
 - **Failure attribution**: each failure carries a criterion, an optional file and a message. A failure with a file goes to the subtask that declares that file, and only those subtasks return `awaiting_release → in_progress` with their failures as feedback and one more attempt (a third failed attempt sends the subtask to `review`). A failure with no file, or whose file no subtask declares, returns every subtask. The request returns to `in_progress`.
 
 ## Who moves what
