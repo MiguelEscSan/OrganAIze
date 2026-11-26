@@ -14,6 +14,13 @@ Documented in `.env.example` with empty values:
 - `LLM_API_KEY`: Gemini API key.
 - `LLM_PROVIDER`: provider name, currently `gemini`.
 
+## Optional variables
+
+- `BROWSER_CHECK_ENABLED`: set to `true` to enable the browser check. Default off.
+  - It runs the request QA automatically with Playwright and enables the manual "Run browser check" button on subtasks in QA.
+  - It installs the target project's dependencies with `--ignore-scripts` and starts its dev server, so use it only on a local machine, not on Vercel.
+  - When off (and in the cloud), the request QA passes automatically because the code was already audited per subtask.
+
 ## Git
 
 - Conventional Commits only: `feat:`, `fix:`, `chore:`, `test:`, `docs:`, `refactor:`.

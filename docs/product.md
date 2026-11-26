@@ -6,7 +6,9 @@ Agent Team is a small web app where three AI agents work together on a user requ
 
 1. **Orchestrator** receives a request card, splits it into subtasks with acceptance criteria, and assigns them.
 2. **Develop** implements one subtask at a time against a target web project.
-3. **Testing** checks Develop's output against the subtask's acceptance criteria and returns a numbered list of concrete failures until everything passes.
+3. **Testing** checks Develop's output against the subtask's acceptance criteria and returns a numbered list of concrete failures until everything passes. Once every subtask is audited, Testing also checks the whole request.
+
+The agents use an LLM provider behind a port: **Ollama** (local, no API key) or **Gemini**. See the README for the variables.
 
 Everything the agents do is visible on a kanban board. A viewer should see, at a glance, which agent is working, which state each task is in, and why a task is stuck.
 
@@ -19,17 +21,18 @@ Both use a desktop browser. The app must still work at phone width without page-
 
 ## Vocabulary
 
-- **Request**: a card the user creates with free-text input. It holds subtasks and is complete when all of them reach Deploy.
+- **Request**: a card the user creates with free-text input. It holds subtasks and reaches Deploy only after the whole request passes QA, together with all its subtasks.
 - **Task**: a subtask card, the unit the system works on.
 - **Agent**: Orchestrator, Develop or Testing.
 - **Feedback**: the numbered failure list Testing returns, shown on the card as "Testing".
 
 ## Board
 
-Columns: **Definition | Ready to develop | In progress | QA | Review | Deploy**.
+Columns: **Definition | Ready to develop | In progress | QA | Awaiting release | Review | Deploy**.
 
+- **Awaiting release** holds subtasks that passed their own audit and wait for the rest of the request. The user cannot move them. When all are waiting, the request goes through QA as a whole; if it passes, everything moves to Deploy together, and if it fails only the responsible subtasks return to In progress.
 - Cards show title, description, assigned agent, attempt count (`n/3`) and last feedback.
-- Request cards show progress as a parent, for example "2/5 subtasks in Deploy".
+- Request cards show progress as a parent, for example "2 awaiting release, 1 deployed of 5", and "Testing the whole request" while the request is in QA.
 - An agent panel shows one card per agent with status (idle, working, reviewing) and its last message.
 - The live log refreshes every 2 seconds by polling.
 - Empty, loading and error states are visible in every view.
@@ -43,6 +46,6 @@ Columns: **Definition | Ready to develop | In progress | QA | Review | Deploy**.
 
 ## Out of scope
 
-- Real deployment to a host. "Deploy" means the subtask was approved by Testing.
+- Real deployment to a host. "Deploy" means the whole request was approved by Testing.
 - Multi-user accounts, authentication, or permissions.
 - Anything not in this Purpose list.

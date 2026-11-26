@@ -54,8 +54,46 @@ A separate Merge agent, task dependencies, project-level local or cloud type (th
   - [x] T3a Subtask pass goes qa -> awaiting_release via releaseSubtask (RED observed: 11 failing tests without the change; src/application 183 tests green)
   - [x] T3b runRequestQa (cloud passes without launching, local probe plus LLM review, approve or reject with attribution), loop wiring in claimAndOrchestrate and resumeSubtasks, probe installs dependencies when node_modules is missing (full suite 476 tests, tsc, eslint and build green; RED observed for the install decision, run-request-qa tests written before the module)
 - [x] T4 Board column: Awaiting release column between QA and Deploy, request progress label via describeRequestProgress, state notes via describeTaskState (RED observed: both test files failed on the missing modules; full suite 491 tests, tsc, eslint green)
-- [ ] T5 Docs
+- [x] T5 Docs: docs/domain.md, docs/product.md, docs/environment.md updated (awaiting_release, request QA, attribution, QA capacity, BROWSER_CHECK_ENABLED, LLM provider); CLAUDE.md wording proposed below
 - [ ] T6 Verification
 
 ## Next step
-T4 (board column) and T5 (docs), then T6.
+T6 (verification and live run).
+
+## Proposed CLAUDE.md changes
+Apply these replacements in `CLAUDE.md`.
+
+1. Purpose, Testing agent.
+   - Old: `3. **Testing**: checks Develop's output against the subtask's acceptance criteria and returns concrete failures until everything passes.`
+   - New: `3. **Testing**: checks Develop's output against each subtask's acceptance criteria, then checks the whole request once every subtask is audited, and returns concrete failures until everything passes.`
+
+2. Domain rules, request completion.
+   - Old: `- A request can have many subtasks. The request is complete when all its subtasks reach **Deploy**.`
+   - New: `- A request can have many subtasks. A subtask that passes its audit waits in **Awaiting release**. When all its subtasks are waiting, the request goes through QA as a whole. The request and all its subtasks reach **Deploy** together, only after that request QA passes.`
+
+3. Domain rules, task states.
+   - Old: `- **Task states:** `definition` → `ready` → `in_progress` → `qa` → `deploy`, plus `review` (reached after too many failed QA attempts or a budget stop). A failed QA sends the task back to `in_progress` with feedback attached.`
+   - New: `- **Task states:** `definition` → `ready` → `in_progress` → `qa` → `awaiting_release` → `deploy`, plus `review` (reached after too many failed QA attempts or a budget stop). A failed QA sends the task back to `in_progress` with feedback attached. A failed request QA returns only the subtasks responsible for the failures; a failure that cannot be attributed to a file returns all of them.`
+
+4. Domain rules, system moves.
+   - Old: `- **The system moves everything after Ready.** The program claims the next `ready` task into `in_progress`, and moves tasks between `in_progress`, `qa` and `deploy`. The user cannot move a task past Ready.`
+   - New: `- **The system moves everything after Ready.** The program claims the next `ready` task into `in_progress`, and moves tasks between `in_progress`, `qa`, `awaiting_release` and `deploy`. The user cannot move a task past Ready.`
+
+5. Domain rules, QA capacity.
+   - Old: `- `qa` holds at most N tasks, where N is configurable in Settings (default 2). Testing checks each one against its acceptance criteria; for an app with an interface it may also drive the running app (for example with Playwright).`
+   - New: `- `qa` holds at most N tasks, where N is configurable in Settings (default 2); tasks in `awaiting_release` do not count. Testing checks each one against its acceptance criteria. Request QA runs when every subtask is awaiting release: locally, with `BROWSER_CHECK_ENABLED=true`, it drives the running app with Playwright and reviews it against the request; in the cloud, or with the browser check disabled, it passes automatically.`
+
+6. Board, columns.
+   - Old: `Columns: **Definition | Ready to develop | In progress | QA | Review | Deploy**.`
+   - New: `Columns: **Definition | Ready to develop | In progress | QA | Awaiting release | Review | Deploy**.`
+
+7. Board, request cards.
+   - Old: `- Request cards are shown as a parent with progress (e.g. 2/5 subtasks in Deploy).`
+   - New: `- Request cards are shown as a parent with progress (e.g. 2 awaiting release, 1 deployed of 5).`
+
+8. Agent principles, optional.
+   - Old: `6. **Deterministic checks first.** File exists, route exists, TSX parses (TypeScript compiler API). Only then LLM review.`
+   - New: unchanged; the request QA also runs its deterministic probe (Playwright) before the LLM review.
+
+9. Environment, optional variable.
+   - Add after the required variables: `- Optional: `BROWSER_CHECK_ENABLED` (`true` enables the automatic request QA with Playwright and the manual subtask button; local machines only; default off).`
