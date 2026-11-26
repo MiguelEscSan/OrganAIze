@@ -10,6 +10,8 @@ import type { Task } from "@/domain/tasks/task";
 import type { TaskEvent } from "@/domain/tasks/task-event";
 import type { InterfaceProbe } from "@/ports/interface-probe";
 import type { LlmClient } from "@/ports/llm-client";
+import type { PromptLibrary } from "@/ports/prompt-library";
+import { blocksOf } from "../agents/prompt-blocks";
 import type { ProjectFile } from "@/ports/project-files";
 import { streamedLlm } from "../agents/streamed-llm";
 import { liveProgressOf, withLiveStatus } from "../agents/live-progress";
@@ -59,28 +61,20 @@ const describeSubtask = (subtask: Task): string =>
 
 const describeContextFile = (file: ProjectFile): string => `### ${file.path}\n${file.content}`;
 
-const contextSection = (files: readonly ProjectFile[]): string[] =>
-  files.length === 0 ? [] : ["Project files (read-only context):", ...files.map(describeContextFile)];
-
 const reviewPrompt = (
+  prompts: PromptLibrary,
   request: Task,
   subtasks: readonly Task[],
   renderedPage: string,
   contextFiles: readonly ProjectFile[],
 ): string =>
-  [
-    `Review the running app as a whole against this request and nothing else: ${request.title}`,
-    request.description,
-    "Subtasks of the request and their acceptance criteria:",
-    ...subtasks.map(describeSubtask),
-    "Visible text of the running app:",
+  prompts.render("testing-request", {
+    title: request.title,
+    description: request.description,
+    subtasks: blocksOf(subtasks.map(describeSubtask)),
     renderedPage,
-    ...contextSection(contextFiles),
-    'Reply with JSON only, in the form {"passed": boolean, "failures": [{"criterion": string, "file": string | null, "message": string}]}.',
-    "Use passed true with an empty failures list when the app fulfils the request and every acceptance criterion holds.",
-    "Use passed false with one failure per violated criterion.",
-    "In file put the exact project-relative path of the file responsible for the failure when you can tell, otherwise null.",
-  ].join("\n\n");
+    contextFiles: blocksOf(contextFiles.map(describeContextFile)),
+  });
 
 const readContextFiles = async (deps: RequestQaDependencies, rootPath: string, llm: LlmClient): Promise<ProjectFile[]> => {
   if (!deps.projectFiles) {
@@ -104,7 +98,7 @@ const reviewRenderedApp = async (
   evidence: string,
 ): Promise<RequestVerdict> => {
   const contextFiles = await readContextFiles(deps, rootPath, llm);
-  const reply = await llm.generateJson(reviewPrompt(request, subtasks, renderedPage, contextFiles));
+  const reply = await llm.generateJson(reviewPrompt(deps.prompts, request, subtasks, renderedPage, contextFiles));
 
   if (!reply.ok) {
     return unreviewedVerdict(reply.reason);

@@ -11,9 +11,10 @@ src/
     agents/
   application/         # use cases: createRequest, orchestrate, claimNextTask,
                        #            submitDevelopResult, submitTestResult
-  ports/               # interfaces: TaskRepository, RequestRepository, LlmClient, EventLog
-  adapters/            # implementations: Drizzle repositories, Gemini client, clock, id generator
+  ports/               # interfaces: TaskRepository, RequestRepository, LlmClient, PromptLibrary, EventLog
+  adapters/            # implementations: Drizzle repositories, Gemini client, markdown prompt loader, clock, id generator
   presentation/        # kanban board and views: container / presentational split
+prompts/               # the instructions of each agent, one markdown file per prompt
 ```
 
 ## Dependency rules
@@ -28,6 +29,7 @@ src/
 - Next.js (App Router), TypeScript `strict`, Tailwind CSS.
 - Postgres on Supabase (free tier) through Drizzle ORM, using the pooler connection string in `DATABASE_URL`. No Supabase JS client for data access. The Supabase JS client is used only for Storage, behind the `WorkspaceWriter` and `ProjectFiles` ports: a project without a folder keeps its files in a Storage bucket under `<boardId>/`, and a project with a folder uses the disk.
 - LLM provider: Gemini (free tier), behind the `LlmClient` port so it can be replaced by the Claude API.
+- Agent prompts: markdown files in `prompts/`, read through the `PromptLibrary` port. A template holds the static instructions and `{{variable}}` placeholders. A line pair `{{#name}}` / `{{/name}}` wraps an optional section that is kept only when `name` has a value. Rendering fails when a placeholder has no value, when a value is not used, or when the file is missing. The files are not imported, so `next.config.ts` lists them in `outputFileTracingIncludes` to ship them with the serverless output.
 - Deploy: Vercel. Package manager: npm.
 
 ## Agent principles

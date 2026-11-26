@@ -3,6 +3,7 @@ import type { BoardRepository } from "@/ports/board-repository";
 import type { Clock } from "@/ports/clock";
 import type { EventLog } from "@/ports/event-log";
 import type { IdGenerator } from "@/ports/id-generator";
+import type { PromptLibrary } from "@/ports/prompt-library";
 import type { SettingsRepository } from "@/ports/settings-repository";
 import type { RequestRepository } from "@/ports/request-repository";
 import type { TaskRepository } from "@/ports/task-repository";
@@ -15,6 +16,10 @@ export type ApplicationDependencies = {
   ids: IdGenerator;
   clock: Clock;
   activity: AgentActivityRepository;
+};
+
+export type PromptDependencies = {
+  prompts: PromptLibrary;
 };
 
 export type BoardDependencies = {

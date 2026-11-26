@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { LlmClient, LlmReply } from "@/ports/llm-client";
-import { mergeSharedFile } from "./merge-shared-file";
+import { createRepositoryPromptLibrary } from "@/adapters/in-memory/repository-prompt-library";
+import { mergeSharedFile as mergeWith } from "./merge-shared-file";
+
+const mergeSharedFile = (llm: LlmClient, merge: Parameters<typeof mergeWith>[1]) =>
+  mergeWith({ llm, prompts: createRepositoryPromptLibrary() }, merge);
 
 const replyingWith = (reply: LlmReply): { llm: LlmClient; prompts: string[] } => {
   const prompts: string[] = [];
