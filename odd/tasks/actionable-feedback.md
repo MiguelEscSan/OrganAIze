@@ -37,7 +37,7 @@ Suggestions for missing exports or unknown names, changing the Develop prompt, r
 ## Progress
 - [x] T1 Type-check suggestion (RED: 5 new real-compiler tests failed; GREEN: full suite 426 passed; `suggest-import-path.ts` plus wiring in the checker)
 - [x] T2 Scope-check message (RED: 3 new and 2 updated tests failed; GREEN with the pure `checkFileScope` returning the full reason)
-- [ ] T3 Verification
+- [x] T3 Verification: vitest 73 files / 426 tests (exit 0), tsc exit 0, eslint exit 0, build exit 0, all read as raw exit codes. The type checker run on the real weather project files now reports `Did you mean './src/weatherService'?` and `Did you mean './src/WeatherDisplay'?` for the two imports in App.tsx and `Did you mean './weatherService'?` for src/WeatherDisplay.tsx, the three paths that made the 4B model fail repeatedly. Not verified: that the model actually fixes them in a live run.
 
 ## Next step
-T1 and T2 with one bounded writer, then T3.
+A live weather run to see whether the hints let the local model fix its imports.
