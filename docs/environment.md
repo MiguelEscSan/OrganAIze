@@ -13,6 +13,7 @@ Documented in `.env.example` with empty values:
 - `DATABASE_URL`: Supabase Postgres connection string (pooler). Local runs point at the Docker Postgres.
 - `LLM_API_KEY`: Gemini API key.
 - `LLM_PROVIDER`: provider name, currently `gemini`.
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`: only needed for projects without a folder, whose files live in Supabase Storage. Disk projects work without them. The bucket must exist and be private.
 
 ## Optional variables
 

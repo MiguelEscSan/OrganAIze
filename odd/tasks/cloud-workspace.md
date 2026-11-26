@@ -25,7 +25,7 @@ Let a project keep its files in Supabase Storage instead of a physical folder, c
 - [x] T2 Supabase Storage adapter: workspace writer and project files with the disk ignore list and size filters, against a fake bucket. Verified: 531 tests pass, tsc clean. Not tested: the real bucket client (listing recursion, pagination) needs a manual check. Route: delegated writer.
 - [x] T3 Routing by location in the composition root, `rootPathOfTask` and consumers use the location. Verified: 539 tests pass, tsc clean, no remaining `board.rootPath` use reaches files. `app-services.ts` wiring itself is only covered by the factory unit tests. Route: delegated writer.
 - [x] T4 Playwright probe for Storage locations (materialize, inspect, clean up). Verified: 545 tests pass, tsc clean. Route: delegated writer.
-- [ ] T5 Project form with optional folder, docs, `.env.example`
+- [x] T5 Project form with optional folder, docs. Done inline (mechanical). `.env.example` NOT updated: reads of env files are denied in this session, so the user adds the three Supabase variables with empty values.
 
 ## Route per task
 Delegated direct writer for every task (2+ non-trivial files each); parent reviews the diff and runs the suite.

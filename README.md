@@ -80,6 +80,7 @@ Copy `.env.example` to `.env.local` and fill in:
 | `DATABASE_URL` | Postgres connection string. Locally it points at the Docker Postgres; in production it is the Supabase pooler string. |
 | `LLM_API_KEY` | Gemini API key. Not needed with Ollama. |
 | `LLM_PROVIDER` | `ollama` or `gemini`. Any value other than `ollama` uses Gemini. |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` | Only for projects created without a folder, which keep their files in Supabase Storage. Disk projects do not need them. |
 | `LLM_MODEL` | Model name for the chosen provider. |
 
 See [LLM provider](#llm-provider) for the Ollama variables.
