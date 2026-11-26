@@ -11,36 +11,6 @@ A small Next.js app where a team of three AI agents works together on a user req
 When two subtasks declare the same file, a merge step reconciles their edits before Testing judges the result.
 
 This document explains what each agent receives, what it must return, what the system does with the answer, and how a failure is handled. How to run, configure and deploy the app is in [docs](docs/README.md).
-
-## Contents
-
-1. [Data model](#data-model)
-2. [How the agents work together](#how-the-agents-work-together)
-3. [State machine](#state-machine)
-4. [Orchestrator](#orchestrator)
-5. [Develop](#develop)
-6. [Testing](#testing)
-7. [Failures, attempts and budgets](#failures-attempts-and-budgets)
-8. [Review: the user decides](#review-the-user-decides)
-9. [Observability](#observability)
-10. [Walkthrough: a weather page](#walkthrough-a-weather-page)
-11. [Corner cases](#corner-cases)
-12. [Known limits](#known-limits)
-
-## Data model
-
-A **request** is what the user writes. The system keeps one **parent task** per request (the card the user moves) and, once the Orchestrator has planned, many **subtasks** that point to it.
-
-| Term | What it is | Fields that matter |
-| --- | --- | --- |
-| **Request** | The user's input. | `id`, `boardId`, `title`, `description` |
-| **Parent task** | The request's card on the board. Created in **Definition** with no criteria and no files. It is the unit the user moves and the unit that reaches Deploy. | `parentTaskId = null`, `status`, `attempts`, `lastFeedback`, `reviewReason` |
-| **Subtask** | One bounded piece of work, assigned to Develop. Born in **In progress**. | `parentTaskId`, `title`, `description`, `acceptanceCriteria`, `files`, `runsInParallel`, `status`, `attempts`, `lastFeedback`, `reviewReason`, `liveStatus` |
-
-`reviewReason` is why a card is in Review: `attempts` (too many failures), `budget` (a run was stopped) or `orchestration` (the Orchestrator could not produce a plan). Statuses are `definition`, `ready`, `in_progress`, `qa`, `awaiting_release`, `deploy` and `review`.
-
-Every state change writes an event with who (`user` or `system`), from, to and a reason. The board log reads from those events.
-
 ## How the agents work together
 
 The agents never call each other. A single loop in `claimAndOrchestrateRequest` hands the work from one to the next, and every handoff is a state change on the board with an event.
@@ -106,45 +76,6 @@ sequenceDiagram
     ReqQa->>Board: request passes, request and subtasks to Deploy
 ```
 
-## State machine
-
-Transitions are validated by one pure function, `transitionTask`, which takes the actor. The user can only do `definition` to `ready`, `ready` to `definition`, `review` to `ready` and `review` to `in_progress`. Everything else is the system.
-
-Subtask:
-
-```mermaid
-stateDiagram-v2
-    [*] --> in_progress: created by the Orchestrator
-    in_progress --> qa: Develop wrote the files
-    in_progress --> in_progress: failed attempt below the limit
-    in_progress --> review: attempt limit or budget stop
-    qa --> awaiting_release: Testing approved
-    qa --> in_progress: Testing rejected
-    qa --> review: attempt limit reached
-    awaiting_release --> deploy: request QA passed
-    awaiting_release --> in_progress: request QA failed
-    awaiting_release --> review: request QA failed at the limit
-    review --> in_progress: user sends it back to work
-    deploy --> [*]
-```
-
-Request (the parent task):
-
-```mermaid
-stateDiagram-v2
-    [*] --> definition: user creates the card
-    definition --> ready: user
-    ready --> definition: user
-    ready --> in_progress: system claims it, one at a time
-    in_progress --> qa: every subtask awaiting release
-    qa --> deploy: request QA passed
-    qa --> in_progress: request QA failed
-    in_progress --> review: plan failed or model call failed
-    review --> ready: user sends it to Ready
-    deploy --> [*]
-```
-
-A request in `in_progress` stays there while its subtasks work. It leaves only through request QA, or to Review when the Orchestrator fails.
 
 ## Orchestrator
 
@@ -330,24 +261,6 @@ Subtask 1 moves to Awaiting release. Subtask 2 is a substantive failure: it retu
 
 If step 7 had failed with `{ "file": "WeatherPage.tsx", ... }`, only subtask 3, which declares that file, would have gone back to In progress with that failure and one more attempt.
 
-## Corner cases
-
-| Situation | What happens |
-| --- | --- |
-| The model replies with invalid JSON, or JSON that does not match the schema | A mechanical failure: the attempt fails with the schema error as feedback and the task gets up to 6 attempts before Review. |
-| Develop writes a file it did not declare | The attempt fails. The feedback lists the allowed files. |
-| Two subtasks edit the same file | The merge step reconciles them. If it cannot, the attempt fails with the reason. |
-| Testing cannot complete a subtask review (provider error, malformed reply) | A mechanical failed verdict with the reason, never a silent pass. |
-| Request QA cannot complete (app does not start, review fails) | The request fails QA with no file, so every subtask goes back with the reason and one more attempt. |
-| The model provider is unreachable (Ollama) | Develop stops without counting an attempt. A Gemini error counts as a mechanical failed attempt. |
-| The Orchestrator cannot call the model | The request goes to Review with `reviewReason = orchestration`, no attempt counted. |
-| A run exceeds the time or token budget | The run stops, the card goes to Review with the reason, and no attempt is counted. |
-| QA already holds N tasks | Develop does not push another one. The run stops without counting an attempt and continues on the next pass. |
-| The plan is invalid | A mechanical failure counted on the request. After 6 the request goes to Review. |
-| A subtask keeps failing the LLM review of its criteria | A substantive failure: after 3 attempts the subtask goes to Review so the user sees it. |
-| A subtask passes but the whole app fails | Request QA sends back only the subtasks responsible, with the failures attributed to their files. |
-| Two writers touch the same card at once | Transitions are applied with an expected-status check, and a stale write is rejected as a conflict instead of overwriting. |
-| The loop makes no progress | The loop compares a snapshot of statuses and attempts before and after each pass and stops when nothing changed, so there are no infinite retries. |
 
 ## Known limits
 
