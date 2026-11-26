@@ -26,7 +26,7 @@ src/
 ## Stack
 
 - Next.js (App Router), TypeScript `strict`, Tailwind CSS.
-- Postgres on Supabase (free tier) through Drizzle ORM, using the pooler connection string in `DATABASE_URL`. No Supabase JS client for data access.
+- Postgres on Supabase (free tier) through Drizzle ORM, using the pooler connection string in `DATABASE_URL`. No Supabase JS client for data access. The Supabase JS client is used only for Storage, behind the `WorkspaceWriter` and `ProjectFiles` ports: a project without a folder keeps its files in a Storage bucket under `<boardId>/`, and a project with a folder uses the disk.
 - LLM provider: Gemini (free tier), behind the `LlmClient` port so it can be replaced by the Claude API.
 - Deploy: Vercel. Package manager: npm.
 

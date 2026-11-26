@@ -78,6 +78,13 @@
       "when": 1795696725764,
       "tag": "0010_awaiting_release_status",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795783125764,
+      "tag": "0011_board_optional_root_path",
+      "breakpoints": true
     }
   ]
 }

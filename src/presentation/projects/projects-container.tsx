@@ -71,7 +71,7 @@ export const ProjectsContainer = ({ boards, loadError }: ProjectsContainerProps)
   };
 
   const dialogInitialValues: ProjectFormValues =
-    dialog.mode === "edit" ? { name: dialog.board.name, rootPath: dialog.board.rootPath } : emptyValues;
+    dialog.mode === "edit" ? { name: dialog.board.name, rootPath: dialog.board.rootPath ?? "" } : emptyValues;
 
   return (
     <div className="flex flex-col gap-3">

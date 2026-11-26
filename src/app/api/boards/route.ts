@@ -20,16 +20,16 @@ export const GET = async (): Promise<Response> => {
 export const POST = async (request: Request): Promise<Response> => {
   const body = await readJsonObject(request);
 
-  if (!body || typeof body.name !== "string" || typeof body.rootPath !== "string") {
-    return refused("A board needs a name and a project root");
+  if (!body || typeof body.name !== "string" || (body.rootPath !== undefined && body.rootPath !== null && typeof body.rootPath !== "string")) {
+    return refused("A board needs a name and an optional project root");
   }
 
   try {
     const { mediator } = getAppServices();
-    const outcome = await mediator.send<{ kind: "CreateBoard"; name: string; rootPath: string }, Outcome<Board>>({
+    const outcome = await mediator.send<{ kind: "CreateBoard"; name: string; rootPath?: string | null }, Outcome<Board>>({
       kind: "CreateBoard",
       name: body.name,
-      rootPath: body.rootPath,
+      rootPath: typeof body.rootPath === "string" ? body.rootPath : null,
     });
 
     return outcome.ok ? succeeded({ board: outcome.value }, 201) : refused(outcome.reason);

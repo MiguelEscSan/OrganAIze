@@ -80,9 +80,12 @@ Copy `.env.example` to `.env.local` and fill in:
 | `DATABASE_URL` | Postgres connection string. Locally it points at the Docker Postgres; in production it is the Supabase pooler string. |
 | `LLM_API_KEY` | Gemini API key. Not needed with Ollama. |
 | `LLM_PROVIDER` | `ollama` or `gemini`. Any value other than `ollama` uses Gemini. |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` | Only for projects created without a folder, which keep their files in Supabase Storage. Disk projects do not need them. |
 | `LLM_MODEL` | Model name for the chosen provider. |
 
 See [LLM provider](#llm-provider) for the Ollama variables.
+
+**Local Storage (local-only values).** `docker compose up -d` also starts a local Supabase Storage with the private bucket `agent-team-projects`. To use it, set `SUPABASE_URL=http://127.0.0.1:54600`, `SUPABASE_STORAGE_BUCKET=agent-team-projects` and `SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoiYWdlbnQtdGVhbS1sb2NhbCIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjo0MTAyNDQ0ODAwfQ.EMvRmbHrde1TaCOLr7MPIFnoBX0e0Uw5eeeHxePoZFY` in `.env.local`. The key is a local test token, not a secret. Details in [environment](docs/environment.md).
 
 ## LLM provider
 

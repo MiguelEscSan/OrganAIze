@@ -1,21 +1,26 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import { loadProjectFiles } from "@/adapters/server/project-files-loader";
+import { loadProjectFilesForPage } from "@/adapters/server/project-files-loader";
 import { LiveProjectPreview } from "@/presentation/project-files/live-project-files";
+import { ProjectFilesUnavailable } from "@/presentation/project-files/project-files-unavailable";
 
 type PreviewPageProps = { params: Promise<{ id: string }> };
 
 const LivePreview = async ({ params }: PreviewPageProps) => {
   await connection();
   const { id } = await params;
-  const files = await loadProjectFiles(id);
+  const load = await loadProjectFilesForPage(id);
 
-  if (!files) {
+  if (load.kind === "missing") {
     notFound();
   }
 
-  return <LiveProjectPreview boardId={id} initialFiles={files} />;
+  if (load.kind === "unavailable") {
+    return <ProjectFilesUnavailable reason={load.reason} />;
+  }
+
+  return <LiveProjectPreview boardId={id} initialFiles={load.files} />;
 };
 
 export default function PreviewPage({ params }: PreviewPageProps) {
