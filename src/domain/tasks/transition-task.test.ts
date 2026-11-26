@@ -50,6 +50,30 @@ describe("transitionTask and awaiting release", () => {
   );
 });
 
+describe("transitionTask claiming a request", () => {
+  it.each(["in_progress", "qa", "awaiting_release"] as const)(
+    "does not claim a ready request while another task is %s",
+    (busyStatus) => {
+      const tasks = [createTask({ id: "next", status: "ready" }), createTask({ id: "busy", status: busyStatus })];
+
+      const result = transitionTask(tasks, "next", "in_progress", "system");
+
+      expect(result).toEqual({ ok: false, reason: "Another task is already in progress" });
+    },
+  );
+
+  it.each(["deploy", "review", "definition", "ready"] as const)(
+    "claims a ready request while another task is only %s",
+    (idleStatus) => {
+      const tasks = [createTask({ id: "next", status: "ready" }), createTask({ id: "idle", status: idleStatus })];
+
+      const result = transitionTask(tasks, "next", "in_progress", "system");
+
+      expect(result.ok).toBe(true);
+    },
+  );
+});
+
 describe("transitionTask", () => {
   it("lets the user send a defined task to ready to develop", () => {
     const tasks = [createTask({ id: "a", status: "definition" })];
