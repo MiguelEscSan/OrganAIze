@@ -3,6 +3,7 @@ import type { LlmClient, LlmProgressListener, LlmReply } from "@/ports/llm-clien
 export type OllamaConfig = {
   baseUrl: string;
   model: string;
+  numCtx: number;
 };
 
 export type OllamaFetch = (
@@ -90,6 +91,7 @@ const toLlmReply = (streamed: StreamedReply): LlmReply => {
 };
 
 export const createOllamaLlmClient = (config: OllamaConfig, fetcher: OllamaFetch): LlmClient => ({
+  contextWindowTokens: config.numCtx,
   generateJson: async (prompt: string, onProgress?: LlmProgressListener): Promise<LlmReply> => {
     let streamed: StreamedReply;
 
@@ -101,7 +103,7 @@ export const createOllamaLlmClient = (config: OllamaConfig, fetcher: OllamaFetch
           model: config.model,
           stream: true,
           format: "json",
-          options: { num_ctx: 8192 },
+          options: { num_ctx: config.numCtx },
           messages: [{ role: "user", content: prompt }],
         }),
       });

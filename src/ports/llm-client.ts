@@ -7,5 +7,6 @@ export type LlmProgress = { characters: number };
 export type LlmProgressListener = (progress: LlmProgress) => Promise<void>;
 
 export type LlmClient = {
+  contextWindowTokens?: number;
   generateJson(prompt: string, onProgress?: LlmProgressListener): Promise<LlmReply>;
 };

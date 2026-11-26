@@ -7,6 +7,14 @@ export type LlmClientOutcome = { ok: true; llm: LlmClient } | { ok: false; reaso
 
 const defaultOllamaBaseUrl = "http://127.0.0.1:11434";
 
+const defaultOllamaNumCtx = 8192;
+
+const numCtxFrom = (value: string | undefined): number => {
+  const parsed = Number(value?.trim());
+
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : defaultOllamaNumCtx;
+};
+
 const ollamaClientFromEnv = (
   env: Record<string, string | undefined>,
   fetcher: OllamaFetch,
@@ -19,7 +27,7 @@ const ollamaClientFromEnv = (
 
   const baseUrl = env.OLLAMA_BASE_URL?.trim() || defaultOllamaBaseUrl;
 
-  return { ok: true, llm: createOllamaLlmClient({ baseUrl, model }, fetcher) };
+  return { ok: true, llm: createOllamaLlmClient({ baseUrl, model, numCtx: numCtxFrom(env.OLLAMA_NUM_CTX) }, fetcher) };
 };
 
 export const createLlmClientFromEnv = (
