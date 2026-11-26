@@ -39,8 +39,15 @@ Delegated direct writer for every task (2+ non-trivial files each); parent revie
 4. No Supabase import in `domain` or `application`.
 5. The full test suite passes; the live test runs on Storage.
 
+## Follow-ups done
+- `.gitattributes` forces LF on `*.sh` and `docker/**`.
+- Files and Preview pages show a clear message when Storage is unavailable instead of a generic server error (`settle-project-files.ts`). Verified live by stopping the gateway.
+
 ## Progress
-Branch `feat/cloud-workspace`, created from main. Nothing implemented yet. The Engram mirror `odd/cloud-workspace/tasks` is pending: the save failed with a host session registration error.
+All tasks done on branch `feat/cloud-workspace`; `fix/plan-entry-path` is merged into it. 552 tests pass, tsc clean.
+Observed live (Gemini, local Docker Storage): a project created without a folder was scaffolded into the bucket, the plan fix rejected `src/App.tsx` and replanned, Develop and Testing ran on Storage files, and the request reached Deploy with 3 of 3 subtasks.
+Acceptance: 1 observed for Files and Preview (Download not exercised), 2 covered by tests only (no live disk project in this run), 3, 4 (no Supabase import in domain or application) and 5 observed.
+The Engram mirror `odd/cloud-workspace/tasks` is still pending: `mem_save` and `mem_session_start` both fail with "Claude host session registration could not be confirmed". This file is the source of truth until Engram accepts writes.
 
 ## Next step
-T1 with a failing test first.
+The user decides push, pull request and merge. Not exercised: the rendered weather app in Preview and a live disk project after the change. `.env.example` still needs the three Supabase variables with empty values.
