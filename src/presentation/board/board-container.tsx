@@ -17,6 +17,7 @@ const emptyBoard: TasksByStatus = {
   ready: [],
   in_progress: [],
   qa: [],
+  awaiting_release: [],
   review: [],
   deploy: [],
 };

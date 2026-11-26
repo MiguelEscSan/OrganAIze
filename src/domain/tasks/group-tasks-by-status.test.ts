@@ -44,6 +44,7 @@ describe("groupTasksByStatus", () => {
       ready: [],
       in_progress: [],
       qa: [],
+      awaiting_release: [],
       deploy: [],
       review: [],
     });

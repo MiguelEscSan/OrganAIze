@@ -4,7 +4,7 @@ import { buildTask } from "@/adapters/in-memory/task-fixtures";
 import { submitTestResult } from "./submit-test-result";
 
 describe("submitTestResult", () => {
-  it("moves the request task to deploy when its last subtask passes", async () => {
+  it("no longer rolls the request task up to deploy when its last subtask passes", async () => {
     const deps = createInMemoryDependencies({
       tasks: [
         buildTask({ id: "request", status: "in_progress" }),
@@ -15,11 +15,8 @@ describe("submitTestResult", () => {
 
     await submitTestResult(deps)({ kind: "SubmitTestResult", taskId: "subtask-2", verdict: { passed: true } });
 
-    expect((await deps.tasks.list()).find((task) => task.id === "request")?.status).toBe("deploy");
-    expect(await deps.events.list()).toEqual([
-      expect.objectContaining({ taskId: "subtask-2", from: "qa", to: "deploy" }),
-      expect.objectContaining({ taskId: "request", from: "in_progress", to: "deploy", actor: "system" }),
-    ]);
+    expect((await deps.tasks.list()).find((task) => task.id === "request")?.status).toBe("in_progress");
+    expect(await deps.events.list()).toEqual([expect.objectContaining({ taskId: "subtask-2", from: "qa", to: "deploy" })]);
   });
 
   it("keeps the request task in progress while another subtask is still in qa", async () => {

@@ -1,5 +1,4 @@
 import type { Task } from "@/domain/tasks/task";
-import { completeRequestTask } from "@/domain/tasks/complete-request-task";
 import { rejectFromQa } from "@/domain/tasks/reject-task";
 import { transitionTask } from "@/domain/tasks/transition-task";
 import type { ApplicationDependencies } from "../shared/dependencies";
@@ -35,27 +34,5 @@ export const submitTestResult =
       return fail("Task not found");
     }
 
-    const recorded = await recordTransition(deps, before, after, result.event);
-
-    if (recorded.ok && verdict.passed && before.parentTaskId !== null) {
-      await completeRequestWhenDone(deps, before.parentTaskId);
-    }
-
-    return recorded;
+    return recordTransition(deps, before, after, result.event);
   };
-
-const completeRequestWhenDone = async (deps: ApplicationDependencies, requestTaskId: string): Promise<void> => {
-  const tasks = await deps.tasks.list();
-  const request = tasks.find((task) => task.id === requestTaskId);
-  const completed = completeRequestTask(tasks, requestTaskId);
-
-  if (!request || !completed.ok) {
-    return;
-  }
-
-  const after = completed.tasks.find((task) => task.id === requestTaskId);
-
-  if (after) {
-    await recordTransition(deps, request, after, completed.event);
-  }
-};

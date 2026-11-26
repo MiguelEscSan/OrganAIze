@@ -18,6 +18,9 @@ const systemMoves: ReadonlyArray<readonly [TaskStatus, TaskStatus]> = [
   ["ready", "in_progress"],
   ["in_progress", "qa"],
   ["qa", "deploy"],
+  ["qa", "awaiting_release"],
+  ["awaiting_release", "deploy"],
+  ["awaiting_release", "in_progress"],
 ];
 
 const allowedMovesFor = (actor: Actor) => (actor === "user" ? userMoves : systemMoves);

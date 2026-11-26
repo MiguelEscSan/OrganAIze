@@ -19,6 +19,37 @@ const createTask = (overrides: Partial<Task>): Task => ({
   ...overrides,
 });
 
+describe("transitionTask and awaiting release", () => {
+  it.each([
+    ["qa", "awaiting_release"],
+    ["awaiting_release", "deploy"],
+    ["awaiting_release", "in_progress"],
+  ] as const)("lets the system move a task from %s to %s", (from, to) => {
+    const result = transitionTask([createTask({ id: "a", status: from })], "a", to, "system");
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.tasks[0].status).toBe(to);
+  });
+
+  it.each(["deploy", "in_progress", "ready", "review", "definition", "qa"] as const)(
+    "never lets the user move a task from awaiting release to %s",
+    (to) => {
+      const result = transitionTask([createTask({ id: "a", status: "awaiting_release" })], "a", to, "user");
+
+      expect(result.ok).toBe(false);
+    },
+  );
+
+  it.each(["definition", "ready", "in_progress", "qa", "review"] as const)(
+    "never lets the user move a task from %s to awaiting release",
+    (from) => {
+      const result = transitionTask([createTask({ id: "a", status: from })], "a", "awaiting_release", "user");
+
+      expect(result.ok).toBe(false);
+    },
+  );
+});
+
 describe("transitionTask", () => {
   it("lets the user send a defined task to ready to develop", () => {
     const tasks = [createTask({ id: "a", status: "definition" })];

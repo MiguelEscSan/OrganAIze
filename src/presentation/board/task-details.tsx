@@ -22,6 +22,7 @@ const statusLabels: Record<TaskStatus, string> = {
   ready: "Ready",
   in_progress: "In progress",
   qa: "QA",
+  awaiting_release: "Awaiting release",
   review: "Review",
   deploy: "Deploy",
 };
@@ -31,6 +32,7 @@ const statusChipClasses: Record<TaskStatus, string> = {
   ready: "bg-cream text-ink",
   in_progress: "bg-sky-soft text-sky-ink",
   qa: "bg-amber-soft text-amber-ink",
+  awaiting_release: "bg-amber-soft text-amber-ink",
   review: "bg-terracotta-soft text-terracotta-deep",
   deploy: "bg-sage/15 text-sage-deep",
 };
