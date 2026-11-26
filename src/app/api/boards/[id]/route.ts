@@ -8,18 +8,18 @@ type BoardRouteContext = { params: Promise<{ id: string }> };
 export const PUT = async (request: Request, context: BoardRouteContext): Promise<Response> => {
   const body = await readJsonObject(request);
 
-  if (!body || typeof body.name !== "string" || typeof body.rootPath !== "string") {
-    return refused("A board needs a name and a project root");
+  if (!body || typeof body.name !== "string" || (body.rootPath !== undefined && body.rootPath !== null && typeof body.rootPath !== "string")) {
+    return refused("A board needs a name and an optional project root");
   }
 
   try {
     const { id } = await context.params;
     const { mediator } = getAppServices();
-    const outcome = await mediator.send<{ kind: "UpdateBoard"; id: string; name: string; rootPath: string }, Outcome<Board>>({
+    const outcome = await mediator.send<{ kind: "UpdateBoard"; id: string; name: string; rootPath?: string | null }, Outcome<Board>>({
       kind: "UpdateBoard",
       id,
       name: body.name,
-      rootPath: body.rootPath,
+      rootPath: typeof body.rootPath === "string" ? body.rootPath : null,
     });
 
     return outcome.ok ? succeeded({ board: outcome.value }) : refused(outcome.reason);

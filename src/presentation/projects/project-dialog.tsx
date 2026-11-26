@@ -62,10 +62,10 @@ export const ProjectDialog = ({ mode, initialValues, error, pending, onSubmit, o
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Project folder (absolute path)
+            Project folder (absolute path, optional)
             <input
               name="rootPath"
-              required
+              placeholder="Leave empty to store the files in cloud storage"
               value={rootPath}
               onChange={(event) => setRootPath(event.target.value)}
               className="rounded-lg border border-black/10 bg-transparent px-3 py-2"

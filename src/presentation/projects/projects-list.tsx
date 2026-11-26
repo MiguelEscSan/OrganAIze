@@ -33,7 +33,7 @@ export const ProjectsList = ({ boards, onCreate, onEdit }: ProjectsListProps) =>
           <li key={board.id} className="flex items-start gap-2 rounded-2xl bg-paper p-5 shadow-[0_2px_0_var(--color-line)] ring-1 ring-line">
             <Link href={`/projects/${board.id}`} className="flex min-w-0 flex-1 flex-col gap-1">
               <h2 className="text-lg font-bold">{board.name}</h2>
-              <p className="truncate text-sm text-muted">{board.rootPath}</p>
+              <p className="truncate text-sm text-muted">{board.rootPath ?? "Cloud storage"}</p>
             </Link>
             <button
               type="button"

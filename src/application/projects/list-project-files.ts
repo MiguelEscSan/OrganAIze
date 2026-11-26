@@ -1,3 +1,4 @@
+import { workspaceLocationOf } from "@/domain/boards/board";
 import type { BoardRepository } from "@/ports/board-repository";
 import type { ProjectFile, ProjectFiles } from "@/ports/project-files";
 
@@ -16,5 +17,5 @@ export const listProjectFiles =
   async (query: ListProjectFiles): Promise<ProjectFile[] | null> => {
     const board = (await deps.boards.list()).find((candidate) => candidate.id === query.boardId);
 
-    return board ? deps.projectFiles.list(board.rootPath) : null;
+    return board ? deps.projectFiles.list(workspaceLocationOf(board)) : null;
   };

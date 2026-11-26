@@ -1,0 +1,1 @@
+ALTER TABLE "boards" ALTER COLUMN "root_path" DROP NOT NULL;

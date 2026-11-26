@@ -59,4 +59,31 @@ describe("parseOrchestrationPlan", () => {
 
     expect(outcome.ok).toBe(false);
   });
+
+  it("rejects a plan whose app entry is not at the project root", () => {
+    const outcome = parseOrchestrationPlan({
+      subtasks: [subtask({ files: ["src/App.tsx"] })],
+    });
+
+    expect(outcome).toEqual({
+      ok: false,
+      reason: "The app entry must be App.tsx at the project root, not src/App.tsx",
+    });
+  });
+
+  it("accepts the app entry at the project root", () => {
+    const outcome = parseOrchestrationPlan({
+      subtasks: [subtask({ files: ["App.tsx", "src/weatherApi.ts"] })],
+    });
+
+    expect(outcome.ok).toBe(true);
+  });
+
+  it("rejects an App.tsx nested in any folder", () => {
+    const outcome = parseOrchestrationPlan({
+      subtasks: [subtask({ files: ["src/components/App.tsx"] })],
+    });
+
+    expect(outcome.ok).toBe(false);
+  });
 });

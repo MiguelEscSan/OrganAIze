@@ -57,7 +57,7 @@ export const boards = pgTable(
   {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
-    rootPath: text("root_path").notNull(),
+    rootPath: text("root_path"),
   },
   (table) => [uniqueIndex("boards_root_path").on(table.rootPath)],
 );

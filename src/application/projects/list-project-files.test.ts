@@ -19,6 +19,15 @@ describe("listProjectFiles", () => {
     expect(lister.list).toHaveBeenCalledWith("C:/Projects/shop");
   });
 
+  it("lists the storage location of a board without a folder", async () => {
+    const lister = listerReturning(files);
+    const cloudBoard = { id: "board-2", name: "Cloud", rootPath: null };
+    const query = listProjectFiles({ boards: createInMemoryBoardRepository([cloudBoard]), projectFiles: lister });
+
+    expect(await query({ kind: "ListProjectFiles", boardId: "board-2" })).toEqual(files);
+    expect(lister.list).toHaveBeenCalledWith("storage:board-2");
+  });
+
   it("returns null for a board that does not exist", async () => {
     const lister = listerReturning(files);
     const query = listProjectFiles({ boards: createInMemoryBoardRepository([board]), projectFiles: lister });

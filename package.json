@@ -14,6 +14,7 @@
     "@codesandbox/sandpack-react": "^2.20.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/utilities": "^3.2.2",
+    "@supabase/supabase-js": "2.119.2",
     "@tiptap/pm": "^3.35.0",
     "@tiptap/react": "^3.35.0",
     "@tiptap/starter-kit": "^3.35.0",
