@@ -40,7 +40,11 @@ Changing the model, summarizing or ranking context files, the Testing review pro
 ## Progress
 - [x] T1 Port, Ollama config and adapter (RED observed: 12 failing tests; GREEN: full suite passes; undici added)
 - [x] T2 Develop context budget (RED observed; `streamedLlm` now forwards `contextWindowTokens` so the budget reaches `runDevelop`)
-- [ ] T3 README and verification (README done; real Ollama check pending)
+- [x] T3 README and verification. Real checks: (1) the first version passed the Node global `fetch` an `Agent` from the `undici` package, and every request failed with `UND_ERR_INVALID_ARG: invalid onRequestStart method` because Node 24 bundles undici 7.29.1 and the package is 8.13.1; unit tests had missed it because they injected the agent. Fixed by using the package's own `fetch` (`createUndiciOllamaFetch`, tested against a local HTTP server). (2) A real chat through that fetcher against `qwen3:4b-instruct` returned `{"ok":true}` with `contextWindowTokens` 8192. (3) A server that answers after 320 s: the default fetch failed after 304 s with `UND_ERR_HEADERS_TIMEOUT` (the 5m4s abort seen in the Ollama log), the new fetcher succeeded after 320 s with status 200. Suite, tsc, lint and build pass.
+
+## Findings
+- The documentation (README, `docs/`, `CLAUDE.md`) still names Gemini as the provider in places; the running provider is Ollama. `CLAUDE.md` was not touched.
+- A 4B local model writes syntax errors and wrong import paths, so most subtasks need several attempts.
 
 ## Next step
-T3: request against the real local Ollama.
+A full live run with the weather request on the corrected build.
