@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { FailureKind } from "@/domain/tasks/failure-kind";
 import type { Task } from "@/domain/tasks/task";
 import { runDeterministicChecks, type CheckFailure, type CheckedFile } from "@/domain/testing/deterministic-checks";
 import type { BoardRepository } from "@/ports/board-repository";
@@ -53,10 +54,10 @@ const typeFailureText = (failure: TypeFailure): string =>
 const reviewFailureText = (failure: ReviewFailure): string =>
   `${failure.criterion} (${locationOf(failure.file, failure.line)}): ${failure.message}`;
 
-const failedVerdict = (feedback: string): TestVerdict => ({ passed: false, feedback });
+const failedVerdict = (feedback: string, kind: FailureKind): TestVerdict => ({ passed: false, feedback, kind });
 
 export const unreviewedVerdict = (reason: string): TestVerdict =>
-  failedVerdict(numbered([`The review could not be completed: ${reason}`]));
+  failedVerdict(numbered([`The review could not be completed: ${reason}`]), "mechanical");
 
 const describeFile = (file: CheckedFile): string =>
   file.content === null ? `### ${file.path}\n(missing)` : `### ${file.path}\n${file.content}`;
@@ -78,7 +79,7 @@ const reviewPrompt = (task: Task, files: readonly CheckedFile[], renderedPage: s
   ].join("\n\n");
 
 const verdictOfReview = (review: Review): TestVerdict =>
-  review.passed ? { passed: true } : failedVerdict(numbered(review.failures.map(reviewFailureText)));
+  review.passed ? { passed: true } : failedVerdict(numbered(review.failures.map(reviewFailureText)), "substantive");
 
 const reviewWithLlm = async (
   deps: TestingDependencies,
@@ -139,13 +140,13 @@ export const verdictForTask = async (
   const checkFailures = runDeterministicChecks(files.value);
 
   if (checkFailures.length > 0) {
-    return succeed(failedVerdict(numbered(checkFailures.map(checkFailureText))));
+    return succeed(failedVerdict(numbered(checkFailures.map(checkFailureText)), "mechanical"));
   }
 
   const typeFailures = await typeFailuresOfTask(deps, rootPath.value, task);
 
   if (typeFailures.length > 0) {
-    return succeed(failedVerdict(numbered(typeFailures.map(typeFailureText))));
+    return succeed(failedVerdict(numbered(typeFailures.map(typeFailureText)), "mechanical"));
   }
 
   return succeed(await reviewWithLlm(deps, task, files.value, renderedPage));

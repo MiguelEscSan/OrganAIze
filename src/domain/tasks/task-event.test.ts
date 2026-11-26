@@ -38,7 +38,7 @@ describe("task events", () => {
   it("records the feedback as the reason for a QA rejection", () => {
     const tasks = [createTask({ id: "a", status: "qa", attempts: 0 })];
 
-    const result = rejectFromQa(tasks, "a", "1. Email accepts 'a@b'.");
+    const result = rejectFromQa(tasks, "a", "1. Email accepts 'a@b'.", "substantive");
 
     expect(result.ok && result.event).toEqual({
       taskId: "a",

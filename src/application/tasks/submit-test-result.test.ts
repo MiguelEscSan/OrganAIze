@@ -53,7 +53,7 @@ describe("submitTestResult", () => {
     const outcome = await submitTestResult(deps)({
       kind: "SubmitTestResult",
       taskId: "t1",
-      verdict: { passed: false, feedback: "1. Email validation accepts 'a@b'." },
+      verdict: { passed: false, feedback: "1. Email validation accepts 'a@b'.", kind: "substantive" },
     });
 
     expect(outcome.ok).toBe(true);
@@ -67,16 +67,40 @@ describe("submitTestResult", () => {
     ]);
   });
 
-  it("moves a task to review on its third rejection", async () => {
+  it("moves a task to review on its third substantive rejection", async () => {
     const deps = createInMemoryDependencies({ tasks: [buildTask({ id: "t1", status: "qa", attempts: 2 })] });
 
     await submitTestResult(deps)({
       kind: "SubmitTestResult",
       taskId: "t1",
-      verdict: { passed: false, feedback: "3. Still broken." },
+      verdict: { passed: false, feedback: "3. Still broken.", kind: "substantive" },
     });
 
     expect((await deps.tasks.list())[0]).toMatchObject({ status: "review", attempts: 3, reviewReason: "attempts" });
+  });
+
+  it("keeps a task in progress on its third mechanical rejection", async () => {
+    const deps = createInMemoryDependencies({ tasks: [buildTask({ id: "t1", status: "qa", attempts: 2 })] });
+
+    await submitTestResult(deps)({
+      kind: "SubmitTestResult",
+      taskId: "t1",
+      verdict: { passed: false, feedback: "3. Syntax error.", kind: "mechanical" },
+    });
+
+    expect((await deps.tasks.list())[0]).toMatchObject({ status: "in_progress", attempts: 3, reviewReason: null });
+  });
+
+  it("moves a task to review on its sixth mechanical rejection", async () => {
+    const deps = createInMemoryDependencies({ tasks: [buildTask({ id: "t1", status: "qa", attempts: 5 })] });
+
+    await submitTestResult(deps)({
+      kind: "SubmitTestResult",
+      taskId: "t1",
+      verdict: { passed: false, feedback: "6. Syntax error.", kind: "mechanical" },
+    });
+
+    expect((await deps.tasks.list())[0]).toMatchObject({ status: "review", attempts: 6, reviewReason: "attempts" });
   });
 
   it("refuses a rejection without feedback and changes nothing", async () => {
@@ -85,7 +109,7 @@ describe("submitTestResult", () => {
     const outcome = await submitTestResult(deps)({
       kind: "SubmitTestResult",
       taskId: "t1",
-      verdict: { passed: false, feedback: "  " },
+      verdict: { passed: false, feedback: "  ", kind: "substantive" },
     });
 
     expect(outcome).toEqual({ ok: false, reason: "A rejection needs feedback" });

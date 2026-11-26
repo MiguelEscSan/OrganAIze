@@ -6,6 +6,7 @@ import type { ApplicationDependencies } from "../shared/dependencies";
 import { fail, succeed, type Outcome } from "../shared/outcome";
 import type { LlmClient } from "@/ports/llm-client";
 import { countFailedAttempt } from "@/domain/tasks/count-failed-attempt";
+import { creationReason } from "@/domain/tasks/previous-failures";
 import { conflictReason } from "./record-transition";
 import type { AgentActivityRecord } from "@/domain/agents/agent-activity";
 import { streamedLlm } from "../agents/streamed-llm";
@@ -62,7 +63,7 @@ const countInvalidPlan = async (
   parent: Task,
   reason: string,
 ): Promise<Outcome<Task[]>> => {
-  const counted = countFailedAttempt(tasks, parent.id, reason);
+  const counted = countFailedAttempt(tasks, parent.id, reason, "mechanical");
 
   if (!counted.ok) {
     return fail(counted.reason);
@@ -135,7 +136,7 @@ const splitRequest =
         from: "in_progress",
         to: "in_progress",
         actor: "system",
-        reason: `Created from ${parent.id} by the orchestrator`,
+        reason: creationReason(parent.id),
       });
     }
 

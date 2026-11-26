@@ -2,6 +2,7 @@ import { checkFileScope } from "@/domain/agents/check-file-scope";
 import { parseDevelopOutput, type DevelopFile } from "@/domain/agents/develop-output";
 import { budgetOverrunReason, minutesBetween } from "@/domain/tasks/budget";
 import { countFailedAttempt } from "@/domain/tasks/count-failed-attempt";
+import { previousFailuresOf, type PreviousFailure } from "@/domain/tasks/previous-failures";
 import { defaultContextBudget, selectContextFiles } from "@/domain/projects/select-context-files";
 import type { Task } from "@/domain/tasks/task";
 import type { BoardRepository } from "@/ports/board-repository";
@@ -39,7 +40,14 @@ const describeCurrentFile = (file: CurrentFile): string =>
 const feedbackSection = (feedback: string | null): string[] =>
   feedback ? ["Feedback from the last review, fix every point:", feedback] : [];
 
-const describeContextFile = (file: ProjectFile): string => `### ${file.path}\n${file.content}`;
+const describeFailure = (failure: PreviousFailure): string => `Attempt ${failure.attempt}: ${failure.reason}`;
+
+const historySection = (failures: readonly PreviousFailure[]): string[] =>
+  failures.length === 0
+    ? []
+    : ["Previous failures of this subtask, oldest first; do not repeat any of them:", ...failures.map(describeFailure)];
+
+const describeContextFile =(file: ProjectFile): string => `### ${file.path}\n${file.content}`;
 
 const contextSection = (contextFiles: readonly ProjectFile[]): string[] =>
   contextFiles.length === 0
@@ -64,12 +72,14 @@ const developPrompt = (
   currentFiles: readonly CurrentFile[],
   contextFiles: readonly ProjectFile[],
   siblings: readonly Task[],
+  failures: readonly PreviousFailure[],
 ): string =>
   [
     `Implement this subtask: ${task.title}`,
     task.description,
     "Acceptance criteria:",
     ...task.acceptanceCriteria.map((criterion) => `- ${criterion}`),
+    ...historySection(failures),
     ...feedbackSection(task.lastFeedback),
     `You may write only these files: ${task.files.join(", ")}`,
     "Current content of those files:",
@@ -87,7 +97,7 @@ const countFailure = async (
   task: Task,
   reason: string,
 ): Promise<Outcome<Task>> => {
-  const counted = countFailedAttempt(tasks, task.id, reason);
+  const counted = countFailedAttempt(tasks, task.id, reason, "mechanical");
 
   if (!counted.ok) {
     return fail(counted.reason);
@@ -172,7 +182,8 @@ const writeSubtask =
     const startedAt = deps.clock.now();
     const currentFiles = await readCurrentFiles(workspace.value, task);
     const contextFiles = await readContextFiles(deps, task);
-    const reply = await deps.llm.generateJson(developPrompt(task, currentFiles, contextFiles, siblingsOf(tasks, task)));
+    const failures = previousFailuresOf(await deps.events.list(), task.id);
+    const reply = await deps.llm.generateJson(developPrompt(task, currentFiles, contextFiles, siblingsOf(tasks, task), failures));
     const settings = await deps.settings.get();
     const overrun = budgetOverrunReason(
       { minutes: minutesBetween(startedAt, deps.clock.now()), tokens: tokensUsed(reply) },

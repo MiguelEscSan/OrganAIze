@@ -140,6 +140,80 @@ describe("runTesting", () => {
     expect(task?.lastFeedback).toContain("could not be completed");
   });
 
+  describe("failure kinds", () => {
+    const failingReview: LlmReply = {
+      ok: true,
+      json: {
+        passed: false,
+        failures: [{ criterion: "Card shows the title", file: cardPath, line: 1, message: "The title text is missing" }],
+      },
+    };
+
+    it("sends a task to review on a third failed criterion review", async () => {
+      const { deps, testing } = setup([qaTask({ attempts: 2 })], { [cardPath]: validCard }, reviewingLlm(failingReview));
+
+      await testing();
+
+      const task = await taskById(deps, "subtask-1");
+      expect([task?.status, task?.attempts]).toEqual(["review", 3]);
+    });
+
+    it("keeps a task in progress on a third syntax failure", async () => {
+      const { deps, testing } = setup([qaTask({ attempts: 2 })], { [cardPath]: unclosedCard }, reviewingLlm(passingReview));
+
+      await testing();
+
+      const task = await taskById(deps, "subtask-1");
+      expect([task?.status, task?.attempts]).toEqual(["in_progress", 3]);
+    });
+
+    it("keeps a task in progress on a third missing file", async () => {
+      const { deps, testing } = setup([qaTask({ attempts: 2 })], {}, reviewingLlm(passingReview));
+
+      await testing();
+
+      expect((await taskById(deps, "subtask-1"))?.status).toBe("in_progress");
+    });
+
+    it("keeps a task in progress on a third type check failure", async () => {
+      const typeFailures: TypeFailure[] = [{ file: cardPath, line: 1, message: "Cannot find name 'x'" }];
+      const { deps, testing } = setup(
+        [qaTask({ attempts: 2 })],
+        { [cardPath]: validCard },
+        reviewingLlm(passingReview),
+        createInMemoryProjectTypeChecker(typeFailures),
+      );
+
+      await testing();
+
+      expect((await taskById(deps, "subtask-1"))?.status).toBe("in_progress");
+    });
+
+    it("keeps a task in progress on a third review that could not be completed", async () => {
+      const { deps, testing } = setup(
+        [qaTask({ attempts: 2 })],
+        { [cardPath]: validCard },
+        reviewingLlm({ ok: false, reason: "Gemini is unavailable" }),
+      );
+
+      await testing();
+
+      expect((await taskById(deps, "subtask-1"))?.status).toBe("in_progress");
+    });
+
+    it("sends a task to review on a sixth review that could not be completed", async () => {
+      const { deps, testing } = setup(
+        [qaTask({ attempts: 5 })],
+        { [cardPath]: validCard },
+        reviewingLlm({ ok: false, reason: "Gemini is unavailable" }),
+      );
+
+      await testing();
+
+      expect((await taskById(deps, "subtask-1"))?.status).toBe("review");
+    });
+  });
+
   it("gives the review the acceptance criteria and the file contents", async () => {
     const llm = reviewingLlm(passingReview);
     const { testing } = setup([qaTask()], { [cardPath]: validCard }, llm);

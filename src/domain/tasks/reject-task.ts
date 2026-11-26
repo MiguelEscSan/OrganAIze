@@ -1,6 +1,6 @@
 import type { Task } from "./task";
 import type { TaskEvent } from "./task-event";
-import { maxAttemptsPerTask } from "./task-status";
+import { statusAfterFailedAttempt, type FailureKind } from "./failure-kind";
 
 export type RejectResult =
   | { ok: true; tasks: Task[]; event: TaskEvent }
@@ -10,6 +10,7 @@ export const rejectFromQa = (
   tasks: readonly Task[],
   taskId: string,
   feedback: string,
+  kind: FailureKind,
 ): RejectResult => {
   const task = tasks.find((candidate) => candidate.id === taskId);
 
@@ -27,7 +28,7 @@ export const rejectFromQa = (
 
   const trimmedFeedback = feedback.trim();
   const attempts = task.attempts + 1;
-  const status = attempts >= maxAttemptsPerTask ? "review" : "in_progress";
+  const status = statusAfterFailedAttempt(attempts, kind);
 
   return {
     ok: true,

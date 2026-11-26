@@ -93,7 +93,7 @@ describe("claimAndOrchestrateRequest", () => {
     ]);
   });
 
-  it("retries an invalid plan and sends the request to review after three attempts", async () => {
+  it("retries an invalid plan and sends the request to review after six attempts", async () => {
     const deps = createInMemoryDependencies({ requests: [request], tasks: [readyTask] });
     const claimAndOrchestrate = claimAndOrchestrateRequest({
       ...deps,
@@ -105,7 +105,7 @@ describe("claimAndOrchestrateRequest", () => {
 
     expect(outcome.ok).toBe(false);
     const [task] = await deps.tasks.list();
-    expect([task.status, task.attempts, task.reviewReason]).toEqual(["review", 3, "attempts"]);
+    expect([task.status, task.attempts, task.reviewReason]).toEqual(["review", 6, "attempts"]);
   });
 
   it("reports that nothing is ready and creates nothing", async () => {

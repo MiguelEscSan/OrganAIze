@@ -50,7 +50,7 @@ Subtasks are born in **In progress**, assigned to Develop. The Orchestrator does
 
 ### 3. Develop: write
 
-Develop gets one subtask at a time with: the criteria, the exact files it may write, their current content, read-only context from the rest of the project, the sibling subtasks (so it imports their real files instead of inventing them) and the last feedback, if any.
+Develop gets one subtask at a time with: the criteria, the exact files it may write, their current content, read-only context from the rest of the project, the sibling subtasks (so it imports their real files instead of inventing them) and the failures of earlier attempts, numbered in order (the five most recent), so it does not repeat them.
 
 - **Parallel and sequence.** Every subtask flagged parallel runs in one batch at the same time. Otherwise the next subtask runs alone, in order.
 - **Scope.** A write outside the declared files fails the attempt. The feedback lists the allowed files and suggests the closest match.
@@ -81,7 +81,7 @@ When the request QA fails, each failure is attributed to the subtask that declar
 
 ### 5. Review: the user decides
 
-A card lands in **Review** after the third failed attempt, or when a budget stops a run. The user can:
+A card lands in **Review** after its third substantive failure (an acceptance criterion judged unmet, or a failed request QA), after its sixth mechanical failure (syntax, types, invalid output, scope, merge, invalid plan, an incomplete review), or when a budget stops a run. The kind is decided by where the failure came from, never by reading its text. The user can:
 
 | Decision | Effect |
 | --- | --- |
@@ -95,14 +95,15 @@ The system never moves a card out of Review.
 
 | Situation | What happens |
 | --- | --- |
-| The model replies with invalid JSON, or JSON that does not match the schema | The attempt fails with the schema error as feedback. |
+| The model replies with invalid JSON, or JSON that does not match the schema | A mechanical failure: the attempt fails with the schema error as feedback and the task gets up to 6 attempts before Review. |
 | Develop writes a file it did not declare | The attempt fails. The feedback lists the allowed files. |
 | Two subtasks edit the same file | The merge step reconciles them. If it cannot, the attempt fails with the reason. |
-| Testing cannot complete its review (provider error, malformed reply) | It counts as a failed verdict with the reason, never as a silent pass. |
-| The LLM provider is unavailable | The run stops without counting an attempt, so an outage does not burn the 3 attempts. |
+| Testing cannot complete its review (provider error, malformed reply) | It counts as a mechanical failed verdict with the reason, never as a silent pass. |
+| The LLM provider is unavailable | The run stops without counting an attempt, so an outage does not burn the attempts. |
 | A run exceeds the time or token budget | The run stops, the card goes to Review with the reason, and no attempt is counted. A budget stop is never treated as a judgment of the work. |
 | QA already holds N tasks | Develop does not push another one. The run stops without counting an attempt and continues on the next pass. |
-| The plan is invalid | The attempt is counted on the request. After 3 the request goes to Review. |
+| The plan is invalid | A mechanical failure: the attempt is counted on the request. After 6 the request goes to Review. |
+| A subtask keeps failing the LLM review of its criteria | A substantive failure: after 3 attempts the subtask goes to Review so the user sees it. |
 | A subtask passes but the whole app fails | Request QA sends back only the subtasks responsible, with the failures attributed to their files. |
 | Two writers touch the same card at once | Transitions are applied with an expected-status check, and a stale write is rejected as a conflict instead of overwriting. |
 | The loop makes no progress | The loop compares a snapshot of statuses and attempts before and after each pass and stops when nothing changed, so there are no infinite retries. |
@@ -112,6 +113,8 @@ The system never moves a card out of Review.
 - Testing reads code and the text of the rendered page. It does not see network data or interaction results, so a field that is rendered but never fetched can pass review.
 - The shared-file merge is done by the LLM over whole files, not by a mechanical three-way diff. It is the most likely step to need a retry when two subtasks edit the same file.
 - Without the browser check, the request QA adds no new judgment on top of the per-subtask audit.
+- The attempt counter is shared between kinds: a task with three mechanical failures that then fails on substance goes to Review at once, because its attempts already reached the substantive limit.
+- The attempt dots on the board show 3 slots, so a task with more than 3 mechanical attempts reads "4 of 3 attempts used".
 
 ## Views
 

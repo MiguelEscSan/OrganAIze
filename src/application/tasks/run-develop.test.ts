@@ -122,13 +122,22 @@ describe("runDevelop", () => {
     expect([task?.status, task?.attempts]).toEqual(["in_progress", 0]);
   });
 
-  it("sends the subtask to review after its third failed attempt", async () => {
+  it("keeps the subtask in progress after its third mechanical failure", async () => {
     const { deps, run } = setup(subtask({ attempts: 2 }), { ok: true, json: { files: [] } });
 
     await run({ kind: "RunDevelop", taskId: "subtask-1" });
 
     const task = await taskById(deps, "subtask-1");
-    expect([task?.status, task?.attempts, task?.reviewReason]).toEqual(["review", 3, "attempts"]);
+    expect([task?.status, task?.attempts, task?.reviewReason]).toEqual(["in_progress", 3, null]);
+  });
+
+  it("sends the subtask to review after its sixth mechanical failure", async () => {
+    const { deps, run } = setup(subtask({ attempts: 5 }), { ok: true, json: { files: [] } });
+
+    await run({ kind: "RunDevelop", taskId: "subtask-1" });
+
+    const task = await taskById(deps, "subtask-1");
+    expect([task?.status, task?.attempts, task?.reviewReason]).toEqual(["review", 6, "attempts"]);
   });
 
   describe("budgets", () => {
@@ -274,6 +283,67 @@ describe("runDevelop prompt", () => {
     await runWith({ kind: "RunDevelop", taskId: "subtask-1" });
 
     expect(prompts[0]).toContain(feedback);
+  });
+
+  describe("history of failures", () => {
+    const historyHeading = "Previous failures of this subtask";
+
+    const promptAfter = async (failures: { from: "qa" | "in_progress"; reason: string }[]): Promise<string> => {
+      const prompts: string[] = [];
+      const llm = {
+        generateJson: async (prompt: string) => {
+          prompts.push(prompt);
+          return { ok: true as const, json: validOutput };
+        },
+      };
+      const deps = createInMemoryDependencies({ ...developSeed, tasks: [subtask({ attempts: failures.length })] });
+      await deps.events.append({
+        taskId: "subtask-1",
+        from: "in_progress",
+        to: "in_progress",
+        actor: "system",
+        reason: "Created from parent-1 by the orchestrator",
+      });
+      for (const failure of failures) {
+        await deps.events.append({ taskId: "subtask-1", from: failure.from, to: "in_progress", actor: "system", reason: failure.reason });
+      }
+      const workspace = createInMemoryWorkspaceWriter({});
+      const runWith = runDevelop({ ...deps, ...inMemoryDevelopDependencies(workspace), llm });
+
+      await runWith({ kind: "RunDevelop", taskId: "subtask-1" });
+
+      return prompts[0];
+    };
+
+    it("lists every previous failure in order, numbered by attempt", async () => {
+      const prompt = await promptAfter([
+        { from: "in_progress", reason: "Develop output is not valid JSON" },
+        { from: "qa", reason: "1. src/app/page.tsx:2: Syntax error" },
+      ]);
+
+      expect(prompt).toContain(historyHeading);
+      expect(prompt.indexOf("Attempt 1: Develop output is not valid JSON")).toBeGreaterThan(-1);
+      expect(prompt.indexOf("Attempt 2: 1. src/app/page.tsx:2: Syntax error")).toBeGreaterThan(
+        prompt.indexOf("Attempt 1: Develop output is not valid JSON"),
+      );
+    });
+
+    it("shows no history for a subtask that never failed", async () => {
+      const prompt = await promptAfter([]);
+
+      expect(prompt).not.toContain(historyHeading);
+    });
+
+    it("keeps only the most recent failures so the prompt stays bounded", async () => {
+      const failures = Array.from({ length: 7 }, (_, index) => ({ from: "qa" as const, reason: `Failure number ${index + 1}` }));
+
+      const prompt = await promptAfter(failures);
+
+      expect(prompt).not.toContain("Failure number 1\n");
+      expect(prompt).not.toContain("Attempt 2:");
+      expect(prompt).toContain("Attempt 3: Failure number 3");
+      expect(prompt).toContain("Attempt 7: Failure number 7");
+    });
   });
 });
 
