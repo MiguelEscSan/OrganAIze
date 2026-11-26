@@ -53,7 +53,7 @@ A separate Merge agent, task dependencies, project-level local or cloud type (th
 - [x] T3 Request QA use case and wiring
   - [x] T3a Subtask pass goes qa -> awaiting_release via releaseSubtask (RED observed: 11 failing tests without the change; src/application 183 tests green)
   - [x] T3b runRequestQa (cloud passes without launching, local probe plus LLM review, approve or reject with attribution), loop wiring in claimAndOrchestrate and resumeSubtasks, probe installs dependencies when node_modules is missing (full suite 476 tests, tsc, eslint and build green; RED observed for the install decision, run-request-qa tests written before the module)
-- [ ] T4 Board column
+- [x] T4 Board column: Awaiting release column between QA and Deploy, request progress label via describeRequestProgress, state notes via describeTaskState (RED observed: both test files failed on the missing modules; full suite 491 tests, tsc, eslint green)
 - [ ] T5 Docs
 - [ ] T6 Verification
 

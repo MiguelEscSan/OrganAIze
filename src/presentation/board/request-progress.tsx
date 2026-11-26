@@ -1,4 +1,5 @@
 import { agentNames, type AgentName } from "@/domain/agents/agent-name";
+import { describeRequestProgress } from "@/domain/tasks/describe-request-progress";
 import type { FamilySummary } from "@/domain/tasks/group-column-into-families";
 import { agentChipClass, agentLabel } from "./agent-activity";
 
@@ -13,6 +14,7 @@ const segmentClasses = (summary: FamilySummary): string[] => {
   const { byStatus, total } = summary;
   const ordered = [
     ...repeat("bg-sage-deep", byStatus.deploy),
+    ...repeat("bg-amber", byStatus.awaiting_release),
     ...repeat("bg-terracotta-deep", byStatus.review),
     ...repeat("bg-amber-deep", byStatus.qa),
     ...repeat("bg-sky-deep", byStatus.in_progress),
@@ -42,7 +44,11 @@ export const RequestProgress = ({ summary }: RequestProgressProps) => {
         ))}
       </div>
       <p className="text-xs font-bold text-muted">
-        {summary.deployed} of {summary.total} deployed
+        {describeRequestProgress({
+          deployed: summary.deployed,
+          awaitingRelease: summary.byStatus.awaiting_release,
+          total: summary.total,
+        })}
       </p>
       {agents.length > 0 && (
         <ul className="flex flex-wrap gap-1.5">

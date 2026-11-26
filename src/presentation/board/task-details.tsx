@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { describeRequestProgress } from "@/domain/tasks/describe-request-progress";
 import type { FamilySiblings } from "@/domain/tasks/list-family-siblings";
 import type { Task } from "@/domain/tasks/task";
 import { maxAttemptsPerTask, type TaskStatus } from "@/domain/tasks/task-status";
@@ -82,7 +83,15 @@ const LockNotice = () => (
   </p>
 );
 
-const FamilyProgress = ({ family }: { family: FamilySiblings }) => (
+const siblingSegmentClass = (status: TaskStatus): string => {
+  if (status === "deploy") {
+    return "bg-sage-deep";
+  }
+
+  return status === "awaiting_release" ? "bg-amber" : "bg-line";
+};
+
+const FamilyProgress =({ family }: { family: FamilySiblings }) => (
   <div className="flex flex-col gap-1.5">
     <div
       role="progressbar"
@@ -95,12 +104,16 @@ const FamilyProgress = ({ family }: { family: FamilySiblings }) => (
       {family.siblings.map((sibling) => (
         <span
           key={sibling.id}
-          className={`flex-1 rounded-full ${sibling.status === "deploy" ? "bg-sage-deep" : "bg-line"}`}
+          className={`flex-1 rounded-full ${siblingSegmentClass(sibling.status)}`}
         />
       ))}
     </div>
     <p className="text-xs font-bold text-muted">
-      {family.deployed} of {family.total} deployed
+      {describeRequestProgress({
+        deployed: family.deployed,
+        awaitingRelease: family.siblings.filter((sibling) => sibling.status === "awaiting_release").length,
+        total: family.total,
+      })}
     </p>
   </div>
 );

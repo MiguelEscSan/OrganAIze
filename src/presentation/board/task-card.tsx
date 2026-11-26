@@ -10,6 +10,7 @@ import { RichTextView } from "../rich-text/rich-text-view";
 import { AgentActivity, agentChipClass, agentLabel } from "./agent-activity";
 import { AttemptDots } from "./attempt-dots";
 import { CardMenu, type CardMenuItem } from "./card-menu";
+import { describeTaskState } from "./describe-task-state";
 import { LiveTaskDetails } from "./live-task-details";
 import { RequestProgress } from "./request-progress";
 import { TaskDialog, type TaskDialogValues } from "./task-dialog";
@@ -137,6 +138,7 @@ export const TaskCard = ({
       <CardMenu title={task.title} items={menuItems()} />
     );
 
+  const stateNote = describeTaskState(task.status, variant);
   const isInReview = task.status === "review";
   const showsReviewActions = isInReview && Boolean(onSendToReady);
   const showsResume = task.status === "in_progress" && task.parentTaskId !== null && Boolean(onResume);
@@ -200,6 +202,12 @@ export const TaskCard = ({
       )}
 
       {variant === "request" && summary && summary.total > 0 && <RequestProgress summary={summary} />}
+
+      {stateNote && (
+        <p className="self-start rounded-full bg-amber-soft px-2.5 py-0.5 text-xs font-extrabold text-amber-ink">
+          {stateNote}
+        </p>
+      )}
 
       {task.liveStatus && <AgentActivity agent={task.assignedAgent} liveStatus={task.liveStatus} />}
 

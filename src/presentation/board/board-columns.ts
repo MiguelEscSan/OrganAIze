@@ -32,6 +32,13 @@ export const boardColumns: readonly BoardColumn[] = [
   },
   { status: "qa", title: "QA", accentClass: "bg-amber", hint: "Automatic", isAutomatic: true },
   {
+    status: "awaiting_release",
+    title: "Awaiting release",
+    accentClass: "bg-amber-deep",
+    hint: "Audited, waiting for the whole request",
+    isAutomatic: true,
+  },
+  {
     status: "review",
     title: "Review",
     accentClass: "bg-terracotta",

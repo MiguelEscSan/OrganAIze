@@ -1,6 +1,7 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
+import { describeRequestProgress } from "@/domain/tasks/describe-request-progress";
 import { groupColumnIntoFamilies, type FamilySummary } from "@/domain/tasks/group-column-into-families";
 import type { TasksByStatus } from "@/domain/tasks/group-tasks-by-status";
 import { listFamilySiblings } from "@/domain/tasks/list-family-siblings";
@@ -127,8 +128,11 @@ export const KanbanColumn = ({
                 <RequestFamily
                   parent={entry.parent ? renderCard(entry.parent, "request", entry.summary) : null}
                   title={entry.summary.title}
-                  deployed={entry.summary.deployed}
-                  total={entry.summary.total}
+                  progressLabel={describeRequestProgress({
+                    deployed: entry.summary.deployed,
+                    awaitingRelease: entry.summary.byStatus.awaiting_release,
+                    total: entry.summary.total,
+                  })}
                 >
                   {entry.children.map((child) => renderCard(child, "subtask"))}
                 </RequestFamily>
