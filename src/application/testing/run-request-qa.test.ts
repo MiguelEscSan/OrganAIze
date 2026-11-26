@@ -101,6 +101,9 @@ describe("runRequestQa", () => {
     expect(llm.generateJson).not.toHaveBeenCalled();
     expect(await statusesOf(deps)).toEqual({ request: "deploy", a: "deploy", b: "deploy" });
     const events = await deps.events.list();
+    expect(events.find((event) => event.taskId === "request" && event.to === "deploy")?.reason).toBe(
+      "Request QA passed. The browser check is disabled, so the running app was not reviewed.",
+    );
     expect(events.map((event) => [event.taskId, event.from, event.to])).toEqual([
       ["request", "in_progress", "qa"],
       ["request", "qa", "deploy"],
@@ -117,6 +120,17 @@ describe("runRequestQa", () => {
     expect(outcome).toEqual({ ok: true, value: "passed" });
     expect(probe.inspect).toHaveBeenCalledWith("C:/projects/sample");
     expect(await statusesOf(deps)).toEqual({ request: "deploy", a: "deploy", b: "deploy" });
+  });
+
+  it("records what was reviewed on the request's deploy event", async () => {
+    const { deps, qa } = setup();
+
+    await qa(command);
+
+    const reason = (await deps.events.list()).find((event) => event.taskId === "request" && event.to === "deploy")?.reason;
+    expect(reason).toBe(
+      'Request QA passed. Reviewed the running app: 15 characters of visible text, 1 console errors, 2 subtasks with 2 acceptance criteria. Visible text starts: "Weekly schedule"',
+    );
   });
 
   it("gives the review the request, every acceptance criterion, the rendered page and the console errors", async () => {
