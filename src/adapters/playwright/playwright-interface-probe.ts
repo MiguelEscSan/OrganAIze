@@ -4,7 +4,8 @@ import { createServer } from "node:net";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import type { InterfaceProbe, InterfaceProbeResult } from "@/ports/interface-probe";
-import { needsDependencyInstall } from "./dependency-install-decision";
+import { declaredDependencyNames, needsDependencyInstall } from "./dependency-install-decision";
+import { devCommandFor } from "./dev-command";
 
 const installTimeoutMs = 5 * 60_000;
 const startupTimeoutMs = 60_000;
@@ -52,10 +53,10 @@ const waitUntilReachable = async (url: string, server: ChildProcess): Promise<bo
   return false;
 };
 
-const startDevServer = (rootPath: string, port: number): ChildProcess =>
-  spawn("npm run dev", {
+const startDevServer = (rootPath: string, port: number, command: string): ChildProcess =>
+  spawn(command, {
     cwd: rootPath,
-    env: { ...process.env, PORT: String(port) },
+    env: { ...process.env, NODE_ENV: "development", PORT: String(port) },
     shell: true,
     stdio: "ignore",
     detached: process.platform !== "win32",
@@ -94,10 +95,17 @@ const exists = async (path: string): Promise<boolean> => {
   }
 };
 
+const installedNamesOf = async (rootPath: string, names: readonly string[]): Promise<string[]> => {
+  const present = await Promise.all(names.map((name) => exists(join(rootPath, "node_modules", name))));
+
+  return names.filter((_, index) => present[index]);
+};
+
 const installDependencies = (rootPath: string): Promise<string | null> =>
   new Promise((resolve) => {
-    const installer = spawn("npm install --no-audit --no-fund --ignore-scripts", {
+    const installer = spawn("npm install --no-audit --no-fund --ignore-scripts --include=dev", {
       cwd: rootPath,
+      env: { ...process.env, NODE_ENV: "development" },
       shell: true,
       stdio: "ignore",
     });
@@ -118,7 +126,7 @@ const installDependencies = (rootPath: string): Promise<string | null> =>
 
 const installFailureOf = async (rootPath: string): Promise<string | null> => {
   const packageJson = await readIfPresent(join(rootPath, "package.json"));
-  const installed = await exists(join(rootPath, "node_modules"));
+  const installed = await installedNamesOf(rootPath, declaredDependencyNames(packageJson));
 
   return needsDependencyInstall(packageJson, installed) ? installDependencies(rootPath) : null;
 };
@@ -157,7 +165,8 @@ export const createPlaywrightInterfaceProbe = (): InterfaceProbe => ({
 
     const port = await freePort();
     const url = `http://127.0.0.1:${port}`;
-    const server = startDevServer(rootPath, port);
+    const command = devCommandFor(await readIfPresent(join(rootPath, "package.json")), port);
+    const server = startDevServer(rootPath, port, command);
 
     try {
       if (!(await waitUntilReachable(url, server))) {

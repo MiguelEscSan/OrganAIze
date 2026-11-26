@@ -1,21 +1,25 @@
-const declaresEntries = (value: unknown): boolean =>
-  typeof value === "object" && value !== null && Object.keys(value).length > 0;
+const namesOf = (value: unknown): string[] =>
+  typeof value === "object" && value !== null ? Object.keys(value) : [];
 
-const declaresDependencies = (packageJsonText: string): boolean => {
+export const declaredDependencyNames = (packageJsonText: string | null): string[] => {
+  if (packageJsonText === null) {
+    return [];
+  }
+
   try {
     const manifest: unknown = JSON.parse(packageJsonText);
 
     if (typeof manifest !== "object" || manifest === null) {
-      return false;
+      return [];
     }
 
     const { dependencies, devDependencies } = manifest as Record<string, unknown>;
 
-    return declaresEntries(dependencies) || declaresEntries(devDependencies);
+    return [...namesOf(dependencies), ...namesOf(devDependencies)];
   } catch {
-    return false;
+    return [];
   }
 };
 
-export const needsDependencyInstall = (packageJsonText: string | null, nodeModulesExists: boolean): boolean =>
-  packageJsonText !== null && !nodeModulesExists && declaresDependencies(packageJsonText);
+export const needsDependencyInstall = (packageJsonText: string | null, installedNames: readonly string[]): boolean =>
+  declaredDependencyNames(packageJsonText).some((name) => !installedNames.includes(name));
