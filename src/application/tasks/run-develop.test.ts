@@ -122,13 +122,22 @@ describe("runDevelop", () => {
     expect([task?.status, task?.attempts]).toEqual(["in_progress", 0]);
   });
 
-  it("sends the subtask to review after its third failed attempt", async () => {
+  it("keeps the subtask in progress after its third mechanical failure", async () => {
     const { deps, run } = setup(subtask({ attempts: 2 }), { ok: true, json: { files: [] } });
 
     await run({ kind: "RunDevelop", taskId: "subtask-1" });
 
     const task = await taskById(deps, "subtask-1");
-    expect([task?.status, task?.attempts, task?.reviewReason]).toEqual(["review", 3, "attempts"]);
+    expect([task?.status, task?.attempts, task?.reviewReason]).toEqual(["in_progress", 3, null]);
+  });
+
+  it("sends the subtask to review after its sixth mechanical failure", async () => {
+    const { deps, run } = setup(subtask({ attempts: 5 }), { ok: true, json: { files: [] } });
+
+    await run({ kind: "RunDevelop", taskId: "subtask-1" });
+
+    const task = await taskById(deps, "subtask-1");
+    expect([task?.status, task?.attempts, task?.reviewReason]).toEqual(["review", 6, "attempts"]);
   });
 
   describe("budgets", () => {

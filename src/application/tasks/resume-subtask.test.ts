@@ -38,7 +38,7 @@ describe("resumeSubtask", () => {
 
     expect(outcome.ok).toBe(true);
     const current = (await deps.tasks.list()).find((task) => task.id === "t1");
-    expect([current?.status, current?.attempts]).toEqual(["review", 3]);
+    expect([current?.status, current?.attempts]).toEqual(["review", 6]);
   });
 
   it("refuses a task that is not an in progress subtask", async () => {

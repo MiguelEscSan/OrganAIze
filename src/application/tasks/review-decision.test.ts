@@ -100,7 +100,7 @@ describe("decideReview", () => {
     const subtask = (await deps.tasks.list()).find((task) => task.id === "t1");
     expect([subtask?.status, subtask?.attempts, subtask?.lastFeedback, subtask?.parentTaskId]).toEqual([
       "review",
-      3,
+      6,
       "Ollama is unavailable",
       "p1",
     ]);

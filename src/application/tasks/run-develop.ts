@@ -87,7 +87,7 @@ const countFailure = async (
   task: Task,
   reason: string,
 ): Promise<Outcome<Task>> => {
-  const counted = countFailedAttempt(tasks, task.id, reason);
+  const counted = countFailedAttempt(tasks, task.id, reason, "mechanical");
 
   if (!counted.ok) {
     return fail(counted.reason);

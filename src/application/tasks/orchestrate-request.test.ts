@@ -193,14 +193,24 @@ describe("orchestrateRequest", () => {
     expect((await deps.events.list()).map((event) => event.to)).toEqual(["in_progress"]);
   });
 
-  it("moves the request to review after its third invalid plan", async () => {
+  it("keeps the request in progress after its third invalid plan", async () => {
     const thirdAttempt: Task = { ...parentTask, attempts: 2 };
     const { deps, orchestrate } = run([thirdAttempt], { ok: true, json: { subtasks: [] } });
 
     await orchestrate({ kind: "OrchestrateRequest", taskId: "task-1" });
 
     const [parent] = await deps.tasks.list();
-    expect([parent.status, parent.attempts, parent.reviewReason]).toEqual(["review", 3, "attempts"]);
+    expect([parent.status, parent.attempts, parent.reviewReason]).toEqual(["in_progress", 3, null]);
+  });
+
+  it("moves the request to review after its sixth invalid plan", async () => {
+    const sixthAttempt: Task = { ...parentTask, attempts: 5 };
+    const { deps, orchestrate } = run([sixthAttempt], { ok: true, json: { subtasks: [] } });
+
+    await orchestrate({ kind: "OrchestrateRequest", taskId: "task-1" });
+
+    const [parent] = await deps.tasks.list();
+    expect([parent.status, parent.attempts, parent.reviewReason]).toEqual(["review", 6, "attempts"]);
   });
 
   it("refuses when the LLM call fails and creates nothing", async () => {

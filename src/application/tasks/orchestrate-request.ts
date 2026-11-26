@@ -62,7 +62,7 @@ const countInvalidPlan = async (
   parent: Task,
   reason: string,
 ): Promise<Outcome<Task[]>> => {
-  const counted = countFailedAttempt(tasks, parent.id, reason);
+  const counted = countFailedAttempt(tasks, parent.id, reason, "mechanical");
 
   if (!counted.ok) {
     return fail(counted.reason);

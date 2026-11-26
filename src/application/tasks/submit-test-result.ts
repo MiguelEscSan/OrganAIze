@@ -1,3 +1,4 @@
+import type { FailureKind } from "@/domain/tasks/failure-kind";
 import type { Task } from "@/domain/tasks/task";
 import { rejectFromQa } from "@/domain/tasks/reject-task";
 import { releaseSubtask } from "@/domain/tasks/release-subtask";
@@ -5,7 +6,7 @@ import type { ApplicationDependencies } from "../shared/dependencies";
 import { fail, type Outcome } from "../shared/outcome";
 import { recordTransition } from "./record-transition";
 
-export type TestVerdict = { passed: true } | { passed: false; feedback: string };
+export type TestVerdict = { passed: true } | { passed: false; feedback: string; kind: FailureKind };
 
 export type SubmitTestResult = {
   kind: "SubmitTestResult";
@@ -22,7 +23,7 @@ export const submitTestResult =
 
     const result = verdict.passed
       ? releaseSubtask(tasks, command.taskId)
-      : rejectFromQa(tasks, command.taskId, verdict.feedback);
+      : rejectFromQa(tasks, command.taskId, verdict.feedback, verdict.kind);
 
     if (!result.ok || !before) {
       return fail(result.ok ? "Task not found" : result.reason);

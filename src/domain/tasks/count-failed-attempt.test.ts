@@ -19,7 +19,7 @@ const parent: Task = {
 
 describe("countFailedAttempt", () => {
   it("keeps the task in progress and counts the attempt", () => {
-    const result = countFailedAttempt([parent], "task-1", "Plan was not valid JSON");
+    const result = countFailedAttempt([parent], "task-1", "Plan was not valid JSON", "mechanical");
 
     expect(result).toEqual({
       ok: true,
@@ -28,10 +28,10 @@ describe("countFailedAttempt", () => {
     });
   });
 
-  it("moves the task to review on the third failed attempt", () => {
+  it("moves the task to review on the third substantive failure", () => {
     const thirdAttempt: Task = { ...parent, attempts: 2 };
 
-    const result = countFailedAttempt([thirdAttempt], "task-1", "Plan had no subtasks");
+    const result = countFailedAttempt([thirdAttempt], "task-1", "Criterion unmet", "substantive");
 
     expect(result).toMatchObject({
       ok: true,
@@ -40,17 +40,41 @@ describe("countFailedAttempt", () => {
     });
   });
 
+  it("keeps the task in progress on the third mechanical failure", () => {
+    const thirdAttempt: Task = { ...parent, attempts: 2 };
+
+    const result = countFailedAttempt([thirdAttempt], "task-1", "Plan had no subtasks", "mechanical");
+
+    expect(result).toMatchObject({
+      ok: true,
+      task: { status: "in_progress", attempts: 3, reviewReason: null },
+      event: { from: "in_progress", to: "in_progress" },
+    });
+  });
+
+  it("moves the task to review on the sixth mechanical failure", () => {
+    const sixthAttempt: Task = { ...parent, attempts: 5 };
+
+    const result = countFailedAttempt([sixthAttempt], "task-1", "Plan had no subtasks", "mechanical");
+
+    expect(result).toMatchObject({
+      ok: true,
+      task: { status: "review", attempts: 6, reviewReason: "attempts" },
+      event: { from: "in_progress", to: "review" },
+    });
+  });
+
   it("refuses a task that is not in progress", () => {
     const ready: Task = { ...parent, status: "ready" };
 
-    expect(countFailedAttempt([ready], "task-1", "reason")).toEqual({
+    expect(countFailedAttempt([ready], "task-1", "reason", "mechanical")).toEqual({
       ok: false,
       reason: "Only tasks in progress can count a failed attempt",
     });
   });
 
   it("refuses an empty reason", () => {
-    expect(countFailedAttempt([parent], "task-1", "   ")).toEqual({
+    expect(countFailedAttempt([parent], "task-1", "   ", "mechanical")).toEqual({
       ok: false,
       reason: "A failed attempt needs a reason",
     });
