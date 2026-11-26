@@ -15,3 +15,77 @@ services:
       interval: 2s
       timeout: 2s
       retries: 15
+
+  storage-db:
+    image: supabase/postgres:15.8.1.060
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: agent_team_storage_local
+      POSTGRES_DB: postgres
+    volumes:
+      - storage-db-data:/var/lib/postgresql/data
+      - ./docker/storage/storage-db-roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-storage-roles.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -h 127.0.0.1"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  storage-api:
+    image: supabase/storage-api:v1.81.0
+    restart: unless-stopped
+    depends_on:
+      storage-db:
+        condition: service_healthy
+    environment:
+      ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6ImFnZW50LXRlYW0tbG9jYWwiLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6NDEwMjQ0NDgwMH0.K0O_Pc2xTG_Rj8I1y6aEMB5TS5vnUKA74-2nQCoZ97I
+      SERVICE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoiYWdlbnQtdGVhbS1sb2NhbCIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjo0MTAyNDQ0ODAwfQ.EMvRmbHrde1TaCOLr7MPIFnoBX0e0Uw5eeeHxePoZFY
+      AUTH_JWT_SECRET: agent-team-local-jwt-secret-0123456789
+      DATABASE_URL: postgres://supabase_storage_admin:agent_team_storage_local@storage-db:5432/postgres
+      POSTGREST_URL: http://storage-db:3000
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      GLOBAL_S3_BUCKET: agent-team-local
+      TENANT_ID: agent-team-local
+      REGION: local
+      UPLOAD_FILE_SIZE_LIMIT: "52428800"
+    volumes:
+      - storage-files:/var/lib/storage
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:5000/status || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  storage-gateway:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      storage-api:
+        condition: service_healthy
+    ports:
+      - "54600:80"
+    volumes:
+      - ./docker/storage/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1/storage/v1/status || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  storage-bucket-init:
+    image: curlimages/curl:8.10.1
+    depends_on:
+      storage-api:
+        condition: service_healthy
+    restart: "no"
+    environment:
+      SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoiYWdlbnQtdGVhbS1sb2NhbCIsImlhdCI6MTcwMDAwMDAwMCwiZXhwIjo0MTAyNDQ0ODAwfQ.EMvRmbHrde1TaCOLr7MPIFnoBX0e0Uw5eeeHxePoZFY
+      BUCKET_NAME: agent-team-projects
+    entrypoint: ["/bin/sh", "/create-bucket.sh"]
+    volumes:
+      - ./docker/storage/create-bucket.sh:/create-bucket.sh:ro
+
+volumes:
+  storage-db-data:
+  storage-files:

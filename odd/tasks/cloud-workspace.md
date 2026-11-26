@@ -27,6 +27,8 @@ Let a project keep its files in Supabase Storage instead of a physical folder, c
 - [x] T4 Playwright probe for Storage locations (materialize, inspect, clean up). Verified: 545 tests pass, tsc clean. Route: delegated writer.
 - [x] T5 Project form with optional folder, docs. Done inline (mechanical). `.env.example` NOT updated: reads of env files are denied in this session, so the user adds the three Supabase variables with empty values.
 
+- [x] T6 (verified: stack healthy, 5 integration cases pass against the real gateway, tsc clean; gateway is on port 54600 because Windows reserves 54268-54467) Local Storage in Docker: storage-api + own Postgres + nginx exposing /storage/v1 in docker-compose.yml, local-only keys, integration test of the real object store against it, docs for the local env values. Ports must avoid the unrelated FitnessCRM Supabase stack (54321-54324) and the app Postgres (5432).
+
 ## Route per task
 Delegated direct writer for every task (2+ non-trivial files each); parent reviews the diff and runs the suite.
 
