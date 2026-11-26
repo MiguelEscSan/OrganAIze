@@ -208,6 +208,7 @@ npm run dev
 | `npm run build` | Builds for production. |
 | `npm start` | Serves the production build. |
 | `npm run lint` | Runs ESLint. |
+| `npm run db:migrate` | Applies the migrations in `drizzle/` to the database in `DATABASE_URL` (read from the environment or `.env.local`). |
 | `npm test` | Runs the Vitest suite. |
 
 ## Testing
@@ -220,6 +221,8 @@ npm run dev
 ## Deployment
 
 The target setup is Vercel for the app and Supabase (free tier) for Postgres. Set `DATABASE_URL`, `LLM_API_KEY` and `LLM_PROVIDER` as environment variables on Vercel. API keys are read from the environment only and never appear in prompts, logs or the repository.
+
+To create the tables in a new Supabase project, run `npm run db:migrate` once with `DATABASE_URL` pointing at it. Prefer the direct connection string (port 5432) for this step, because migrations run DDL inside a transaction. Running it again is safe: applied migrations are skipped. It only works on an empty database or one it created, so a database whose tables were made by hand fails on the first `CREATE TABLE`.
 
 ## Conventions
 
