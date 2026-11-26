@@ -41,6 +41,90 @@ describe("TypeScript project type checker", () => {
     expect(failures).toEqual([expect.objectContaining({ file: "src/App.tsx", line: 1, message: expect.stringContaining("./weatherServices") })]);
   });
 
+  it("suggests the path of a file with the same base name for an unresolved sibling import", async () => {
+    const files = filesOf({
+      "src/weatherService.ts": weatherService,
+      "App.tsx": ['import { fetchWeather } from "./weatherService";', "export const App = () => fetchWeather('x');"].join("\n"),
+    });
+
+    const failures = await checker.check(files, ["App.tsx"]);
+
+    expect(failures).toHaveLength(1);
+    expect(failures[0]?.message).toContain("Did you mean './src/weatherService'?");
+  });
+
+  it("suggests a sibling path relative to the importing file for a wrong parent import", async () => {
+    const files = filesOf({
+      "src/weatherService.ts": weatherService,
+      "src/WeatherDisplay.tsx": ['import { fetchWeather } from "../weatherService";', "export const WeatherDisplay = () => fetchWeather('x');"].join("\n"),
+    });
+
+    const failures = await checker.check(files, ["src/WeatherDisplay.tsx"]);
+
+    expect(failures[0]?.message).toContain("Did you mean './weatherService'?");
+  });
+
+  it("lists every file that shares the base name", async () => {
+    const files = filesOf({
+      "src/a/weatherService.ts": weatherService,
+      "src/b/weatherService.ts": weatherService,
+      "App.tsx": ['import { fetchWeather } from "./weatherService";', "export const App = () => fetchWeather('x');"].join("\n"),
+    });
+
+    const failures = await checker.check(files, ["App.tsx"]);
+
+    expect(failures[0]?.message).toContain("Did you mean './src/a/weatherService', './src/b/weatherService'?");
+  });
+
+  it("lists at most three suggestions", async () => {
+    const files = filesOf({
+      "a/weatherService.ts": weatherService,
+      "b/weatherService.ts": weatherService,
+      "c/weatherService.ts": weatherService,
+      "d/weatherService.ts": weatherService,
+      "App.tsx": ['import { fetchWeather } from "./weatherService";', "export const App = () => fetchWeather('x');"].join("\n"),
+    });
+
+    const failures = await checker.check(files, ["App.tsx"]);
+
+    expect(failures[0]?.message).toContain("Did you mean './a/weatherService', './b/weatherService', './c/weatherService'?");
+    expect(failures[0]?.message).not.toContain("./d/weatherService");
+  });
+
+  it("suggests the folder of an index file", async () => {
+    const files = filesOf({
+      "src/utils/index.ts": "export const double = (value: number): number => value * 2;",
+      "src/App.tsx": ['import { double } from "./helpers/utils";', "export const App = () => double(2);"].join("\n"),
+    });
+
+    const failures = await checker.check(files, ["src/App.tsx"]);
+
+    expect(failures[0]?.message).toContain("Did you mean './utils'?");
+  });
+
+  it("adds no suggestion when no file has the base name", async () => {
+    const files = filesOf({
+      "src/weatherService.ts": weatherService,
+      "src/App.tsx": ['import { fetchForecast } from "./forecastService";', "export const App = () => fetchForecast('x');"].join("\n"),
+    });
+
+    const failures = await checker.check(files, ["src/App.tsx"]);
+
+    expect(failures).toHaveLength(1);
+    expect(failures[0]?.message).not.toContain("Did you mean");
+  });
+
+  it("does not suggest the importing file itself or non-code files", async () => {
+    const files = filesOf({
+      "src/App.tsx": ['import { value } from "./helpers/App";', "export const App = () => value;"].join("\n"),
+      "src/helpers/App.css": "body {}",
+    });
+
+    const failures = await checker.check(files, ["src/App.tsx"]);
+
+    expect(failures[0]?.message).not.toContain("Did you mean");
+  });
+
   it("accepts a relative import written with a js extension", async () => {
     const files = filesOf({
       "src/weatherService.ts": weatherService,

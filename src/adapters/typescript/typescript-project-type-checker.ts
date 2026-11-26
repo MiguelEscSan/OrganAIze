@@ -1,6 +1,7 @@
 import * as ts from "typescript";
 import type { ProjectFile } from "@/ports/project-files";
 import type { ProjectTypeChecker, TypeFailure } from "@/ports/project-type-checker";
+import { suggestImportPaths, suggestionSentence } from "./suggest-import-path";
 
 const virtualRoot = "/project";
 const typeScriptSourcePattern = /\.(ts|tsx)$/;
@@ -172,7 +173,10 @@ const lineOf = (diagnostic: ts.Diagnostic): number | null =>
     ? diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start).line + 1
     : null;
 
-const failuresOf = (program: ts.Program, source: ts.SourceFile, displayPath: string): TypeFailure[] => {
+const importSuggestion = (diagnostic: ts.Diagnostic, message: string, displayPath: string, projectPaths: readonly string[]): string =>
+  diagnostic.code === 2307 ? suggestionSentence(suggestImportPaths(quotedValues(message)[0] ?? "", displayPath, projectPaths)) : "";
+
+const failuresOf = (program: ts.Program, source: ts.SourceFile, displayPath: string, projectPaths: readonly string[]): TypeFailure[] => {
   const packageNames = unresolvedPackageNames(source);
   const diagnostics = [...program.getSyntacticDiagnostics(source), ...program.getSemanticDiagnostics(source)];
 
@@ -181,7 +185,13 @@ const failuresOf = (program: ts.Program, source: ts.SourceFile, displayPath: str
     const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, " ");
 
     return name !== undefined && isRealMistake(diagnostic, message, packageNames)
-      ? [{ file: displayPath, line: lineOf(diagnostic), message: `${name}: ${message}` }]
+      ? [
+          {
+            file: displayPath,
+            line: lineOf(diagnostic),
+            message: `${name}: ${message}${importSuggestion(diagnostic, message, displayPath, projectPaths)}`,
+          },
+        ]
       : [];
   });
 };
@@ -191,10 +201,12 @@ const checkProject = (files: readonly ProjectFile[], ownPaths: readonly string[]
   const rootNames = [...contents.keys()].filter((fileName) => typeScriptSourcePattern.test(fileName));
   const program = ts.createProgram({ rootNames, options: compilerOptions, host: createHost(contents) });
 
+  const projectPaths = files.map((file) => normalizedPath(file.path));
+
   return ownPaths.flatMap((path) => {
     const source = program.getSourceFile(virtualPathOf(path));
 
-    return source && typeScriptSourcePattern.test(path) ? failuresOf(program, source, normalizedPath(path)) : [];
+    return source && typeScriptSourcePattern.test(path) ? failuresOf(program, source, normalizedPath(path), projectPaths) : [];
   });
 };
 
