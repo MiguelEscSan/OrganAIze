@@ -359,6 +359,47 @@ describe("runDevelop project context", () => {
     expect(prompt).not.toContain("b".repeat(100));
   });
 
+  describe("context budget from the client window", () => {
+    const filesOfFiveThousand = {
+      "src/a.ts": "a".repeat(5000),
+      "src/b.ts": "b".repeat(5000),
+      "src/c.ts": "c".repeat(5000),
+      "src/d.ts": "d".repeat(5000),
+      "src/e.ts": "e".repeat(5000),
+      "src/f.ts": "f".repeat(5000),
+    };
+
+    const contextLengthWith = async (contextWindowTokens: number | undefined): Promise<number> => {
+      const prompts: string[] = [];
+      const llm: LlmClient = {
+        contextWindowTokens,
+        generateJson: async (prompt: string) => {
+          prompts.push(prompt);
+          return { ok: true as const, json: validOutput };
+        },
+      };
+      const deps = createInMemoryDependencies({ ...developSeed, tasks: [subtask()] });
+      const workspace = createInMemoryWorkspaceWriter({ "src/app/page.tsx": "export default 'old';", ...filesOfFiveThousand });
+      const run = runDevelop({ ...deps, ...inMemoryDevelopDependencies(workspace), llm });
+
+      await run({ kind: "RunDevelop", taskId: "subtask-1" });
+
+      return Object.keys(filesOfFiveThousand).filter((path) => prompts[0].includes(`### ${path}`)).length * 5000;
+    };
+
+    it("limits the context to the declared window in characters", async () => {
+      expect(await contextLengthWith(8192)).toBe(5000);
+    });
+
+    it("keeps the default budget when the client declares no window", async () => {
+      expect(await contextLengthWith(undefined)).toBe(30000);
+    });
+
+    it("never exceeds the default budget for a larger window", async () => {
+      expect(await contextLengthWith(100000)).toBe(30000);
+    });
+  });
+
   it("lists the sibling subtasks of the same request with their declared files", async () => {
     const sibling = subtask({ id: "subtask-2", title: "Weather service", files: ["src/weatherService.ts"] });
     const { prompt } = await promptFor([subtask(), sibling], {});

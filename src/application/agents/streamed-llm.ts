@@ -20,5 +20,6 @@ const reportCharacters = (report: ProgressReport): LlmProgressListener => {
 };
 
 export const streamedLlm = (llm: LlmClient, report: ProgressReport): LlmClient => ({
+  contextWindowTokens: llm.contextWindowTokens,
   generateJson: (prompt) => llm.generateJson(prompt, reportCharacters(report)),
 });

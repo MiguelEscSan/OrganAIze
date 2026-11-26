@@ -36,7 +36,7 @@ The live log refreshes every 2 seconds by polling.
 
 - Next.js (App Router), TypeScript in strict mode, Tailwind CSS
 - Postgres on Supabase through Drizzle ORM
-- Gemini as the LLM provider, behind an `LlmClient` port so it can be swapped without touching `domain` or `application`
+- Ollama (local) or Gemini as the LLM provider, behind an `LlmClient` port so it can be swapped without touching `domain` or `application`
 - Zod for validating every agent output
 - Vitest for tests, Playwright for browser checks
 - Husky pre-push hook that runs the full test suite
@@ -78,8 +78,26 @@ Copy `.env.example` to `.env.local` and fill in:
 | Variable | Meaning |
 | --- | --- |
 | `DATABASE_URL` | Postgres connection string. Locally it points at the Docker Postgres; in production it is the Supabase pooler string. |
-| `LLM_API_KEY` | Gemini API key. |
-| `LLM_PROVIDER` | Provider name, currently `gemini`. |
+| `LLM_API_KEY` | Gemini API key. Not needed with Ollama. |
+| `LLM_PROVIDER` | `ollama` or `gemini`. Any value other than `ollama` uses Gemini. |
+| `LLM_MODEL` | Model name for the chosen provider. |
+
+See [LLM provider](#llm-provider) for the Ollama variables.
+
+## LLM provider
+
+**Ollama** runs the model locally and is the default for development. No API key is needed.
+
+| Variable | Meaning |
+| --- | --- |
+| `LLM_PROVIDER` | `ollama` |
+| `LLM_MODEL` | Ollama model name, for example `qwen3:4b-instruct`. |
+| `OLLAMA_BASE_URL` | Ollama server address. Defaults to `http://127.0.0.1:11434`. |
+| `OLLAMA_NUM_CTX` | Context window in tokens, sent as `num_ctx`. Defaults to 8192; an invalid value falls back to 8192. |
+
+Develop limits the read-only project context in its prompt to the client's context window (one character per token), up to 30,000 characters. Ollama requests have no client-side headers or body timeout, so a slow local model is not cut off; the time and token budgets in Settings are the only limits.
+
+**Gemini** is used when `LLM_PROVIDER` is `gemini` or unset. It needs `LLM_API_KEY` and `LLM_MODEL`.
 
 `docker compose up -d` starts Postgres 16 with two databases: `agent_team_test` for adapter tests and `agent_team_dev` for local app data. Its credentials are local-only test values.
 
