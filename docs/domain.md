@@ -17,7 +17,7 @@ These rules are non-negotiable and live in `src/domain`. They are pure TypeScrip
 - **Local** (`BROWSER_CHECK_ENABLED=true`): the system runs the Playwright probe automatically, then an LLM review of the rendered page against the request description and the acceptance criteria of its subtasks.
 - **Cloud or browser check disabled**: the request QA passes automatically, because the code was already audited per subtask.
 - **Evidence**: the request's deploy event records what the request QA saw. With the browser check disabled it says the running app was not reviewed. Otherwise it gives the characters of visible text, the console error count, the subtasks and acceptance criteria judged, and a 200-character excerpt of the visible text.
-- **Failure attribution**: each failure carries a criterion, an optional file and a message. A failure with a file goes to the subtask that declares that file, and only those subtasks return `awaiting_release → in_progress` with their failures as feedback and one more attempt (a third failed attempt sends the subtask to `review`). A failure with no file, or whose file no subtask declares, returns every subtask. The request returns to `in_progress`.
+- **Failure attribution**: each failure carries a criterion, an optional file and a message. A failure with a file goes to the subtask that declares that file, and only those subtasks return `awaiting_release → in_progress` with their failures as feedback and one more attempt (a third failed attempt sends the subtask to `review`; request QA failures are always substantive). A failure with no file, or whose file no subtask declares, returns every subtask. The request returns to `in_progress`.
 
 ## Who moves what
 
@@ -36,9 +36,12 @@ All transitions go through one pure function, `transitionTask`, which receives t
 
 ## Attempts
 
-- Each task has a maximum of 3 attempts.
-- `rejectFromQa` requires feedback, adds one attempt and returns the task to `in_progress`.
-- On the third rejection the task moves to `review` with reason `attempts`.
+- Each failed attempt has a kind, decided by where the failure came from and passed explicitly by the caller. The feedback text is never inspected.
+  - **Substantive**: the LLM review judged an acceptance criterion unmet, or the request QA failed. The task moves to `review` when its attempts reach 3.
+  - **Mechanical**: a deterministic check, a type check, invalid Develop output, a write outside the file scope, a failed shared-file merge, an invalid orchestration plan, or a review that could not be completed. The task moves to `review` when its attempts reach 6 (`maxMechanicalAttemptsPerTask`).
+- The limit that applies is the one of the failure being counted. No kind is stored on the task.
+- `rejectFromQa` and `countFailedAttempt` require the kind and feedback, add one attempt and return the task to `in_progress`, or to `review` with reason `attempts` when the limit of that kind is reached.
+- Develop's prompt lists the most recent failures of the subtask (up to 5) read from the event log, numbered in order, plus the last feedback.
 
 ## Review decisions (user)
 
