@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AgentActivityRecord } from "@/domain/agents/agent-activity";
 import type { AgentActivityRepository } from "@/ports/agent-activity-repository";
+import type { LlmClient, LlmReply } from "@/ports/llm-client";
 import { createInMemoryDependencies } from "@/adapters/in-memory/in-memory-dependencies";
 import { createScriptedLlmClient } from "@/adapters/in-memory/in-memory-llm-client";
 import { createInMemoryWorkspaceWriter } from "@/adapters/in-memory/in-memory-workspace-writer";
@@ -87,6 +88,48 @@ describe("agent activity", () => {
 
     const testings = (await deps.activity.list()).filter((record) => record.agent === "testing");
     expect(testings).toEqual([expect.objectContaining({ state: "idle" })]);
+  });
+
+  it("keeps develop working while a parallel subtask is still running", async () => {
+    const subtask = (id: string, path: string) =>
+      buildTask({
+        id,
+        requestId: "request-1",
+        parentTaskId: "parent-1",
+        title: id,
+        status: "in_progress",
+        assignedAgent: "develop",
+        files: [path],
+      });
+    const deps = createInMemoryDependencies({
+      ...developSeed,
+      tasks: [subtask("subtask-1", "src/app/one.tsx"), subtask("subtask-2", "src/app/two.tsx")],
+    });
+    const pending: ((reply: LlmReply) => void)[] = [];
+    const llm: LlmClient = {
+      generateJson: () =>
+        new Promise<LlmReply>((resolve) => {
+          pending.push(resolve);
+        }),
+    };
+    const develop = runDevelop({ ...deps, ...inMemoryDevelopDependencies(createInMemoryWorkspaceWriter({})), llm });
+    const developActivity = async () => (await deps.activity.list()).find((record) => record.agent === "develop");
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+    const filesReply = (path: string): LlmReply => ({ ok: true, json: { files: [{ path, content: "export default 1;" }] } });
+
+    const first = develop({ kind: "RunDevelop", taskId: "subtask-1" });
+    const second = develop({ kind: "RunDevelop", taskId: "subtask-2" });
+    await settle();
+    pending[0]?.(filesReply("src/app/one.tsx"));
+    await first;
+
+    expect(await developActivity()).toEqual({ agent: "develop", state: "working", message: "Working on 1 subtask" });
+
+    await settle();
+    pending[1]?.(filesReply("src/app/two.tsx"));
+    await second;
+
+    expect(await developActivity()).toEqual(expect.objectContaining({ state: "idle", message: "Waiting for a subtask in progress" }));
   });
 
   it("names the subtask that develop is writing", async () => {

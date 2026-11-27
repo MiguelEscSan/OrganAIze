@@ -7,7 +7,7 @@ import { createInMemoryBoardRepository } from "@/adapters/in-memory/in-memory-bo
 import { createInMemoryProjectFiles } from "@/adapters/in-memory/in-memory-project-files";
 import { developSeed, inMemoryDevelopDependencies } from "@/adapters/in-memory/in-memory-workspace-dependencies";
 import type { Task } from "@/domain/tasks/task";
-import type { LlmClient } from "@/ports/llm-client";
+import type { LlmClient, LlmReply } from "@/ports/llm-client";
 import { createRepositoryPromptLibrary } from "@/adapters/in-memory/repository-prompt-library";
 import { runDevelop } from "./run-develop";
 
@@ -105,7 +105,7 @@ describe("runDevelop", () => {
 
     await run({ kind: "RunDevelop", taskId: "subtask-1" });
 
-    expect(seen).toEqual(["Writing · 600 characters"]);
+    expect(seen).toEqual(["Writing src/app/page.tsx · 600 characters"]);
     expect((await taskById(deps, "subtask-1"))?.liveStatus ?? null).toBeNull();
   });
 
@@ -518,5 +518,100 @@ describe("runDevelop project context", () => {
 
     expect(outcome.ok).toBe(false);
     expect(workspace.files()["src/weather.ts"]).toBe("export const w = 1;");
+  });
+});
+
+describe("runDevelop live steps", () => {
+  const recordLiveStatuses = (deps: ReturnType<typeof createInMemoryDependencies>) => {
+    const statuses: (string | null)[] = [];
+    const tasks = {
+      ...deps.tasks,
+      setLiveStatus: async (taskId: string, liveStatus: string | null) => {
+        statuses.push(liveStatus);
+        await deps.tasks.setLiveStatus(taskId, liveStatus);
+      },
+    };
+
+    return { deps: { ...deps, tasks }, statuses };
+  };
+
+  const repliesOf = (replies: readonly LlmReply[], beforeReply: (call: number) => void = () => undefined): LlmClient => {
+    let call = 0;
+
+    return {
+      generateJson: async () => {
+        beforeReply(call);
+
+        return replies[call++] ?? { ok: false, reason: "no reply scripted" };
+      },
+    };
+  };
+
+  const runWith = async (
+    task: Task,
+    llm: LlmClient,
+    workspace = createInMemoryWorkspaceWriter({ "src/app/page.tsx": "export default 'old';" }),
+  ) => {
+    const recorded = recordLiveStatuses(createInMemoryDependencies({ ...developSeed, tasks: [task] }));
+    const run = runDevelop({ ...recorded.deps, ...inMemoryDevelopDependencies(workspace), llm });
+
+    await run({ kind: "RunDevelop", taskId: task.id });
+
+    return { ...recorded, workspace, finalStatus: (await taskById(recorded.deps, task.id))?.liveStatus ?? null };
+  };
+
+  it("announces each step for a model that does not stream", async () => {
+    const { statuses } = await runWith(subtask(), repliesOf([{ ok: true, json: validOutput }]));
+
+    expect(statuses).toEqual([
+      "Reading src/app/page.tsx",
+      "Reading project context",
+      "Writing src/app/page.tsx",
+      "Checking file scope",
+      "Saving src/app/page.tsx",
+      null,
+    ]);
+  });
+
+  it("names at most three files and counts the rest", async () => {
+    const files = ["src/a.ts", "src/b.ts", "src/c.ts", "src/d.ts"];
+    const reply: LlmReply = { ok: true, json: { files: [{ path: "src/a.ts", content: "x" }] } };
+
+    const { statuses } = await runWith(subtask({ files }), repliesOf([reply]));
+
+    expect(statuses[0]).toBe("Reading src/a.ts, src/b.ts, src/c.ts and 1 more");
+    expect(statuses[2]).toBe("Writing src/a.ts, src/b.ts, src/c.ts and 1 more");
+  });
+
+  it("clears the status after a run that fails", async () => {
+    const { statuses, finalStatus } = await runWith(subtask(), repliesOf([{ ok: false, reason: "Gemini is unavailable" }]));
+
+    expect(statuses).toEqual(["Reading src/app/page.tsx", "Reading project context", "Writing src/app/page.tsx", null]);
+    expect(finalStatus).toBeNull();
+  });
+
+  it("announces the merge of a file another subtask changed meanwhile", async () => {
+    const workspace = createInMemoryWorkspaceWriter({ "src/app/page.tsx": "export default 'old';" });
+    const siblingWrites = (call: number) => {
+      if (call === 0) {
+        void workspace.write([{ path: "src/app/page.tsx", content: "export default 'sibling';" }]);
+      }
+    };
+    const replies: LlmReply[] = [
+      { ok: true, json: validOutput },
+      { ok: true, json: { content: "export default 'merged';" } },
+    ];
+
+    const { statuses } = await runWith(subtask(), repliesOf(replies, siblingWrites), workspace);
+
+    expect(statuses).toEqual([
+      "Reading src/app/page.tsx",
+      "Reading project context",
+      "Writing src/app/page.tsx",
+      "Checking file scope",
+      "Merging src/app/page.tsx with changes from other subtasks",
+      "Saving src/app/page.tsx",
+      null,
+    ]);
   });
 });

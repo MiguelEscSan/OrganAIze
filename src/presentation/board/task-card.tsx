@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import { agentRunningTask } from "@/domain/tasks/agent-running-task";
 import type { FamilySummary } from "@/domain/tasks/group-column-into-families";
 import type { FamilySiblings } from "@/domain/tasks/list-family-siblings";
 import type { ReviewReason, Task } from "@/domain/tasks/task";
@@ -209,7 +210,7 @@ export const TaskCard = ({
         </p>
       )}
 
-      {task.liveStatus && <AgentActivity agent={task.assignedAgent} liveStatus={task.liveStatus} />}
+      {task.liveStatus && <AgentActivity agent={agentRunningTask(task)} liveStatus={task.liveStatus} />}
 
       {task.lastFeedback && (
         <p className="rounded-lg bg-terracotta-soft p-2.5 text-xs leading-relaxed text-ink">

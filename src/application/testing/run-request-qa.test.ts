@@ -236,3 +236,47 @@ describe("runRequestQa", () => {
     expect(outcome).toEqual({ ok: true, value: "skipped" });
   });
 });
+
+describe("runRequestQa live steps", () => {
+  const liveStatusesOf = async (browserEnabled: boolean) => {
+    const deps = createInMemoryDependencies({ ...developSeed, tasks: waitingTasks() });
+    const statuses: (string | null)[] = [];
+    const tasks = {
+      ...deps.tasks,
+      setLiveStatus: async (taskId: string, liveStatus: string | null) => {
+        statuses.push(liveStatus);
+        await deps.tasks.setLiveStatus(taskId, liveStatus);
+      },
+    };
+    const files = { [headerPath]: "export const Header = () => <h1>Weekly</h1>;", [listPath]: "export const List = () => <ul />;" };
+    const qa = runRequestQa({
+      ...deps,
+      tasks,
+      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceReader(files)),
+      projectFiles: createInMemoryProjectFiles(createInMemoryWorkspaceWriter(files)),
+      llm: { generateJson: async () => passingReview },
+      interfaceProbe: { inspect: async () => goodProbe },
+      browserCheckEnabled: () => browserEnabled,
+    });
+
+    await qa(command);
+
+    return statuses;
+  };
+
+  it("announces opening the running app and reviewing the request, then clears the status", async () => {
+    const statuses = await liveStatusesOf(true);
+
+    expect(statuses).toEqual([
+      "Opening the running app",
+      "Reviewing the request criteria against the running app",
+      null,
+    ]);
+  });
+
+  it("announces nothing when the browser check is disabled", async () => {
+    const statuses = await liveStatusesOf(false);
+
+    expect(statuses).toEqual([null]);
+  });
+});

@@ -1,5 +1,6 @@
 import type { AgentName } from "../agents/agent-name";
 import type { TasksByStatus } from "./group-tasks-by-status";
+import { agentRunningTask } from "./agent-running-task";
 import type { Task } from "./task";
 import { taskStatuses, type TaskStatus } from "./task-status";
 
@@ -45,8 +46,10 @@ const countWorkingByAgent = (children: readonly Task[]): Partial<Record<AgentNam
   const counts: Partial<Record<AgentName, number>> = {};
 
   for (const child of children) {
-    if (child.assignedAgent !== null && child.liveStatus) {
-      counts[child.assignedAgent] = (counts[child.assignedAgent] ?? 0) + 1;
+    const running = agentRunningTask(child);
+
+    if (running !== null) {
+      counts[running] = (counts[running] ?? 0) + 1;
     }
   }
 

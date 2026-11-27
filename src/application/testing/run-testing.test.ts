@@ -323,3 +323,60 @@ describe("runTesting", () => {
     });
   });
 });
+
+describe("runTesting live steps", () => {
+  const recordLiveStatuses = (deps: ReturnType<typeof createInMemoryDependencies>) => {
+    const statuses: (string | null)[] = [];
+    const tasks = {
+      ...deps.tasks,
+      setLiveStatus: async (taskId: string, liveStatus: string | null) => {
+        statuses.push(liveStatus);
+        await deps.tasks.setLiveStatus(taskId, liveStatus);
+      },
+    };
+
+    return { deps: { ...deps, tasks }, statuses };
+  };
+
+  const runWith = async (files: Record<string, string>, task: Task = qaTask()) => {
+    const { deps, statuses } = recordLiveStatuses(createInMemoryDependencies({ ...developSeed, tasks: [task] }));
+    const testing = runTesting({
+      ...deps,
+      ...inMemoryWorkspaceDependencies(createInMemoryWorkspaceReader(files)),
+      llm: reviewingLlm(passingReview),
+      typeChecker: createInMemoryProjectTypeChecker(),
+      projectFiles: createInMemoryProjectFiles(createInMemoryWorkspaceWriter(files)),
+    });
+
+    await testing();
+
+    return statuses;
+  };
+
+  it("announces reading, the file checks, the type check and the review of the criteria", async () => {
+    const statuses = await runWith({ [cardPath]: validCard });
+
+    expect(statuses).toEqual([
+      `Reading ${cardPath}`,
+      "Running file checks",
+      `Type-checking ${cardPath}`,
+      `Reviewing the criteria against ${cardPath}`,
+      null,
+    ]);
+  });
+
+  it("stops announcing once the file checks fail and still clears the status", async () => {
+    const statuses = await runWith({ [cardPath]: unclosedCard });
+
+    expect(statuses).toEqual([`Reading ${cardPath}`, "Running file checks", null]);
+  });
+
+  it("names at most three files and counts the rest", async () => {
+    const paths = ["src/a.tsx", "src/b.tsx", "src/c.tsx", "src/d.tsx"];
+    const files = Object.fromEntries(paths.map((path) => [path, validCard]));
+
+    const statuses = await runWith(files, qaTask({ files: paths }));
+
+    expect(statuses[0]).toBe("Reading src/a.tsx, src/b.tsx, src/c.tsx and 1 more");
+  });
+});

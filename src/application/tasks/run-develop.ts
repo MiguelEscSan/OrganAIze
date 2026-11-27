@@ -19,8 +19,9 @@ import { qaFullReason } from "./qa-capacity";
 import { conflictReason } from "./record-transition";
 import { stopTaskForBudget } from "./stop-task-for-budget";
 import type { AgentActivityRecord } from "@/domain/agents/agent-activity";
-import { streamedLlm } from "../agents/streamed-llm";
-import { liveProgressOf, withLiveStatus } from "../agents/live-progress";
+import { streamedLlm, type ProgressReport } from "../agents/streamed-llm";
+import { liveStepsOf, withLiveStatus } from "../agents/live-progress";
+import { describePaths } from "../agents/describe-paths";
 import { withAgentActivity } from "../agents/with-agent-activity";
 import { taskTitleOf } from "../agents/task-title";
 import { submitDevelopResult } from "./submit-develop-result";
@@ -95,6 +96,7 @@ const reconcileFiles = async (
   workspace: WorkspaceWriter,
   baseFiles: readonly CurrentFile[],
   proposed: readonly DevelopFile[],
+  announce: ProgressReport,
 ): Promise<Outcome<DevelopFile[]>> => {
   const reconciled: DevelopFile[] = [];
 
@@ -107,7 +109,9 @@ const reconcileFiles = async (
       continue;
     }
 
-    const merged = await mergeSharedFile(deps, { path: file.path, base, current: current ?? "", proposed: file.content });
+    await announce(`Merging ${file.path} with changes from other subtasks`);
+
+    const merged = await mergeSharedFile(deps,{ path: file.path, base, current: current ?? "", proposed: file.content });
 
     if (!merged.ok) {
       return fail(merged.reason);
@@ -142,7 +146,7 @@ const readContextFiles = async (deps: DevelopDependencies, task: Task): Promise<
 const tokensUsed =(reply: LlmReply): number => (reply.ok ? (reply.totalTokens ?? 0) : 0);
 
 const writeSubtask =
-  (deps: DevelopDependencies) =>
+  (deps: DevelopDependencies, announce: ProgressReport) =>
   async (command: RunDevelop): Promise<Outcome<Task>> => {
     const tasks = await deps.tasks.list();
     const task = tasks.find((candidate) => candidate.id === command.taskId);
@@ -157,11 +161,18 @@ const writeSubtask =
       return fail(workspace.reason);
     }
 
+    const paths = describePaths(task.files);
     const startedAt = deps.clock.now();
+
+    await announce(`Reading ${paths}`);
     const currentFiles = await readCurrentFiles(workspace.value, task);
+
+    await announce("Reading project context");
     const contextFiles = await readContextFiles(deps, task);
     const failures = previousFailuresOf(await deps.events.list(), task.id);
-    const reply = await deps.llm.generateJson(developPrompt(deps.prompts, task, currentFiles, contextFiles, siblingsOf(tasks, task), failures));
+
+    await announce(`Writing ${paths}`);
+    const reply =await deps.llm.generateJson(developPrompt(deps.prompts, task, currentFiles, contextFiles, siblingsOf(tasks, task), failures));
     const settings = await deps.settings.get();
     const overrun = budgetOverrunReason(
       { minutes: minutesBetween(startedAt, deps.clock.now()), tokens: tokensUsed(reply) },
@@ -182,6 +193,7 @@ const writeSubtask =
       return countFailure(deps, tasks, task, parsed.reason);
     }
 
+    await announce("Checking file scope");
     const scope = checkFileScope(parsed.output.files, task.files);
 
     if (!scope.ok) {
@@ -194,12 +206,13 @@ const writeSubtask =
       return fail(full);
     }
 
-    const reconciled = await reconcileFiles(deps, workspace.value, currentFiles, parsed.output.files);
+    const reconciled = await reconcileFiles(deps, workspace.value, currentFiles, parsed.output.files, announce);
 
     if (!reconciled.ok) {
       return countFailure(deps, tasks, task, reconciled.reason);
     }
 
+    await announce(`Saving ${describePaths(reconciled.value.map((file) => file.path))}`);
     await workspace.value.write(reconciled.value);
 
     return submitDevelopResult(deps)({ kind: "SubmitDevelopResult", taskId: task.id });
@@ -212,15 +225,15 @@ export const runDevelop =
 
     const working: AgentActivityRecord = { agent: "develop", state: "working", message: `Writing "${title}"` };
 
-    const report = liveProgressOf(deps, command.taskId, working, "Writing");
+    const steps = liveStepsOf(deps, command.taskId, working);
 
     return withAgentActivity(
-      deps.activity,
+      deps,
       working,
       { agent: "develop", state: "idle", message: "Waiting for a subtask in progress" },
       () =>
         withLiveStatus(deps.tasks, command.taskId, () =>
-          writeSubtask({ ...deps, llm: streamedLlm(deps.llm, report) })(command),
+          writeSubtask({ ...deps, llm: streamedLlm(deps.llm, steps.streamed) }, steps.announce)(command),
         ),
     );
   };
