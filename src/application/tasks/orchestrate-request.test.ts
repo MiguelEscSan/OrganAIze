@@ -222,3 +222,27 @@ describe("orchestrateRequest", () => {
     expect((await deps.tasks.list()).map((task) => task.id)).toEqual(["task-1"]);
   });
 });
+
+describe("orchestrateRequest live steps", () => {
+  it("announces the scaffold and the split, then clears the status", async () => {
+    const statuses: (string | null)[] = [];
+    const deps = createInMemoryDependencies({ requests: [request], tasks: [parentTask] });
+    const tasks = {
+      ...deps.tasks,
+      setLiveStatus: async (taskId: string, liveStatus: string | null) => {
+        statuses.push(liveStatus);
+        await deps.tasks.setLiveStatus(taskId, liveStatus);
+      },
+    };
+    const orchestrate = orchestrateRequest({
+      ...deps,
+      tasks,
+      ...inMemoryScaffoldDependencies(createInMemoryWorkspaceWriter()),
+      llm: createScriptedLlmClient({ ok: true, json: validPlan }),
+    });
+
+    await orchestrate({ kind: "OrchestrateRequest", taskId: "task-1" });
+
+    expect(statuses).toEqual(["Writing the project scaffold", 'Splitting "Landing" into subtasks', null]);
+  });
+});

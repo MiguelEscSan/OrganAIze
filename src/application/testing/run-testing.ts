@@ -14,8 +14,9 @@ import { fail, succeed, type Outcome } from "../shared/outcome";
 import { rootPathOfTask } from "../shared/task-workspace";
 import { submitTestResult, type TestVerdict } from "../tasks/submit-test-result";
 import type { AgentActivityRecord } from "@/domain/agents/agent-activity";
-import { streamedLlm } from "../agents/streamed-llm";
-import { liveProgressOf, withLiveStatus } from "../agents/live-progress";
+import { streamedLlm, type ProgressReport } from "../agents/streamed-llm";
+import { liveStepsOf, noAnnouncement, withLiveStatus } from "../agents/live-progress";
+import { describePaths } from "../agents/describe-paths";
 import { withAgentActivity } from "../agents/with-agent-activity";
 
 export type TypeCheckDependencies = {
@@ -106,10 +107,17 @@ const readTaskFiles = async (reader: WorkspaceReader, task: Task): Promise<Outco
   }
 };
 
-const typeFailuresOfTask = async (deps: TestingDependencies, rootPath: string, task: Task): Promise<TypeFailure[]> => {
+const typeFailuresOfTask = async (
+  deps: TestingDependencies,
+  rootPath: string,
+  task: Task,
+  announce: ProgressReport,
+): Promise<TypeFailure[]> => {
   if (!deps.projectFiles || !deps.typeChecker) {
     return [];
   }
+
+  await announce(`Type-checking ${describePaths(task.files)}`);
 
   try {
     const projectFiles = await deps.projectFiles.list(rootPath);
@@ -124,6 +132,7 @@ export const verdictForTask = async (
   deps: TestingDependencies,
   task: Task,
   renderedPage?: string,
+  announce: ProgressReport = noAnnouncement,
 ): Promise<Outcome<TestVerdict>> => {
   const rootPath = await rootPathOfTask(deps, task);
 
@@ -131,23 +140,29 @@ export const verdictForTask = async (
     return fail(rootPath.reason);
   }
 
+  const paths = describePaths(task.files);
+
+  await announce(`Reading ${paths}`);
   const files = await readTaskFiles(deps.workspaceFor(rootPath.value), task);
 
   if (!files.ok) {
     return succeed(unreviewedVerdict(files.reason));
   }
 
+  await announce("Running file checks");
   const checkFailures = runDeterministicChecks(files.value);
 
   if (checkFailures.length > 0) {
     return succeed(failedVerdict(numbered(checkFailures.map(checkFailureText)), "mechanical"));
   }
 
-  const typeFailures = await typeFailuresOfTask(deps, rootPath.value, task);
+  const typeFailures = await typeFailuresOfTask(deps, rootPath.value, task, announce);
 
   if (typeFailures.length > 0) {
     return succeed(failedVerdict(numbered(typeFailures.map(typeFailureText)), "mechanical"));
   }
+
+  await announce(`Reviewing the criteria against ${paths}`);
 
   return succeed(await reviewWithLlm(deps, task, files.value, renderedPage));
 };
@@ -156,8 +171,8 @@ export const submitVerdict = async (deps: TestingDependencies, task: Task, verdi
   await submitTestResult(deps)({ kind: "SubmitTestResult", taskId: task.id, verdict });
 };
 
-const judgeTask = async (deps: TestingDependencies, task: Task): Promise<void> => {
-  const verdict = await verdictForTask(deps, task);
+const judgeTask = async (deps: TestingDependencies, task: Task, announce: ProgressReport): Promise<void> => {
+  const verdict = await verdictForTask(deps, task, undefined, announce);
 
   await submitVerdict(deps, task, verdict.ok ? verdict.value : unreviewedVerdict(verdict.reason));
 };
@@ -165,13 +180,16 @@ const judgeTask = async (deps: TestingDependencies, task: Task): Promise<void> =
 const reviewTask = (deps: TestingDependencies, task: Task): Promise<void> => {
   const working: AgentActivityRecord = { agent: "testing", state: "reviewing", message: `Reviewing "${task.title}"` };
 
-  const report = liveProgressOf(deps, task.id, working, "Reviewing");
+  const steps = liveStepsOf(deps, task.id, working);
 
   return withAgentActivity(
     deps.activity,
     working,
     { agent: "testing", state: "idle", message: "Waiting for a subtask in QA" },
-    () => withLiveStatus(deps.tasks, task.id, () => judgeTask({ ...deps, llm: streamedLlm(deps.llm, report) }, task)),
+    () =>
+      withLiveStatus(deps.tasks, task.id, () =>
+        judgeTask({ ...deps, llm: streamedLlm(deps.llm, steps.streamed) }, task, steps.announce),
+      ),
   );
 };
 

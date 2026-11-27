@@ -13,8 +13,8 @@ import type { LlmClient } from "@/ports/llm-client";
 import type { PromptLibrary } from "@/ports/prompt-library";
 import { blocksOf } from "../agents/prompt-blocks";
 import type { ProjectFile } from "@/ports/project-files";
-import { streamedLlm } from "../agents/streamed-llm";
-import { liveProgressOf, withLiveStatus } from "../agents/live-progress";
+import { streamedLlm, type ProgressReport } from "../agents/streamed-llm";
+import { liveStepsOf, withLiveStatus } from "../agents/live-progress";
 import { withAgentActivity } from "../agents/with-agent-activity";
 import { fail, succeed, type Outcome } from "../shared/outcome";
 import { rootPathOfTask } from "../shared/task-workspace";
@@ -118,6 +118,7 @@ const verdictOfRunningApp = async (
   llm: LlmClient,
   request: Task,
   subtasks: readonly Task[],
+  announce: ProgressReport,
 ): Promise<RequestVerdict> => {
   const rootPath = await rootPathOfTask(deps, request);
 
@@ -129,6 +130,7 @@ const verdictOfRunningApp = async (
     return failedVerdict(appStartCriterion, "the interface probe is not available");
   }
 
+  await announce("Opening the running app");
   const probe = await deps.interfaceProbe.inspect(rootPath.value);
 
   if (!probe.ok) {
@@ -141,6 +143,8 @@ const verdictOfRunningApp = async (
     subtaskCount: subtasks.length,
     criteriaCount: subtasks.reduce((total, subtask) => total + subtask.acceptanceCriteria.length, 0),
   });
+
+  await announce("Reviewing the request criteria against the running app");
 
   return reviewRenderedApp(
     deps,
@@ -158,13 +162,14 @@ const verdictOf = async (
   llm: LlmClient,
   request: Task,
   subtasks: readonly Task[],
+  announce: ProgressReport,
 ): Promise<RequestVerdict> => {
   if (!(deps.browserCheckEnabled?.() ?? false)) {
     return { passed: true, evidence: browserCheckDisabledEvidence };
   }
 
   try {
-    return await verdictOfRunningApp(deps, llm, request, subtasks);
+    return await verdictOfRunningApp(deps, llm, request, subtasks, announce);
   } catch (error) {
     return unreviewedVerdict(error instanceof Error ? error.message : "the request could not be reviewed");
   }
@@ -172,13 +177,16 @@ const verdictOf = async (
 
 const judgeRequest = (deps: RequestQaDependencies, request: Task, subtasks: readonly Task[]): Promise<RequestVerdict> => {
   const working: AgentActivityRecord = { agent: "testing", state: "reviewing", message: `Reviewing request "${request.title}"` };
-  const report = liveProgressOf(deps, request.id, working, "Reviewing");
+  const steps = liveStepsOf(deps, request.id, working);
 
   return withAgentActivity(
     deps.activity,
     working,
     { agent: "testing", state: "idle", message: "Waiting for a subtask in QA" },
-    () => withLiveStatus(deps.tasks, request.id, () => verdictOf(deps, streamedLlm(deps.llm, report), request, subtasks)),
+    () =>
+      withLiveStatus(deps.tasks, request.id, () =>
+        verdictOf(deps, streamedLlm(deps.llm, steps.streamed), request, subtasks, steps.announce),
+      ),
   );
 };
 

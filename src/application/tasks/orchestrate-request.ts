@@ -10,8 +10,8 @@ import { countFailedAttempt } from "@/domain/tasks/count-failed-attempt";
 import { creationReason } from "@/domain/tasks/previous-failures";
 import { conflictReason } from "./record-transition";
 import type { AgentActivityRecord } from "@/domain/agents/agent-activity";
-import { streamedLlm } from "../agents/streamed-llm";
-import { liveProgressOf, withLiveStatus } from "../agents/live-progress";
+import { streamedLlm, type ProgressReport } from "../agents/streamed-llm";
+import { liveStepsOf, withLiveStatus } from "../agents/live-progress";
 import { withAgentActivity } from "../agents/with-agent-activity";
 import { taskTitleOf } from "../agents/task-title";
 import { scaffoldProject, type ScaffoldDependencies } from "../projects/scaffold-project";
@@ -80,7 +80,7 @@ const scaffoldProjectOf = async (deps: OrchestrationDependencies, request: Reque
 };
 
 const splitRequest =
-  (deps: OrchestrationDependencies) =>
+  (deps: OrchestrationDependencies, announce: ProgressReport) =>
   async (command: OrchestrateRequest): Promise<Outcome<Task[]>> => {
     const tasks = await deps.tasks.list();
     const parent = tasks.find((task) => task.id === command.taskId);
@@ -103,13 +103,15 @@ const splitRequest =
       return fail("Request not found");
     }
 
+    await announce("Writing the project scaffold");
     const scaffolded = await scaffoldProjectOf(deps, request);
 
     if (!scaffolded.ok) {
       return fail(scaffolded.reason);
     }
 
-    const reply = await deps.llm.generateJson(planPrompt(deps.prompts, request, parent));
+    await announce(`Splitting "${parent.title}" into subtasks`);
+    const reply =await deps.llm.generateJson(planPrompt(deps.prompts, request, parent));
 
     if (!reply.ok) {
       return fail(reply.reason);
@@ -145,7 +147,7 @@ export const orchestrateRequest =
 
     const working: AgentActivityRecord = { agent: "orchestrator", state: "working", message: `Splitting "${title}" into subtasks` };
 
-    const report = liveProgressOf(deps, command.taskId, working, "Splitting");
+    const steps = liveStepsOf(deps, command.taskId, working);
 
     return withAgentActivity(
       deps.activity,
@@ -153,7 +155,7 @@ export const orchestrateRequest =
       { agent: "orchestrator", state: "idle", message: "Waiting for a request in Ready" },
       () =>
         withLiveStatus(deps.tasks, command.taskId, () =>
-          splitRequest({ ...deps, llm: streamedLlm(deps.llm, report) })(command),
+          splitRequest({ ...deps, llm: streamedLlm(deps.llm, steps.streamed) }, steps.announce)(command),
         ),
     );
   };
