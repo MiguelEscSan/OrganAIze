@@ -228,7 +228,7 @@ export const runDevelop =
     const steps = liveStepsOf(deps, command.taskId, working);
 
     return withAgentActivity(
-      deps.activity,
+      deps,
       working,
       { agent: "develop", state: "idle", message: "Waiting for a subtask in progress" },
       () =>

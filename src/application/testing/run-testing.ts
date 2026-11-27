@@ -183,7 +183,7 @@ const reviewTask = (deps: TestingDependencies, task: Task): Promise<void> => {
   const steps = liveStepsOf(deps, task.id, working);
 
   return withAgentActivity(
-    deps.activity,
+    deps,
     working,
     { agent: "testing", state: "idle", message: "Waiting for a subtask in QA" },
     () =>

@@ -180,7 +180,7 @@ const judgeRequest = (deps: RequestQaDependencies, request: Task, subtasks: read
   const steps = liveStepsOf(deps, request.id, working);
 
   return withAgentActivity(
-    deps.activity,
+    deps,
     working,
     { agent: "testing", state: "idle", message: "Waiting for a subtask in QA" },
     () =>

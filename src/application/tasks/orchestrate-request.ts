@@ -150,7 +150,7 @@ export const orchestrateRequest =
     const steps = liveStepsOf(deps, command.taskId, working);
 
     return withAgentActivity(
-      deps.activity,
+      deps,
       working,
       { agent: "orchestrator", state: "idle", message: "Waiting for a request in Ready" },
       () =>
