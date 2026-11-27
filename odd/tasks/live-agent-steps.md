@@ -36,8 +36,8 @@ Everything the agents do must be visible on the board (Agent principle 8, Observ
 - [x] T2 Develop announces: reading files, reading project context, waiting for the model to write files, checking scope, merging shared files, saving files
 - [x] T3 Testing announces: reading files, running file checks, type-checking, reviewing criteria; same for request-level QA
 - [x] T4 Orchestrator announces: splitting into subtasks, writing the scaffold
-- [ ] T5 Presentation: confirm steps render on card, task details and Team; adjust only if needed
-- [ ] T6 Verify live in the browser with a real run
+- [x] T5 Presentation: steps render on each subtask card and on the request card ("Develop on N"); no presentation change needed
+- [x] T6 Verify live in the browser with a real run
 
 ## Acceptance criteria
 
@@ -54,6 +54,10 @@ Branched from `refactor/agent-prompts-in-markdown` because the prompt library it
 T1 to T4 done, not committed yet. RED observed first: 18 failing tests (missing `describe-paths` module, `liveStepsOf` not a function, steps not announced). GREEN: `npx vitest run` 95 files passed and 1 skipped, 632 tests passed and 5 skipped; `npx tsc --noEmit` exit 0.
 
 Step wording: Develop `Reading <paths>`, `Reading project context`, `Writing <paths>`, `Checking file scope`, `Merging <path> with changes from other subtasks`, `Saving <paths>`. Testing `Reading <paths>`, `Running file checks`, `Type-checking <paths>`, `Reviewing the criteria against <paths>`. Request QA `Opening the running app`, `Reviewing the request criteria against the running app`. Orchestrator `Writing the project scaffold`, `Splitting "<title>" into subtasks`. Streamed characters append as `<step> · N characters`.
+
+T5 and T6 done. Production build, request with 4 subtasks, observer sampling the board every 250 ms. Observed on cards: "Writing the project scaffold", "Splitting ... into subtasks", "Develop on 3", "Writing Header.tsx", "Reading project context", "Checking file scope", "Writing Badge.tsx", "Type-checking Footer.tsx", "Reviewing the criteria against Badge.tsx". Subtasks ran in parallel and each card showed its own step.
+
+Open, not fixed: Team keeps one record per agent and `withAgentActivity` sets it to idle when any run ends, so with parallel Develop runs Team can show Idle while others still work (from code reading, not observed). Testing once rejected Header.tsx with "Invalid input: expected object, received array" (reply format), unrelated to this feature.
 
 ## Route
 
