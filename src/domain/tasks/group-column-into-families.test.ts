@@ -190,4 +190,19 @@ describe("groupColumnIntoFamilies", () => {
 
     expect(entry).toMatchObject({ summary: { workingByAgent: { develop: 2, testing: 1 } } });
   });
+
+  it("counts a subtask in qa as testing even though it stays assigned to develop", () => {
+    const parent = createTask({ id: "parent" });
+    const underReview = createTask({
+      id: "under-review",
+      parentTaskId: "parent",
+      status: "qa",
+      assignedAgent: "develop",
+      liveStatus: "Reviewing the criteria against Footer.tsx",
+    });
+
+    const [entry] = groupColumnIntoFamilies("in_progress", board([parent, underReview]));
+
+    expect(entry).toMatchObject({ summary: { workingByAgent: { testing: 1 } } });
+  });
 });
